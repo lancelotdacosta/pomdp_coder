@@ -1,4 +1,7 @@
-# uncertain-world-models
+# pomdp-coder
+
+This repo contains the code release for the paper
+[LLM-Guided Probabilistic Program Induction for POMDP Model Estimation](https://arxiv.org/pdf/2505.02216)
 
 ## Setup
 
