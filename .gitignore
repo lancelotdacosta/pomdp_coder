@@ -1,0 +1,16 @@
+**/__pycache__/
+**/.DS_Store
+
+**.egg-info
+outputs
+
+.env
+main.log
+.vscode
+build/
+
+.mypy_cache/
+*.DS_Store
+
+lib
+checkpoints

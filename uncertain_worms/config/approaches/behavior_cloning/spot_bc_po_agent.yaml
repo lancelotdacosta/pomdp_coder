@@ -1,0 +1,27 @@
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+max_steps: 60
+num_episodes: 1
+seed: 0
+gamma: 0.98
+save_log: false
+replay_path: None
+
+graphnav: &graphnav "spot_room_graphnav"
+
+
+actions: &actions [0, 1, 2, 3, 4, 5, 6]
+env:
+  _target_: uncertain_worms.environments.spot.spot_env.SpotEnvironment
+  fully_obs: false
+  real_spot: false
+  graphnav: *graphnav
+
+
+agent:
+  _target_: uncertain_worms.policies.behavior_cloning.BehaviorCloning
+  dataset_path: "environments/spot/trajectory_data/${graphnav}.pkl"
+  fully_obs: false
+  actions: *actions

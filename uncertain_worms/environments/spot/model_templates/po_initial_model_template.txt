@@ -1,0 +1,9 @@
+def initial_func(empty_state:SpotState):
+    """
+    Input:
+        empty_state (SpotState): 
+            A state with prepopulated fixed objects, visibility grid, and occupancy grid, no movable objects populated in it.
+    Returns:
+        state (SpotState): the initial state of the environment with the goal placed on top of the correct objects using the available functions.
+    """
+    raise NotImplementedError

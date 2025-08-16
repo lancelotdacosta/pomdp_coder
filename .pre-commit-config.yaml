@@ -1,0 +1,11 @@
+repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        language: system
+        exclude: ^uncertain_worms/environments/spot/spot_utils
+        args:
+          - --config-file=mypy.ini
+          # Optionally, specify the directory too:
+          # - uncertain_worms

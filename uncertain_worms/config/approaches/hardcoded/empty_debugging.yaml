@@ -1,0 +1,48 @@
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+max_steps: 40
+num_episodes: 1
+seed: 0
+gamma: 0.98
+save_log: false
+replay_path: None
+
+actions: &actions [0, 1, 2, 3, 4, 5]
+env_name: &env_name "CustomMiniGrid-Empty-10x10-v0"
+
+env:
+  _target_: uncertain_worms.environments.minigrid.minigrid_env.MinigridEnvironment
+  fully_obs: false
+  env_name: ${env_name}
+
+agent:
+  _target_: uncertain_worms.policies.partially_obs_planning_agent.PartiallyObsPlanningAgent
+  num_particles: 100
+  fully_obs: false
+  actions: *actions
+  empty_state:
+    _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_state_gen
+    env_name: ${env_name}
+
+  empty_observation:
+    _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen
+
+  planner:
+    _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
+    actions: *actions
+
+    empty_observation:
+      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen
+
+    initial_model: 
+      _target_: uncertain_worms.structs.empty_initial_model_gen
+    transition_model: 
+      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_transition_model_gen
+    reward_model:
+      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_reward_model_gen
+    observation_model:
+      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_observation_model_gen
+    heuristic:
+      _target_: uncertain_worms.environments.minigrid.minigrid_env.goal_heuristic_gen

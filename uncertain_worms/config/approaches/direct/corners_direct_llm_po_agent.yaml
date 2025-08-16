@@ -1,0 +1,24 @@
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+max_steps: 40
+num_episodes: 10
+seed: 0
+gamma: 0.98
+save_log: false
+replay_path: None
+env_name: &env_name "CornerGoalRandom-Empty-10x10-v0"
+
+actions: &actions [0, 1, 2, 3, 4, 5]
+env:
+  _target_: uncertain_worms.environments.minigrid.minigrid_env.MinigridEnvironment
+  fully_obs: false
+  env_name: ${env_name}
+
+agent:
+  _target_: uncertain_worms.policies.direct_llm_po_agent.DirectLLMPartiallyObsPolicy
+  env_code_path: environments/minigrid
+  dataset_path: "environments/minigrid/trajectory_data/${env_name}.pkl"
+  fully_obs: false
+  actions: *actions

@@ -1,0 +1,25 @@
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+max_steps: 200
+num_episodes: 10
+seed: 0
+gamma: 0.98
+save_log: false
+replay_path: None
+
+
+actions: &actions [0, 1, 2]
+
+env:
+  _target_: uncertain_worms.environments.tiger.tiger_env.TigerEnv
+  fully_obs: false
+  real_spot: false
+
+
+agent:
+  _target_: uncertain_worms.policies.behavior_cloning.BehaviorCloning
+  dataset_path: "environments/tiger/trajectory_data/tiger_data.pkl"
+  fully_obs: false
+  actions: *actions

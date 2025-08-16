@@ -1,0 +1,53 @@
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+max_steps: 10
+num_episodes: 10
+seed: 0
+gamma: 0.98
+save_log: false
+replay_path: None
+actions: &actions [0, 1, 2]
+
+env:
+  _target_: uncertain_worms.environments.tiger.tiger_env.TigerEnv
+  fully_obs: false
+
+
+agent:
+  _target_: uncertain_worms.policies.tabular_learners.Tabular_TROI_PartiallyObsPlanningAgent
+  fully_obs: false
+  actions: *actions
+  dataset_path: "environments/tiger/trajectory_data/tiger_data.pkl"
+
+  max_attempts: 2500000
+  num_particles: 50
+
+  empty_state:
+    _target_: uncertain_worms.environments.tiger.tiger_env.tiger_empty_state_gen
+
+  empty_observation:
+    _target_: uncertain_worms.environments.tiger.tiger_env.tiger_empty_observation_gen
+
+  planner:
+    _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
+
+    max_expansions: 50
+    num_rollouts: 10
+    entropy_coeff: 0.0
+    lambda_coeff: 0.01
+    continue_search_on_goal: true
+
+    actions: *actions
+    empty_observation:
+      _target_: uncertain_worms.environments.tiger.tiger_env.tiger_empty_observation_gen
+      
+    transition_model: 
+      _target_: uncertain_worms.structs.empty_transition_model_gen
+    reward_model:
+      _target_: uncertain_worms.structs.empty_reward_model_gen
+    observation_model:
+      _target_: uncertain_worms.structs.empty_observation_model_gen
+    initial_model: 
+      _target_: uncertain_worms.structs.empty_initial_model_gen

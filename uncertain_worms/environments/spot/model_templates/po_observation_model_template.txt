@@ -1,0 +1,24 @@
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (SpotState): the next state of the environment
+        action (int): the action taken
+        empty_obs (SpotObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (SpotObservation): observation of the agent
+    """
+    raise NotImplementedError

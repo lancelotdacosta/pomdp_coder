@@ -1,0 +1,19 @@
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+max_steps: 40
+num_episodes: 1
+seed: 0
+gamma: 0.98
+save_log: false
+replay_path: None
+
+env:
+  _target_: uncertain_worms.environments.spot.spot_env.SpotEnvironment
+  fully_obs: true
+  
+agent:
+  _target_: uncertain_worms.policies.random_policy.RandomPolicy
+  fully_obs: true
+  actions: [0, 1, 2, 3]

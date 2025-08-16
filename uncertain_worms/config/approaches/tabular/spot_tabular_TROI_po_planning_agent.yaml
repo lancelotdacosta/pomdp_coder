@@ -1,0 +1,50 @@
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+max_steps: 60
+num_episodes: 10
+seed: 0
+gamma: 0.98
+save_log: false
+replay_path: None
+graphnav: &graphnav "spot_room_graphnav"
+actions: &actions [0, 1, 2, 3, 4, 5, 6]
+
+env:
+  _target_: uncertain_worms.environments.spot.spot_env.SpotEnvironment
+  fully_obs: false
+  real_spot: false
+  graphnav: *graphnav
+
+
+agent:
+  _target_: uncertain_worms.policies.tabular_learners.Tabular_TROI_PartiallyObsPlanningAgent
+  fully_obs: false
+  actions: *actions
+  dataset_path: "environments/spot/trajectory_data/${graphnav}.pkl"
+
+  empty_state:
+    _target_: uncertain_worms.environments.spot.spot_env.spot_empty_state_gen
+    graphnav: *graphnav
+
+  empty_observation:
+    _target_: uncertain_worms.environments.spot.spot_env.spot_empty_observation_gen
+
+  max_attempts: 25000
+  num_particles: 100
+  planner:
+    _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
+    actions: *actions
+    
+    empty_observation:
+      _target_: uncertain_worms.environments.spot.spot_env.spot_empty_observation_gen
+      
+    transition_model: 
+      _target_: uncertain_worms.structs.empty_transition_model_gen
+    reward_model:
+      _target_: uncertain_worms.structs.empty_reward_model_gen
+    observation_model:
+      _target_: uncertain_worms.structs.empty_observation_model_gen
+    initial_model: 
+      _target_: uncertain_worms.structs.empty_initial_model_gen
