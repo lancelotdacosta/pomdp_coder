@@ -15,4 +15,4 @@ build/
 lib
 checkpoints
 venv/
-
+.ipynb_checkpoints/
