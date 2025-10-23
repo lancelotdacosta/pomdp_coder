@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 env_file = os.path.join(pathlib.Path(__file__).parent.parent, ".env")
 dotenv.load_dotenv(env_file, override=True)
-openrouter_api_key = os.environ.get("OPEN_ROUTER_KEY")
+# openrouter_api_key = os.environ.get("OPEN_ROUTER_KEY")
 
 PROJECT_ROOT = os.path.dirname(__file__)
 
@@ -81,8 +81,16 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 
 # ENGINE = "gpt-3.5-turbo-0125"
 # ENGINE = "openai/gpt-4-turbo"
-ENGINE = "openai/gpt-4o"
+# ENGINE = "openai/gpt-4o"
 # ENGINE = "openai/o1"
+# Change ENGINE:
+ENGINE = "codellama:34b-instruct-q5_K_M"
+
+# Add Ollama client:
+ollama_client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama"
+)
 
 
 def parse_code(input_text: str) -> str | None:
@@ -111,7 +119,7 @@ def discounted_reward(rewards: List[float], gamma: float) -> float:
     return rewards[0]  # Total discounted return for the episode
 
 
-def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str, float]:
+# def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str, float]:
     retry_count = 0
     backoff_factor = 60
     while True:
@@ -138,6 +146,35 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
             log.info(f"Rate limit exceeded. Retrying in {sleep_time} seconds...")
             time.sleep(sleep_time)
 
+def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str, float]:
+    """Query local Ollama instead of OpenRouter"""
+    retry_count = 0
+    backoff_factor = 2
+    
+    while True:
+        try:
+            st = time.time()
+            
+            # Use OpenAI client with Ollama
+            response = ollama_client.chat.completions.create(
+                model=ENGINE,
+                messages=message,
+                temperature=0.7,  # Adjust as needed
+                max_tokens=2000,  # Adjust based on your needs
+            )
+            
+            return (
+                response.choices[0].message.content,
+                time.time() - st,
+            )
+            
+        except Exception as e:
+            retry_count += 1
+            if retry_count > max_retries:
+                raise e
+            sleep_time = backoff_factor * (2**retry_count)
+            log.info(f"Connection failed. Retrying in {sleep_time} seconds...")
+            time.sleep(sleep_time)
 
 if __name__ == "__main__":
     pass
