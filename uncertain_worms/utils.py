@@ -13,6 +13,8 @@ import dotenv
 import hydra
 import requests  # type: ignore
 
+from openai import OpenAI
+
 log = logging.getLogger(__name__)
 
 env_file = os.path.join(pathlib.Path(__file__).parent.parent, ".env")
@@ -83,8 +85,8 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 # ENGINE = "openai/gpt-4-turbo"
 # ENGINE = "openai/gpt-4o"
 # ENGINE = "openai/o1"
-# Change ENGINE:
-ENGINE = "codellama:34b-instruct-q5_K_M"
+# ENGINE = "codellama:34b-instruct-q5_K_M"
+ENGINE = "deepseek-r1-large"
 
 # Add Ollama client:
 ollama_client = OpenAI(
@@ -120,31 +122,31 @@ def discounted_reward(rewards: List[float], gamma: float) -> float:
 
 
 # def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str, float]:
-    retry_count = 0
-    backoff_factor = 60
-    while True:
-        try:
-            st = time.time()
-
-            response = requests.post(
-                url="https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": "Bearer {}".format(openrouter_api_key),
-                },
-                data=json.dumps({"model": ENGINE, "messages": message}),
-            )
-            response_json = response.json()
-            return (
-                str(response_json["choices"][0]["message"]["content"]),
-                time.time() - st,
-            )
-        except Exception as e:
-            retry_count += 1
-            if retry_count > max_retries:
-                raise e
-            sleep_time = backoff_factor * (2**retry_count)
-            log.info(f"Rate limit exceeded. Retrying in {sleep_time} seconds...")
-            time.sleep(sleep_time)
+#     retry_count = 0
+#     backoff_factor = 60
+#     while True:
+#         try:
+#             st = time.time()
+# 
+#             response = requests.post(
+#                 url="https://openrouter.ai/api/v1/chat/completions",
+#                 headers={
+#                     "Authorization": "Bearer {}".format(openrouter_api_key),
+#                 },
+#                 data=json.dumps({"model": ENGINE, "messages": message}),
+#             )
+#             response_json = response.json()
+#             return (
+#                 str(response_json["choices"][0]["message"]["content"]),
+#                 time.time() - st,
+#             )
+#         except Exception as e:
+#             retry_count += 1
+#             if retry_count > max_retries:
+#                 raise e
+#             sleep_time = backoff_factor * (2**retry_count)
+#             log.info(f"Rate limit exceeded. Retrying in {sleep_time} seconds...")
+#             time.sleep(sleep_time)
 
 def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str, float]:
     """Query local Ollama instead of OpenRouter"""
@@ -158,9 +160,7 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
             # Use OpenAI client with Ollama
             response = ollama_client.chat.completions.create(
                 model=ENGINE,
-                messages=message,
-                temperature=0.7,  # Adjust as needed
-                max_tokens=2000,  # Adjust based on your needs
+                messages=message
             )
             
             return (
