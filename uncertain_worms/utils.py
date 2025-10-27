@@ -153,6 +153,15 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
     retry_count = 0
     backoff_factor = 2
     
+    # Token tracking setup
+    token_log_path = os.path.join(get_log_dir(), "token_usage.json")
+    
+
+    token_data = {}
+    
+    # Find next key number
+    next_key = str(max([int(k) for k in token_data.keys()], default=-1) + 1)
+    
     while True:
         try:
             st = time.time()
@@ -162,6 +171,22 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
                 model=ENGINE,
                 messages=message
             )
+            
+            # Extract token usage
+            input_tokens = response.usage.prompt_tokens
+            output_tokens = response.usage.completion_tokens
+            
+            # Store token data
+            token_data[next_key] = {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens
+            }
+            
+            # Save to JSON file
+            with open(token_log_path, "w") as f:
+                json.dump(token_data, f, indent=2)
+            
+            log.info(f"Tokens Info - Input: {input_tokens}, Output: {output_tokens}")
             
             return (
                 response.choices[0].message.content,
