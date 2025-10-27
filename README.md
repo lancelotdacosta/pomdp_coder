@@ -77,7 +77,7 @@ python main.py --config-dir=uncertain_worms/config/approaches/hardcoded --config
 ### Ours
 
 ```
-python main.py --config-dir=uncertain_worms/config/approaches/ours --config-name=tiger_llm_T_po_planning_agent.yaml
+python main.py --config-dir=uncertain_worms/config/approaches/ours --config-name=tiger_llm_TROI_po_planning_agent.yaml
 ```
 
 ```
