@@ -156,8 +156,11 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
     # Token tracking setup
     token_log_path = os.path.join(get_log_dir(), "token_usage.json")
     
-
-    token_data = {}
+    if os.path.exists(token_log_path):
+            with open(token_log_path, "r") as f:
+                token_data = json.load(f)
+    else:
+            token_data = {}
     
     # Find next key number
     next_key = str(max([int(k) for k in token_data.keys()], default=-1) + 1)
