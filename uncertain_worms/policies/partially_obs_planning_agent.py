@@ -32,7 +32,7 @@ from uncertain_worms.structs import (
     ReplayBuffer,
     StateType,
 )
-from uncertain_worms.utils import PROJECT_ROOT, get_log_dir, should_reset_prompt
+from uncertain_worms.utils import PROJECT_ROOT, get_log_dir
 
 log = logging.getLogger(__name__)
 
@@ -1052,24 +1052,11 @@ class LLMPartiallyObsPlanningAgent(
 
         # Maintain a parent mapping from child RexNode to parent RexNode.
         parent_mapping: Dict[RexNode, RexNode] = {}
-        
-        # Track iterations since last improvement for reset detection
-        iterations_without_improvement = 0
-        best_coverage_so_far = 0.0
-        max_iterations_before_reset = 10
 
         for iter_num in range(num_model_attempts):
             log.info("-" * 20)
             log.info(f"REx Step {iter_num}: Attempting to generate new code")
             self.step_num = iter_num
-            
-            # Check if we should reset to initial prompt
-            if should_reset_prompt(iterations_without_improvement, max_iterations_before_reset):
-                log.warning(f"Resetting to initial prompt after {iterations_without_improvement} iterations without improvement")
-                # Reset by creating a fresh starting node with empty messages
-                initial_node.messages = []
-                initial_node.previous_code = None
-                iterations_without_improvement = 0
 
             # Sample a node based on random beta sampling.
             to_update_nodes = [node for node in generated_nodes if node.to_update]
@@ -1110,7 +1097,6 @@ class LLMPartiallyObsPlanningAgent(
                     break
             else:
                 log.info("Failed to generate valid code after maximum attempts.")
-                iterations_without_improvement += 1
                 continue
 
             new_train_coverage = self._evaluate_coverage(
@@ -1120,15 +1106,6 @@ class LLMPartiallyObsPlanningAgent(
                 test_empirical_dist, test_model_dist
             )
             combined_coverage = (new_train_coverage + new_test_coverage) / 2
-            
-            # Check if we made improvement
-            if combined_coverage > best_coverage_so_far:
-                best_coverage_so_far = combined_coverage
-                iterations_without_improvement = 0
-                log.info(f"Improvement detected! New best coverage: {combined_coverage:.4f}")
-            else:
-                iterations_without_improvement += 1
-                log.info(f"No improvement. Iterations without improvement: {iterations_without_improvement}")
 
             # Create a new RexNode for the generated code.
             new_node = RexNode(

@@ -204,18 +204,5 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
             log.info(f"Connection failed. Retrying in {sleep_time} seconds...")
             time.sleep(sleep_time)
 
-def should_reset_prompt(iteration: int, max_iterations_before_reset: int = 10) -> bool:
-    """
-    Check if we should reset to initial prompt after too many iterations.
-    
-    Args:
-        iteration: Current iteration number
-        max_iterations_before_reset: Maximum iterations before forcing a reset
-    
-    Returns:
-        True if should reset, False otherwise
-    """
-    return iteration >= max_iterations_before_reset
-
 if __name__ == "__main__":
     pass
