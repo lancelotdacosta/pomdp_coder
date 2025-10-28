@@ -86,7 +86,8 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 # ENGINE = "openai/gpt-4o"
 # ENGINE = "openai/o1"
 # ENGINE = "codellama:34b-instruct-q5_K_M"
-ENGINE = "deepseek-r1-large"
+# ENGINE = "deepseek-r1-large"
+ENGINE = "qwen2.5-coder:32b"
 
 # Add Ollama client:
 ollama_client = OpenAI(
@@ -172,8 +173,7 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
             # Use OpenAI client with Ollama
             response = ollama_client.chat.completions.create(
                 model=ENGINE,
-                messages=message,
-                extra_body={"thinking": {"enabled": False}}
+                messages=message
             )
             
             # Extract token usage
@@ -192,10 +192,9 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
             
             log.info(f"Tokens Info - Input: {input_tokens}, Output: {output_tokens}")
             
-            return (
-                response.choices[0].message.content,
-                time.time() - st,
-            )
+            content = response.choices[0].message.content
+            
+            return (content, time.time() - st)
             
         except Exception as e:
             retry_count += 1
