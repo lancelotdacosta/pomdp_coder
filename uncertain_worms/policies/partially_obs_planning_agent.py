@@ -850,7 +850,7 @@ class LLMPartiallyObsPlanningAgent(
                 + "\n"
             )
             experiences += (
-                "And here are some samples from your code under the same conditions\n"
+                "And here are some samples from your code under the same conditions (they are wrong)\n"
                 + model_io_str
                 + "\n"
             )
