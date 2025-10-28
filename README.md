@@ -81,7 +81,7 @@ python main.py --config-dir=uncertain_worms/config/approaches/ours --config-name
 ```
 
 ```
-python main.py --config-dir=uncertain_worms/config/approaches/ours --config-name=rocksample_llm_T_po_planning_agent.yaml
+python main.py --config-dir=uncertain_worms/config/approaches/ours --config-name=rocksample_llm_TROI_po_planning_agent.yaml
 ```
 
 ## Segmentation Server
