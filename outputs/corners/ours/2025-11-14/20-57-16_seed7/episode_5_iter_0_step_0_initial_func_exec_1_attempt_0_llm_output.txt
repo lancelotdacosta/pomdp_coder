@@ -1,0 +1,55 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `possible_positions` is a list of tuples. To resolve this, we need to flatten the list of positions and then map the chosen index back to the original tuple.
+
+Here's the corrected implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Extract the grid dimensions
+    width, height = empty_state.width, empty_state.height
+
+    # Define the possible positions for the agent, excluding walls and goal
+    possible_positions = []
+    for x in range(1, width - 1):
+        for y in range(1, height - 1):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                possible_positions.append((x, y))
+
+    # Sample a random index for the position
+    if possible_positions:
+        index = np.random.choice(len(possible_positions))
+        agent_pos = possible_positions[index]
+    else:
+        raise ValueError("No valid positions found for the agent")
+
+    # Sample a random direction for the agent
+    agent_dir = np.random.randint(0, 4)
+
+    # Ensure the agent is not carrying any object initially
+    carrying = None
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return initial_state
+```
+
+### Explanation:
+1. **Extract the Grid Dimensions**: We get the width and height of the grid from the `empty_state`.
+2. **Define Possible Positions**: We iterate over the grid to find all empty cells (excluding walls and the goal) and store their positions in a list.
+3. **Sample a Random Position**: If there are valid positions, we sample a random index from the list of possible positions and use it to select the agent's position.
+4. **Sample a Random Direction**: We randomly choose a direction for the agent from the four possible directions.
+5. **Ensure No Carrying**: The agent does not carry any object initially.
+6. **Create the Initial State**: We create and return the initial state using the sampled position, direction, and the provided grid.
+
+This should resolve the `ValueError` and correctly sample an initial state for the environment.

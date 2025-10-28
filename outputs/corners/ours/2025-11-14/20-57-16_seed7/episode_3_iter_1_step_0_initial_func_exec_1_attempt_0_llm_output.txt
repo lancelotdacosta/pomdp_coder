@@ -1,0 +1,47 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `empty_positions` is a list of tuples. To fix this, you can use a different approach to select a random position from the list of tuples.
+
+Here's the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get a list of all empty positions in the interior of the grid
+    empty_positions = [
+        (x, y)
+        for x in range(1, width - 1)
+        for y in range(1, height - 1)
+        if grid[x, y] == ObjectTypes.empty
+    ]
+
+    # Randomly place the goal object in one of the empty positions
+    goal_pos_index = np.random.randint(len(empty_positions))
+    goal_pos = empty_positions.pop(goal_pos_index)
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Randomly place the agent in one of the remaining empty positions
+    agent_pos_index = np.random.randint(len(empty_positions))
+    agent_pos = empty_positions.pop(agent_pos_index)
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    state = MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+
+    return state
+```
+
+### Explanation:
+1. **Generate Empty Positions**: We generate a list of all empty positions within the interior of the grid.
+2. **Place Goal**: We choose a random index from the list of empty positions and use it to place the goal object. We then remove this position from the list of empty positions.
+3. **Place Agent**: We choose another random index from the updated list of empty positions and use it to place the agent. We also remove this position from the list.
+4. **Set Agent Direction**: We randomly choose the agent's direction from the four possible directions.
+5. **Create State**: We create and return the initial state with the updated grid, agent position, and agent direction.
+
+This approach ensures that `np.random.choice` is used correctly by selecting indices from a 1-dimensional list, and it prevents the goal and agent from overlapping.

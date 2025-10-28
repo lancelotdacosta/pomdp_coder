@@ -1,0 +1,61 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `valid_positions` is a list of tuples. To fix this, you need to flatten the list of tuples and then use the indices to select the positions.
+
+Here's the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+
+    # Define the possible positions for the agent and goal
+    valid_positions = []
+    for i in range(1, grid.shape[0] - 1):
+        for j in range(1, grid.shape[1] - 1):
+            if grid[i, j] == ObjectTypes.empty:
+                valid_positions.append((i, j))
+
+    # Ensure valid_positions is not empty
+    if not valid_positions:
+        raise ValueError("No valid positions found for the agent or goal")
+
+    # Randomly select a position for the goal
+    goal_pos_idx = np.random.choice(len(valid_positions))
+    goal_pos = valid_positions[goal_pos_idx]
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Remove the selected goal position from the list of valid positions
+    valid_positions.pop(goal_pos_idx)
+
+    # Ensure there are still valid positions left for the agent
+    if not valid_positions:
+        raise ValueError("No valid positions left for the agent after placing the goal")
+
+    # Randomly select an initial position for the agent
+    agent_pos_idx = np.random.choice(len(valid_positions))
+    agent_pos = valid_positions[agent_pos_idx]
+
+    # Randomly select an initial direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation of Changes
+
+1. **Flatten the List of Tuples**: Instead of directly passing `valid_positions` to `np.random.choice`, we use the length of `valid_positions` to generate an index and then use that index to select a position from `valid_positions`.
+
+2. **Remove the Selected Position**: After selecting a position for the goal, we remove it from `valid_positions` to ensure it is not reused for the agent.
+
+3. **Ensure Valid Positions**: Added checks to ensure that there are valid positions available for both the goal and the agent. If no valid positions are found, a `ValueError` is raised.
+
+This should resolve the error and ensure that the function works as intended.

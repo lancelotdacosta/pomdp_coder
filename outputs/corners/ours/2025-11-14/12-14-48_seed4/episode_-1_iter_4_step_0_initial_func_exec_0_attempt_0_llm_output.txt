@@ -1,0 +1,61 @@
+Based on the provided samples, it seems that the distribution of initial states has the following characteristics:
+
+1. **Agent Position**: The agent can start at any open cell (not a wall or goal).
+2. **Agent Direction**: The agent's direction is randomly chosen.
+3. **Goal Position**: The goal can be placed in any open cell, including the same cell as the agent. However, it appears that the goal is more likely to be in one of the bottom rows of the grid.
+
+To better model this distribution, we need to ensure that the goal can be placed in any open cell, and it should be more likely to be placed in the bottom rows of the grid. We can achieve this by adjusting the probabilities when selecting the goal position.
+
+Here is the improved `initial_func` function:
+
+```python
+import random
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Get the dimensions of the grid
+    width, height = empty_state.width, empty_state.height
+    
+    # Find all open cells (value == 1)
+    open_cells = []
+    for x in range(1, width - 1):
+        for y in range(1, height - 1):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                open_cells.append((x, y))
+    
+    # Randomly select an open cell for the agent to start
+    agent_pos = random.choice(open_cells)
+    
+    # Randomly select a direction for the agent
+    agent_dir = random.choice(list(Direction))
+    
+    # Randomly select a goal position, with a higher probability of being in the bottom rows
+    goal_pos = random.choices(
+        open_cells,
+        weights=[1.0 if y >= height // 2 else 0.5 for x, y in open_cells],
+        k=1
+    )[0]
+    
+    # Create the initial state with the agent and goal placed
+    grid = empty_state.grid.copy()
+    grid[goal_pos] = ObjectTypes.goal
+    
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation:
+1. **Agent Position**: The agent's position is selected randomly from all open cells.
+2. **Agent Direction**: The agent's direction is chosen randomly from the four possible directions.
+3. **Goal Position**: The goal position is selected randomly from all open cells, but with a higher probability for cells in the bottom half of the grid. This is achieved using `random.choices` with weights that favor the bottom rows.
+
+This approach should better align with the observed distribution of initial states.

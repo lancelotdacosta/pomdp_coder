@@ -1,0 +1,53 @@
+Based on the provided samples, it seems that the distribution of initial states has the following characteristics:
+
+1. **Agent Position**: The agent can start at various positions within the grid, but it is always placed in an empty cell (`ObjectTypes.empty`) and never on walls (`ObjectTypes.wall`).
+2. **Agent Direction**: The agent can start facing any of the four directions (right, down, left, up) with equal probability.
+3. **Carrying**: The agent does not carry any object initially.
+4. **Grid Layout**: The grid is mostly empty except for the walls, and there is a goal object (`ObjectTypes.goal`) present in the grid. The goal object is often located near the bottom-right corner of the grid.
+
+Given this information, we can implement the `initial_func` to sample initial states from this distribution. Here's the implementation:
+
+```python
+import numpy as np
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Constants for the grid dimensions
+    width = empty_state.width
+    height = empty_state.height
+    
+    # Find all empty cells where the agent can be placed
+    empty_cells = [(x, y) for x in range(1, width - 1) for y in range(1, height - 1) if empty_state.grid[x, y] == ObjectTypes.empty]
+    
+    # Randomly select an empty cell for the agent's initial position
+    agent_pos = np.random.choice(empty_cells)
+    
+    # Randomly select an initial direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Place a goal object in the grid, typically near the bottom-right corner
+    goal_pos = (width - 2, height - 2)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Ensure the goal position is not the same as the agent's position
+    while agent_pos == goal_pos:
+        agent_pos = np.random.choice(empty_cells)
+    
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+This function initializes the agent's position and direction randomly among the empty cells, ensures that the goal object is placed at a typical position (bottom-right corner), and avoids placing the agent and goal in the same cell. This should provide a good approximation of the initial state distribution based on the provided samples.

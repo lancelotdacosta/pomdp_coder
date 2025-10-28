@@ -1,0 +1,52 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def sample_agent_position(grid):
+        """
+        Sample a valid position for the agent within the grid, ensuring it is not a wall.
+        """
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def sample_agent_direction():
+        """
+        Sample a direction for the agent.
+        """
+        return np.random.choice(list(Direction))
+
+    # Ensure the grid is the same as the empty state
+    grid = empty_state.grid.copy()
+
+    # Sample agent position and direction
+    agent_pos = sample_agent_position(grid)
+    agent_dir = sample_agent_direction()
+
+    # Create the initial state
+    state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation of the Distribution of Initial States
+
+The distribution of initial states in this environment appears to be characterized by:
+
+1. **Agent Position**: The agent can start at any empty cell within the grid, excluding the outer walls. The samples provided show the agent starting at various positions within the inner part of the grid.
+2. **Agent Direction**: The agent's direction is randomly chosen from the four possible directions (right, down, left, up). The samples provided show the agent facing different directions.
+3. **Grid Configuration**: The grid itself is a 10x10 grid with walls along the boundary and empty cells inside. There are no other objects (like goals, keys, or doors) in the grid.
+
+The `initial_func` function ensures that the agent is placed in a valid empty cell and given a random direction, which matches the observed distribution of initial states.

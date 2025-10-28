@@ -1,0 +1,51 @@
+Based on the provided samples, it appears that the distribution of initial states is characterized by:
+
+1. The agent's position (`agent_pos`) can vary within an open area of the grid, but it seems to favor positions that are not too close to the walls and not at the bottom row.
+2. The agent's direction (`agent_dir`) is uniformly distributed among the four possible directions (0: right, 1: down, 2: left, 3: up).
+3. The agent is not carrying any object (`carrying=None`).
+4. The grid layout is consistent across samples, with a goal object (represented by `10`) typically placed in various positions, often near the bottom of the grid.
+
+Given this understanding, the `initial_func` function can be implemented as follows:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid dimensions
+    width = empty_state.width
+    height = empty_state.height
+
+    # Initialize the grid with empty cells (1) and walls (2)
+    grid = empty_state.grid.copy()
+
+    # Place the goal object in a random position near the bottom of the grid
+    goal_row = np.random.choice(range(height - 2, height))
+    goal_col = np.random.choice(range(1, width - 1))
+    grid[goal_row, goal_col] = ObjectTypes.goal
+
+    # Sample a valid position for the agent that is not on the wall or the goal
+    while True:
+        agent_row = np.random.choice(range(1, height - 1))
+        agent_col = np.random.choice(range(1, width - 1))
+        if grid[agent_row, agent_col] == ObjectTypes.empty:
+            break
+
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=(agent_col, agent_row),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This function initializes the grid with walls and places a goal object near the bottom of the grid. It then samples a valid position for the agent that is not on a wall or the goal object and assigns a random direction to the agent. The resulting `MinigridState` is returned as the initial state of the environment.

@@ -1,0 +1,54 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `valid_positions` is a list of tuples. To fix this, we can use `np.random.choice` to select an index from the list of valid positions and then use that index to get the corresponding position.
+
+Here's the corrected implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Extract the grid dimensions
+    width, height = empty_state.width, empty_state.height
+
+    # Find all possible positions for the agent (excluding walls and goal)
+    valid_positions = [
+        (x, y) for x in range(width) for y in range(height)
+        if empty_state.grid[x, y] == ObjectTypes.empty
+    ]
+
+    # Randomly select an index from the list of valid positions
+    idx = np.random.choice(len(valid_positions))
+
+    # Get the agent position using the selected index
+    agent_pos = valid_positions[idx]
+
+    # Randomly select an agent direction (0: right, 1: down, 2: left, 3: up)
+    agent_dir = np.random.choice(list(Direction))
+
+    # Ensure the agent is not carrying any object initially
+    carrying = None
+
+    # Create the initial state with the selected agent position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return initial_state
+```
+
+### Explanation:
+1. **Extract Grid Dimensions**: We extract the width and height of the grid from the `empty_state`.
+2. **Find Valid Positions**: We create a list of valid positions where the agent can start. These positions are cells in the grid that are empty (not walls or the goal).
+3. **Select a Random Index**: We use `np.random.choice` to select a random index from the list of valid positions.
+4. **Get Agent Position**: We use the selected index to get the corresponding position for the agent.
+5. **Select Agent Direction**: We randomly select an agent direction from the list of possible directions.
+6. **Ensure Agent is Not Carrying**: We set the `carrying` attribute to `None` since the agent does not carry any objects initially.
+7. **Create Initial State**: We create and return the initial state with the selected agent position, direction, and the copied grid.
+
+This should resolve the `ValueError` and allow your code to run correctly.

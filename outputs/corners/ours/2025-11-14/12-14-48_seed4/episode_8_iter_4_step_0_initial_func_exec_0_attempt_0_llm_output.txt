@@ -1,0 +1,81 @@
+To better model the true distribution of initial states in the Minigrid environment, we need to ensure that the agent and goal positions are placed more realistically. The observed samples suggest that the goal is often placed in a corner or near the edge of the grid, and the agent is placed at various positions away from the goal. 
+
+Here's an improved version of the `initial_func` function that takes these observations into account:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid dimensions
+    width, height = empty_state.width, empty_state.height
+
+    # List of all empty positions in the grid
+    empty_positions = np.argwhere(empty_state.grid == ObjectTypes.empty).tolist()
+
+    # Ensure we have at least two empty positions
+    if len(empty_positions) < 2:
+        raise ValueError("Not enough empty positions to place both the goal and the agent.")
+
+    # Place the goal object in a random empty location within the grid, biased towards corners and edges
+    goal_pos = None
+    while goal_pos is None:
+        if np.random.rand() < 0.7:  # 70% chance to place the goal near the edge or corner
+            # Choose a position near the edge or corner
+            edge_positions = [
+                (x, y) for x in range(1, width - 1) for y in [1, height - 2]
+            ] + [
+                (x, y) for x in [1, width - 2] for y in range(1, height - 1)
+            ]
+            goal_pos_idx = np.random.randint(len(edge_positions))
+            goal_pos = tuple(edge_positions[goal_pos_idx])
+        else:
+            # Choose any random empty position
+            goal_pos_idx = np.random.randint(len(empty_positions))
+            goal_pos = tuple(empty_positions[goal_pos_idx])
+
+        if empty_state.grid[goal_pos] == ObjectTypes.empty:
+            empty_state.grid[goal_pos] = ObjectTypes.goal
+            break
+
+    # Update the list of empty positions after placing the goal
+    empty_positions = np.argwhere(empty_state.grid == ObjectTypes.empty).tolist()
+
+    # Place the agent in a random empty location within the grid, ensuring it's not the same as the goal position
+    agent_pos = None
+    while agent_pos is None or agent_pos == goal_pos:
+        agent_pos_idx = np.random.randint(len(empty_positions))
+        agent_pos = tuple(empty_positions[agent_pos_idx])
+        if empty_state.grid[agent_pos] == ObjectTypes.empty:
+            break
+
+    # Randomly select the agent's direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of the Distribution:
+
+1. **Goal Placement**:
+   - The goal is placed with a 70% probability near the edges or corners of the grid. This is to reflect the observed samples where goals are often placed in these positions.
+   - The remaining 30% of the time, the goal is placed at any random empty position within the grid.
+
+2. **Agent Placement**:
+   - The agent is placed in a random empty position, ensuring it is not the same as the goal position.
+
+3. **Direction**:
+   - The agent's direction is chosen randomly from the four possible directions (right, down, left, up).
+
+This approach should better model the true distribution of initial states based on the provided samples.

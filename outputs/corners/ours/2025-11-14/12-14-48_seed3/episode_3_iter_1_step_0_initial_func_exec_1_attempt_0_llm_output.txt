@@ -1,0 +1,60 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `empty_positions` is a list of tuples. To fix this, we can use `np.random.choice` to select an index from the list and then use that index to get the corresponding position.
+
+Here's the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def random_pos(grid: NDArray[np.int8]) -> Tuple[int, int]:
+        """Generate a random position within the grid that is not a wall."""
+        while True:
+            x, y = np.random.randint(1, 9), np.random.randint(1, 8)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+    
+    def random_dir() -> int:
+        """Generate a random direction for the agent."""
+        return np.random.choice([0, 1, 2, 3])
+    
+    # Copy the empty state to avoid modifying it
+    state = MinigridState(
+        grid=np.copy(empty_state.grid),
+        agent_pos=None,
+        agent_dir=None,
+        carrying=None
+    )
+    
+    # Get all empty positions in the grid
+    empty_positions = [(x, y) for x in range(1, state.width - 1) for y in range(1, state.height - 1) if state.grid[x, y] == ObjectTypes.empty]
+    
+    # Place the goal object randomly in the grid
+    goal_idx = np.random.choice(len(empty_positions))
+    goal_pos = empty_positions[goal_idx]
+    state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal position from the list of empty positions
+    empty_positions.pop(goal_idx)
+    
+    # Place the agent randomly in the grid
+    agent_idx = np.random.choice(len(empty_positions))
+    agent_pos = empty_positions[agent_idx]
+    state.agent_pos = agent_pos
+    
+    # Set a random direction for the agent
+    state.agent_dir = random_dir()
+    
+    return state
+```
+
+### Explanation:
+1. **Get Empty Positions**: We generate a list of all empty positions in the grid.
+2. **Place Goal**: We use `np.random.choice` to select an index from the list of empty positions and use that index to get the goal position. We then place the goal object at that position and remove it from the list of empty positions.
+3. **Place Agent**: We again use `np.random.choice` to select an index from the updated list of empty positions and use that index to get the agent position. We set the agent's position and direction.
+
+This should resolve the error and correctly model the initial state distribution.

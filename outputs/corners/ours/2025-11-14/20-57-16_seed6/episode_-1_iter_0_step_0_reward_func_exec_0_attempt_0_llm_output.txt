@@ -1,0 +1,54 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Determine if the agent has reached a goal cell
+    def is_goal_reached(state):
+        return state.grid[state.agent_pos] == ObjectTypes.goal
+
+    # Check if the agent picks up or drops an object
+    def is_object_interacted(state, next_state):
+        if state.carrying != next_state.carrying:
+            return True
+        return False
+
+    # Check if the action is a move forward
+    def is_move_forward(action):
+        return action == Actions.forward
+
+    # Determine if the agent is on a reward-giving cell (e.g., goal)
+    def get_reward_for_cell(cell_type):
+        if cell_type == ObjectTypes.goal:
+            return 1
+        return 0
+
+    # Determine if the episode should end
+    def is_episode_done(state, next_state):
+        if is_goal_reached(next_state):
+            return True
+        if state.carrying and not next_state.carrying:
+            return True
+        return False
+
+    reward = 0
+    done = False
+
+    if is_move_forward(action) and is_goal_reached(next_state):
+        reward = get_reward_for_cell(ObjectTypes.goal)
+        done = True
+
+    if is_object_interacted(state, next_state):
+        reward = -0.1  # Penalize for picking up or dropping objects
+
+    done = is_episode_done(state, next_state)
+
+    return reward, done
+```

@@ -1,0 +1,65 @@
+Certainly! Let's first analyze the differences between the real-world samples and the generated samples from your current model.
+
+### Analysis of Discrepancies:
+1. **Agent Position**: The agent appears in various positions within the open area. The current model places the agent in valid open positions but might not capture the specific distribution accurately.
+2. **Goal Position**: The goal is placed in various positions within the open area. The current model places the goal in valid open positions but might not capture the specific distribution accurately.
+3. **Agent Direction**: The agent can face any direction. The current model randomly selects a direction, which seems to be consistent with the real-world samples.
+
+### Distribution of Initial States (In English):
+- The agent and the goal are both placed in open cells within the grid.
+- The agent and the goal should avoid overlapping.
+- The agent and the goal should be placed in such a way that they are more likely to be in the inner part of the grid rather than near the walls.
+- The agent can face any of the four directions with equal probability.
+
+### Improved Code:
+Let's improve the `initial_func` function to better capture these aspects.
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def is_valid_pos(pos, grid):
+        """Check if the position is valid (not a wall and not already occupied)."""
+        x, y = pos
+        return 0 < x < 9 and 0 < y < 9 and grid[x, y] == 1
+    
+    # Flatten the grid to get all open positions
+    open_positions = np.argwhere(empty_state.grid == 1)
+    
+    # Randomly select a position for the goal
+    goal_pos = tuple(open_positions[np.random.choice(len(open_positions))])
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal position from the list of open positions
+    open_positions = open_positions[~np.all(open_positions == goal_pos, axis=1)]
+    
+    # Randomly select a position for the agent
+    agent_pos = tuple(open_positions[np.random.choice(len(open_positions))])
+    
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Update the state with the new agent position and direction
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+### Explanation of Improvements:
+1. **is_valid_pos Function**: This function remains unchanged but is essential for ensuring that the selected positions are valid open cells.
+2. **Open Positions**: We flatten the grid to get all open positions (cells with value 1).
+3. **Goal Position**: We randomly select a valid open position for the goal and update the grid.
+4. **Agent Position**: We remove the goal position from the list of open positions and then randomly select a valid open position for the agent.
+5. **Agent Direction**: We randomly select a direction for the agent from the `Direction` enum.
+
+This improved function should better capture the distribution of initial states by ensuring that the agent and goal are placed in valid open positions without overlapping and can face any direction.

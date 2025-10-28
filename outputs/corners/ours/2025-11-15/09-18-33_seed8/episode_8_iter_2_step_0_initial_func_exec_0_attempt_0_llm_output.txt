@@ -1,0 +1,57 @@
+Based on the provided samples, it appears that the distribution of initial states has the following characteristics:
+
+1. **Grid Layout**:
+   - The grid is 10x10 with walls (2) surrounding the entire environment.
+   - There is a single goal object (10) placed randomly within the grid, but not on the walls.
+
+2. **Agent Position and Direction**:
+   - The agent's initial position is random within the grid, but not on the walls or on the goal object.
+   - The agent's initial direction is random (facing right, down, left, or up).
+
+3. **Carrying**:
+   - The agent is not carrying any object initially.
+
+Given these observations, we can implement the `initial_func` function to generate an initial state that follows this distribution.
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Define the grid size
+    width = empty_state.width
+    height = empty_state.height
+    
+    # Ensure the grid has walls pre-filled
+    assert empty_state.grid[0, :].all() == ObjectTypes.wall and empty_state.grid[-1, :].all() == ObjectTypes.wall
+    assert empty_state.grid[:, 0].all() == ObjectTypes.wall and empty_state.grid[:, -1].all() == ObjectTypes.wall
+    
+    # Place the goal object randomly within the grid, but not on the walls
+    while True:
+        goal_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+        if empty_state.grid[goal_pos] == ObjectTypes.empty:
+            empty_state.grid[goal_pos] = ObjectTypes.goal
+            break
+    
+    # Place the agent randomly within the grid, but not on the walls or on the goal
+    while True:
+        agent_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+        if empty_state.grid[agent_pos] == ObjectTypes.empty:
+            empty_state.agent_pos = agent_pos
+            empty_state.grid[agent_pos] = ObjectTypes.agent
+            break
+    
+    # Set the agent's direction randomly
+    empty_state.agent_dir = np.random.choice(list(Direction))
+    
+    # Ensure the agent is not carrying anything initially
+    empty_state.carrying = None
+    
+    return empty_state
+```
+
+This function initializes the grid by placing a goal object and the agent in random positions that are not on the walls or on each other. The agent's direction is also set randomly, and it starts without carrying any object.

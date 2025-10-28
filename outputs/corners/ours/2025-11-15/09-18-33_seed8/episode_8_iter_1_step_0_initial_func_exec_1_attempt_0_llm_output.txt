@@ -1,0 +1,57 @@
+The error you're encountering is due to the `np.random.choice` function being used with a list of tuples. The `np.random.choice` function expects a 1-dimensional array or list, but you are providing it with a list of tuples.
+
+To fix this, you can use `random.choice` from the `random` module instead, which can handle lists of tuples directly. Here's the corrected implementation:
+
+```python
+# type: ignore
+from __future__ import annotations
+
+import numpy as np
+import random
+from typing import Tuple, Optional
+
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define possible starting positions and directions for the agent
+    possible_agent_positions = [
+        (4, 6), (4, 3), (3, 4), (7, 7), (6, 4)
+    ]
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Randomly select a starting position and direction for the agent
+    agent_pos = random.choice(possible_agent_positions)
+    agent_dir = random.choice(possible_agent_directions)
+
+    # Place the agent in the grid
+    grid = empty_state.grid.copy()
+    grid[agent_pos] = ObjectTypes.agent
+
+    # Optionally place a goal object in the grid
+    if np.random.rand() < 0.5:
+        goal_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+        while grid[goal_pos] != ObjectTypes.empty:
+            goal_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+        grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation of Changes:
+- **Random Selection**: The `random.choice` function from the `random` module is used to select a random position and direction for the agent. This function can handle lists of tuples directly.
+- **Grid Initialization**: The grid is initialized as a copy of the empty state's grid, and the agent is placed at the selected position.
+- **Goal Object Placement**: With a 50% probability, a goal object is placed at a random empty cell within the grid.
+
+This should resolve the error and allow the code to run correctly.

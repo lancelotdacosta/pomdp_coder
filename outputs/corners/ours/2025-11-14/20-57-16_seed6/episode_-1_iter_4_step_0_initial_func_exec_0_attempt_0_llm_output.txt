@@ -1,0 +1,51 @@
+Based on the provided samples and the real-world distribution, it seems that the agent and the goal can appear anywhere within the inner part of the grid, but the agent's position is less likely to coincide with the goal's position. Additionally, the samples suggest that the agent and the goal are more frequently placed in positions that are not adjacent to the walls.
+
+To better model this distribution, we need to adjust the `initial_func` function to ensure that:
+1. The agent and the goal are placed in the inner part of the grid.
+2. The agent and the goal are not placed at the same position.
+3. The agent and the goal are less likely to be placed in positions adjacent to the walls.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the inner part of the grid
+    inner_width = empty_state.width - 2
+    inner_height = empty_state.height - 2
+
+    # Sample a random position for the agent within the inner part of the grid, biased away from walls
+    while True:
+        agent_x = np.random.randint(1, inner_width - 1) + 1
+        agent_y = np.random.randint(1, inner_height - 1) + 1
+        if empty_state.grid[agent_x, agent_y] == ObjectTypes.empty:
+            break
+
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Sample a random position for a goal object within the inner part of the grid, biased away from walls
+    while True:
+        goal_x = np.random.randint(1, inner_width - 1) + 1
+        goal_y = np.random.randint(1, inner_height - 1) + 1
+        if empty_state.grid[goal_x, goal_y] == ObjectTypes.empty and (goal_x, goal_y) != (agent_x, agent_y):
+            empty_state.grid[goal_x, goal_y] = ObjectTypes.goal
+            break
+
+    # Create and return the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(agent_x, agent_y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This function ensures that both the agent and the goal are placed within the inner part of the grid, away from the walls, and that they do not occupy the same position. This should better match the observed distribution of initial states.

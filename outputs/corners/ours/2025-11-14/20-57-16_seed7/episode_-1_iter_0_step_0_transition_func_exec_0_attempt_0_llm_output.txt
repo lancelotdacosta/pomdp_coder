@@ -1,0 +1,152 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+
+    def move_forward(state):
+        new_pos = tuple(np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir])
+        if 0 <= new_pos[0] < state.width and 0 <= new_pos[1] < state.height:
+            if state.grid[new_pos] != ObjectTypes.wall:
+                return MinigridState(
+                    grid=state.grid.copy(),
+                    agent_pos=new_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=state.carrying
+                )
+        return state
+
+    def turn_left(state):
+        new_dir = (state.agent_dir - 1) % 4
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_dir,
+            carrying=state.carrying
+        )
+
+    def turn_right(state):
+        new_dir = (state.agent_dir + 1) % 4
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_dir,
+            carrying=state.carrying
+        )
+
+    def pick_up(state):
+        front_pos = state.front_pos
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            obj_type = state.grid[front_pos]
+            if obj_type in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+                new_grid = state.grid.copy()
+                new_grid[front_pos] = ObjectTypes.empty
+                return MinigridState(
+                    grid=new_grid,
+                    agent_pos=state.agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=obj_type
+                )
+        return state
+
+    def drop(state):
+        if state.carrying is not None:
+            front_pos = state.front_pos
+            if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+                new_grid = state.grid.copy()
+                new_grid[front_pos] = state.carrying
+                return MinigridState(
+                    grid=new_grid,
+                    agent_pos=state.agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=None
+                )
+        return state
+
+    def toggle(state):
+        front_pos = state.front_pos
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            obj_type = state.grid[front_pos]
+            # Simplified toggle logic for doors (open/close)
+            if obj_type == ObjectTypes.closed_door:
+                new_grid = state.grid.copy()
+                new_grid[front_pos] = ObjectTypes.open_door
+                return MinigridState(
+                    grid=new_grid,
+                    agent_pos=state.agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=state.carrying
+                )
+            elif obj_type == ObjectTypes.open_door:
+                new_grid = state.grid.copy()
+                new_grid[front_pos] = ObjectTypes.closed_door
+                return MinigridState(
+                    grid=new_grid,
+                    agent_pos=state.agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=state.carrying
+                )
+        return state
+
+    def done(state):
+        return state
+
+    # Apply the appropriate action
+    if action == Actions.left:
+        return turn_left(state)
+    elif action == Actions.right:
+        return turn_right(state)
+    elif action == Actions.forward:
+        return move_forward(state)
+    elif action == Actions.pickup:
+        return pick_up(state)
+    elif action == Actions.drop:
+        return drop(state)
+    elif action == Actions.toggle:
+        return toggle(state)
+    elif action == Actions.done:
+        return done(state)
+    else:
+        raise ValueError(f"Unknown action: {action}")
+```
+
+### Explanation of the Distribution of Next States Conditioned on Actions and Previous States:
+
+1. **Move Forward (Action 2)**:
+   - The agent attempts to move one step in the direction it is facing.
+   - If the new position is within the grid boundaries and not a wall, the agent moves to the new position.
+   - Otherwise, the state remains unchanged.
+
+2. **Turn Left (Action 0)**:
+   - The agent turns 90 degrees to the left (counterclockwise).
+   - The direction is updated accordingly.
+
+3. **Turn Right (Action 1)**:
+   - The agent turns 90 degrees to the right (clockwise).
+   - The direction is updated accordingly.
+
+4. **Pick Up (Action 3)**:
+   - The agent checks the cell in front of it.
+   - If there is an object (key, ball, or box) in that cell, it picks up the object.
+   - The grid is updated to remove the object from the cell.
+
+5. **Drop (Action 4)**:
+   - The agent checks if it is carrying an object.
+   - If it is, it drops the object in the cell in front of it.
+   - The grid is updated to place the object in the cell.
+
+6. **Toggle (Action 5)**:
+   - The agent checks the cell in front of it.
+   - If there is a closed door, it opens it.
+   - If there is an open door, it closes it.
+   - The grid is updated accordingly.
+
+7. **Done (Action 6)**:
+   - The agent indicates that it has completed its task.
+   - The state remains unchanged.
+
+This transition function models the behavior of the agent based on the provided action and the current state of the environment. It ensures that the agent's actions are applied correctly, considering the constraints of the environment (e.g., walls, grid boundaries).

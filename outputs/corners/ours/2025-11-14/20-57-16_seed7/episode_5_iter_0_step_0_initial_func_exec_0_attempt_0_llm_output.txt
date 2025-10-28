@@ -1,0 +1,48 @@
+Based on the provided samples, the distribution of initial states can be described as follows:
+
+1. **Agent Position**: The agent's starting position is uniformly distributed within the grid, except for the wall cells and the goal cell.
+2. **Agent Direction**: The agent's starting direction (facing) is uniformly distributed among the four possible directions: right (0), down (1), left (2), and up (3).
+3. **Carrying**: The agent does not carry any object initially.
+4. **Grid**: The grid is mostly empty except for the walls and one goal cell. The goal cell is always present but its position is fixed in the provided samples.
+
+Given this distribution, we can implement the `initial_func` function to sample an initial state from this distribution. Here is the implementation:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Extract the grid dimensions
+    width, height = empty_state.width, empty_state.height
+
+    # Define the possible positions for the agent, excluding walls and goal
+    possible_positions = []
+    for x in range(1, width - 1):
+        for y in range(1, height - 1):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                possible_positions.append((x, y))
+
+    # Sample a random position for the agent
+    agent_pos = np.random.choice(possible_positions)
+
+    # Sample a random direction for the agent
+    agent_dir = np.random.randint(0, 4)
+
+    # Ensure the agent is not carrying any object initially
+    carrying = None
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return initial_state
+```
+
+This function ensures that the agent is placed in a valid empty cell within the grid, facing a random direction, and does not carry any object. The grid remains unchanged except for the agent's position, which is marked as `ObjectTypes.agent` in the returned state.

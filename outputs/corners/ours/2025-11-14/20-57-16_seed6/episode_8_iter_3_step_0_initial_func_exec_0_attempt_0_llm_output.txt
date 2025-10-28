@@ -1,0 +1,63 @@
+To better model the true distribution of initial states, we need to ensure that the agent and the goal object are placed in valid positions within the environment, while also maintaining a more realistic distribution of their locations.
+
+From the provided samples, it appears that the agent and the goal object can be placed anywhere within the grid, excluding the walls. However, the current implementation has a few issues:
+
+1. The agent and the goal object are always placed at random positions, which might lead to a less uniform distribution.
+2. The valid positions for the agent and the goal are not chosen in a way that reflects the real-world distribution.
+
+To address these issues, we will:
+1. Ensure that the agent and the goal object are placed in valid positions within the grid.
+2. Use a more balanced approach to select the positions for the agent and the goal object to better reflect the real-world distribution.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Create a copy of the empty state to avoid modifying the original
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(0, 0),
+        agent_dir=0,
+        carrying=None
+    )
+
+    # Define the valid positions for the agent and the goal, excluding the walls
+    valid_positions = [
+        (x, y) for x in range(1, state.width - 1) for y in range(1, state.height - 1)
+    ]
+
+    # Place the agent at a random position within the valid positions
+    agent_pos_index = np.random.choice(len(valid_positions))
+    agent_pos = valid_positions[agent_pos_index]
+    state.agent_pos = agent_pos
+
+    # Set the agent's direction randomly
+    state.agent_dir = np.random.randint(4)
+
+    # Remove the agent's position from the list of valid positions
+    valid_positions.remove(agent_pos)
+
+    # Place the goal object at a random position within the remaining valid positions
+    if valid_positions:
+        goal_pos_index = np.random.choice(len(valid_positions))
+        goal_pos = valid_positions[goal_pos_index]
+        state.grid[goal_pos] = ObjectTypes.goal
+
+    return state
+```
+
+### Explanation:
+
+1. **Valid Positions**: We define the valid positions for the agent and the goal object as all positions within the grid that are not walls. This is done by iterating over the range from 1 to `width-1` and 1 to `height-1`.
+
+2. **Agent Placement**: We randomly select a position for the agent from the list of valid positions and set the agent's direction randomly.
+
+3. **Goal Placement**: We remove the agent's position from the list of valid positions to ensure the goal object is placed in a different location. If there are any remaining valid positions, we randomly select one for the goal object and place it on the grid.
+
+This approach ensures that the agent and the goal object are placed in valid positions and reflects a more realistic distribution of initial states.

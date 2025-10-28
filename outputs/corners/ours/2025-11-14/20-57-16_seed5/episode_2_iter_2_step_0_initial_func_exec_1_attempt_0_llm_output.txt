@@ -1,0 +1,68 @@
+The error you're encountering is due to an incorrect way of filtering the `open_positions` and `probabilities` arrays. Specifically, the expression `open_positions != agent_pos` is trying to compare a 2D array with a tuple, which results in an array that cannot be used to index the 1D `probabilities` array.
+
+To fix this, we need to correctly filter the `open_positions` and `probabilities` to ensure the goal position is not the same as the agent's position. Here's the corrected `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    # Randomly select an open position for the agent with the weighted probability
+    agent_pos_idx = np.random.choice(len(open_positions), p=probabilities)
+    agent_pos = tuple(open_positions[agent_pos_idx])
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Filter out the agent's position from the list of open positions for the goal
+    goal_open_positions = open_positions[open_positions != agent_pos].tolist()
+    goal_prob_indices = [i for i, pos in enumerate(open_positions.tolist()) if pos != agent_pos]
+
+    # Create a probability distribution for the goal object that excludes the agent's position
+    goal_probabilities = probabilities[goal_prob_indices] / probabilities[goal_prob_indices].sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+    goal_pos = tuple(goal_open_positions[goal_pos_idx])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+```
+
+### Explanation of Changes:
+1. **Agent Position Selection**:
+   - `agent_pos_idx` is the index of the selected agent position.
+   - `agent_pos` is the actual position of the agent.
+
+2. **Filtering Open Positions for Goal**:
+   - `goal_open_positions` is a list of open positions that are not the same as the agent's position.
+   - `goal_prob_indices` is a list of indices for the probabilities array that correspond to the filtered positions.
+
+3. **Probability Distribution for Goal**:
+   - `goal_probabilities` is the adjusted probability distribution for the goal positions, normalized to sum to 1.
+
+4. **Goal Position Selection**:
+   - `goal_pos_idx` is the index of the selected goal position.
+   - `goal_pos` is the actual position of the goal.
+
+This should resolve the `IndexError` and correctly place the agent and goal in the grid according to the desired distribution.

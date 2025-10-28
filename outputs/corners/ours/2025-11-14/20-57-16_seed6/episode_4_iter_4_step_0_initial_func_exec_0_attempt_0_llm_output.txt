@@ -1,0 +1,58 @@
+Based on the provided samples from the real world and the generated samples from your model, it seems that the main discrepancy lies in the placement of the agent and the goal. Specifically, the real-world samples show that the agent and the goal can be positioned in a variety of locations, but the generated samples tend to place the goal and the agent in positions that are not as varied.
+
+To improve the distribution of initial states, we need to ensure that the agent and the goal can be placed in a more diverse set of positions within the grid, while still respecting the constraints (i.e., they cannot overlap with walls or each other).
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Ensure the goal position is not a wall and not the same as the agent's position
+    def get_random_goal_position():
+        while True:
+            x, y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    # Ensure the agent's initial position is not a wall and not the same as the goal position
+    def get_random_agent_position(goal_pos):
+        while True:
+            x, y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+            if grid[x, y] == ObjectTypes.empty and (x, y) != goal_pos:
+                return (x, y)
+
+    # Place the goal object at a random position
+    goal_pos = get_random_goal_position()
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Set the agent's initial position
+    agent_pos = get_random_agent_position(goal_pos)
+
+    # Set the agent's initial direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Improvements:
+1. **Random Goal Positioning**: The function `get_random_goal_position` ensures that the goal is placed in a random empty cell within the grid, avoiding walls and the agent's initial position.
+2. **Random Agent Positioning**: The function `get_random_agent_position` ensures that the agent is placed in a random empty cell within the grid, avoiding walls and the goal's position.
+3. **Diverse Initial Directions**: The agent's initial direction is chosen randomly from all four possible directions.
+
+By ensuring that both the goal and the agent can be placed in any valid empty cell within the grid, we increase the diversity of initial states, making the generated distribution more closely match the real-world samples.

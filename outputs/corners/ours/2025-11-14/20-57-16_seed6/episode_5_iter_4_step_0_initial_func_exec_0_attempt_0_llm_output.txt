@@ -1,0 +1,50 @@
+Based on the samples provided, it seems that the initial states have the following characteristics:
+
+1. **Agent Position**: The agent can appear at any valid position within the grid, excluding the walls. The position is randomly sampled from the empty cells.
+2. **Agent Direction**: The agent can face any of the four cardinal directions (0: right, 1: down, 2: left, 3: up). The direction is randomly sampled.
+3. **Goal Position**: The goal can also appear at any valid position within the grid, excluding the walls and the agent's position. The position is randomly sampled.
+
+The key issue with the previous implementation is the way the goal position is selected. It seems that the goal position should be more uniformly distributed across the grid, and it should not necessarily be in the same row or column as the agent's position.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Sample a random valid position for the agent
+    valid_positions = [(x, y) for x in range(1, width - 1) for y in range(1, height - 1) if grid[x, y] == ObjectTypes.empty]
+    agent_pos = valid_positions[np.random.choice(len(valid_positions))]
+
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice([0, 1, 2, 3])
+
+    # Ensure the goal is placed somewhere in the grid, but not at the agent's position
+    goal_positions = [(x, y) for x in range(1, width - 1) for y in range(1, height - 1) if grid[x, y] == ObjectTypes.empty and (x, y) != agent_pos]
+    goal_pos = goal_positions[np.random.choice(len(goal_positions))]
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This improved function ensures that:
+- The agent's position is sampled from all valid empty cells.
+- The agent's direction is randomly chosen from the four possible directions.
+- The goal's position is sampled from all valid empty cells, excluding the agent's position.
+
+By ensuring that the goal position is not constrained to specific rows or columns, the distribution of initial states should better match the observed samples.

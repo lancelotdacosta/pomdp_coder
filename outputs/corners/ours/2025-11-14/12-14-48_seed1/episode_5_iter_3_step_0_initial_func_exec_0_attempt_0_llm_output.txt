@@ -1,0 +1,62 @@
+Based on the provided samples, it seems that the initial states have the following distribution characteristics:
+
+1. **Agent Position**: The agent can start at any position within the grid that is not a wall and not the goal.
+2. **Agent Direction**: The agent's direction is uniformly random.
+3. **Goal Position**: The goal can be placed at any position within the grid that is not a wall and not the agent's starting position.
+
+However, there are some nuances:
+- The agent and the goal should not occupy the same cell.
+- The goal is more likely to be placed in the bottom-right region of the grid, as observed in the samples.
+
+To better model this distribution, we need to ensure that the goal is placed after the agent, and that the placement is biased towards the bottom-right region if possible. We can achieve this by using a weighted random selection for the goal position.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible positions for the agent
+    possible_agent_positions = [
+        (i, j) for i in range(1, empty_state.grid.shape[0] - 1)
+        for j in range(1, empty_state.grid.shape[1] - 1)
+        if empty_state.grid[i, j] == ObjectTypes.empty
+    ]
+
+    # Randomly select an agent position and direction
+    agent_pos = possible_agent_positions[np.random.choice(len(possible_agent_positions))]
+    agent_dir = np.random.choice(list(Direction))
+
+    # Ensure the grid is correctly initialized with the walls
+    grid = empty_state.grid.copy()
+
+    # Place the goal object in a random position within the grid, avoiding walls and the agent's position
+    possible_goal_positions = [
+        (i, j) for i in range(1, empty_state.grid.shape[0] - 1)
+        for j in range(1, empty_state.grid.shape[1] - 1)
+        if empty_state.grid[i, j] == ObjectTypes.empty and (i, j) != agent_pos
+    ]
+
+    # Weight the positions to favor the bottom-right region
+    weights = [(i + j) for i, j in possible_goal_positions]
+    weights = np.array(weights) / sum(weights)
+
+    goal_pos = possible_goal_positions[np.random.choice(len(possible_goal_positions), p=weights)]
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This function ensures that the goal is more likely to be placed in the bottom-right region of the grid by using a weighted random selection. The weights are based on the sum of the indices, which biases the selection towards the bottom-right region. This should better match the observed distribution of initial states.

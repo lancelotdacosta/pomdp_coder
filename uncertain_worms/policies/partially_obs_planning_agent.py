@@ -412,6 +412,7 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             and self.num_attempts < self.max_attempts
         ):
             self.num_attempts += 1
+            if self.num_attempts % 1000 == 0: print(f"Attempt {self.num_attempts}/{self.max_attempts}")  # Log progress every 1000 attempts
             try:
                 candidate = self.planner.initial_model(copy.deepcopy(self.empty_state))
             except Exception:
@@ -687,6 +688,7 @@ class LLMPartiallyObsPlanningAgent(
                 in_error_state = True
             else:
                 self.current_belief = belief
+                log.info("Belief established.")
         else:
             # Otherwise update the belief using the last action and the new observation
             belief, error = self.update_belief(
@@ -699,6 +701,7 @@ class LLMPartiallyObsPlanningAgent(
                 in_error_state = True
             else:
                 self.current_belief = belief
+                log.info("Belief updated.")
 
         if in_error_state == 0:
             steps_left = self.max_steps - self.steps_taken
@@ -880,6 +883,7 @@ class LLMPartiallyObsPlanningAgent(
         log.info("Online updating models")
 
         if not self.use_online:
+            log.warning("Online learning is disabled, skipping online update.")
             return
 
         if self.use_offline:

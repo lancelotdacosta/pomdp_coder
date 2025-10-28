@@ -1,0 +1,61 @@
+Based on the provided samples, it seems that the agent can start in various positions within the grid, but the grid itself does not change much. The agent can start at different positions and face different directions (up, down, left, right). The grid is mostly empty with walls around the perimeter, and there may be a single goal object (or another type of object) placed in the grid.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+# type: ignore
+from __future__ import annotations
+
+import numpy as np
+from numpy.typing import NDArray
+
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define possible starting positions and directions for the agent
+    possible_agent_positions = [
+        (4, 6), (4, 3), (3, 4), (7, 7), (6, 4)
+    ]
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Randomly select a starting position and direction for the agent
+    agent_pos = np.random.choice(possible_agent_positions)
+    agent_dir = np.random.choice(possible_agent_directions)
+
+    # Place the agent in the grid
+    grid = empty_state.grid.copy()
+    grid[agent_pos] = ObjectTypes.agent
+
+    # Optionally place a goal object in the grid
+    if np.random.rand() < 0.5:
+        goal_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+        while grid[goal_pos] != ObjectTypes.empty:
+            goal_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+        grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation of the Distribution:
+- **Agent Position**: The agent can start at various positions within the grid. The provided samples show positions like (4, 6), (4, 3), (3, 4), (7, 7), and (6, 4). This function randomly selects one of these positions.
+- **Agent Direction**: The agent can face in any of the four cardinal directions (right, down, left, up). This function randomly selects one of these directions.
+- **Grid Layout**: The grid is mostly empty with walls around the perimeter. There is a possibility of placing a goal object in a random empty cell within the grid.
+
+### Implementation:
+- **Possible Agent Positions and Directions**: Lists of possible starting positions and directions are defined.
+- **Random Selection**: The function randomly selects a starting position and direction for the agent.
+- **Grid Initialization**: A copy of the empty grid is made, and the agent is placed at the selected position.
+- **Goal Object Placement**: With a 50% probability, a goal object is placed at a random empty cell within the grid.
+- **State Creation**: The initial state is created with the updated grid, agent position, and direction.

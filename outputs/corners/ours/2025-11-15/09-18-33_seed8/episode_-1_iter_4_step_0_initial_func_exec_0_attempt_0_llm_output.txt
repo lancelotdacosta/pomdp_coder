@@ -1,0 +1,69 @@
+Certainly! Let's start by understanding the observed distribution of initial states in the Minigrid environment.
+
+### Observed Distribution:
+1. **Grid Layout**: The grid is always surrounded by walls (ObjectTypes.wall).
+2. **Agent Position**: The agent can be placed in any open cell (ObjectTypes.empty) except for the cells on the borders.
+3. **Goal Position**: The goal (ObjectTypes.goal) can be placed in any open cell except for the cells on the borders and the cell where the agent is placed.
+4. **Agent Direction**: The agent's direction (agent_dir) is uniformly random, ranging from 0 to 3 (facing right, down, left, up).
+
+### Issues with the Initial Implementation:
+- The initial implementation correctly places the goal and the agent in different open cells.
+- However, it seems that the agent and the goal are often placed too close to each other or in a way that does not match the observed distribution.
+
+### Improved `initial_func` Function:
+To better model the true distribution, we will:
+- Ensure that the goal and the agent are placed in different cells.
+- Allow for a more diverse placement of the goal and the agent by considering all open cells.
+- Ensure that the agent and the goal are not placed too close to each other to match the observed distribution.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    
+    # Get the list of all open cells (not on the wall)
+    open_cells = [(x, y) for x in range(1, grid.shape[0] - 1) for y in range(1, grid.shape[1] - 1) if grid[x, y] == ObjectTypes.empty]
+    
+    # Place the goal cell randomly in the grid
+    if open_cells:
+        goal_idx = np.random.choice(len(open_cells))
+        goal_pos = open_cells[goal_idx]
+        grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal cell from the list of open cells to avoid placing the agent there
+    if open_cells and goal_pos in open_cells:
+        open_cells.remove(goal_pos)
+    
+    # Ensure the agent is not placed too close to the goal
+    valid_agent_positions = [pos for pos in open_cells if (abs(pos[0] - goal_pos[0]) + abs(pos[1] - goal_pos[1])) > 1]
+    
+    # Place the agent in a valid position
+    if valid_agent_positions:
+        agent_idx = np.random.choice(len(valid_agent_positions))
+        agent_pos = valid_agent_positions[agent_idx]
+        agent_dir = np.random.randint(4)
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+### Explanation of Improvements:
+1. **Valid Agent Positions**: We filter out positions for the agent that are too close to the goal (Manhattan distance > 1). This ensures that the agent and the goal are not placed in adjacent cells, which is a common pattern in the observed distribution.
+2. **Uniform Random Placement**: The agent and the goal are still placed uniformly randomly, but with the additional constraint to avoid close proximity.
+3. **Open Cells**: We use a list of open cells to ensure that both the goal and the agent are placed in valid positions.
+
+This should better match the observed distribution of initial states in the Minigrid environment.

@@ -1,0 +1,55 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `open_cells` is a list of tuples. To resolve this, we need to flatten `open_cells` into a 1-dimensional list and then select an index from it. We can then use this index to get the corresponding tuple.
+
+Here's the corrected implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    
+    # Place the goal cell randomly in the grid
+    open_cells = [(x, y) for x in range(1, grid.shape[0] - 1) for y in range(1, grid.shape[1] - 1) if grid[x, y] == ObjectTypes.empty]
+    if open_cells:
+        goal_idx = np.random.choice(len(open_cells))
+        goal_pos = open_cells[goal_idx]
+        grid[goal_pos] = ObjectTypes.goal
+    
+    # Place the agent in an open cell
+    open_cells = [(x, y) for x in range(1, grid.shape[0] - 1) for y in range(1, grid.shape[1] - 1) if grid[x, y] == ObjectTypes.empty]
+    if open_cells:
+        agent_idx = np.random.choice(len(open_cells))
+        agent_pos = open_cells[agent_idx]
+        agent_dir = np.random.randint(4)
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+### Explanation:
+1. **Flattening the List of Tuples**:
+   - `open_cells` is a list of tuples representing the coordinates of open cells.
+   - We use `np.random.choice(len(open_cells))` to select an index from the range of the length of `open_cells`.
+   - This index is then used to access the corresponding tuple in `open_cells`.
+
+2. **Placing the Goal Cell**:
+   - We first find all open cells in the grid.
+   - If there are any open cells, we randomly select one and place the goal cell there.
+
+3. **Placing the Agent**:
+   - We again find all open cells in the grid (after placing the goal cell).
+   - If there are any open cells, we randomly select one and place the agent there.
+   - We also set the agent's direction to a random value from 0 to 3.
+
+This should resolve the `ValueError: a must be 1-dimensional` and ensure that the function works as expected.

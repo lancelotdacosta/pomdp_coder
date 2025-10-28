@@ -1,0 +1,68 @@
+To better model the true distribution of initial states, let's analyze the provided samples and identify the patterns:
+
+1. **Agent Position and Direction**:
+   - The agent can be placed at various positions within the grid, except along the walls.
+   - The agent's direction is uniformly random.
+
+2. **Goal Position**:
+   - The goal can be placed at various positions within the grid, except along the walls.
+   - The goal position can overlap with the agent's position.
+
+3. **Open Cells**:
+   - Open cells (cells with `ObjectTypes.empty`) are common in the grid.
+   - The goal and the agent can occupy these open cells.
+
+Based on this analysis, we need to ensure that both the agent and the goal can be placed in any open cell, and the agent can face any direction. Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    
+    # Place the goal cell randomly in the grid
+    open_cells = [(x, y) for x in range(1, grid.shape[0] - 1) for y in range(1, grid.shape[1] - 1) if grid[x, y] == ObjectTypes.empty]
+    if open_cells:
+        goal_idx = np.random.choice(len(open_cells))
+        goal_pos = open_cells[goal_idx]
+        grid[goal_pos] = ObjectTypes.goal
+    
+    # Place the agent in an open cell (including the goal cell)
+    open_cells = [(x, y) for x in range(1, grid.shape[0] - 1) for y in range(1, grid.shape[1] - 1) if grid[x, y] in [ObjectTypes.empty, ObjectTypes.goal]]
+    if open_cells:
+        agent_idx = np.random.choice(len(open_cells))
+        agent_pos = open_cells[agent_idx]
+        if grid[agent_pos] == ObjectTypes.goal:
+            grid[agent_pos] = ObjectTypes.agent
+        else:
+            grid[agent_pos] = ObjectTypes.agent
+            # If the agent is placed on the goal cell, we need to place a new goal
+            if goal_pos == agent_pos:
+                remaining_open_cells = [(x, y) for x, y in open_cells if (x, y) != agent_pos]
+                if remaining_open_cells:
+                    new_goal_idx = np.random.choice(len(remaining_open_cells))
+                    goal_pos = remaining_open_cells[new_goal_idx]
+                    grid[goal_pos] = ObjectTypes.goal
+    
+    agent_dir = np.random.randint(4)
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+This function ensures that:
+1. The goal can be placed anywhere in the grid except along the walls.
+2. The agent can be placed anywhere in the grid except along the walls, and it can also be placed on the goal cell.
+3. If the agent is placed on the goal cell, a new goal is placed in one of the remaining open cells.
+4. The agent's direction is chosen uniformly at random.

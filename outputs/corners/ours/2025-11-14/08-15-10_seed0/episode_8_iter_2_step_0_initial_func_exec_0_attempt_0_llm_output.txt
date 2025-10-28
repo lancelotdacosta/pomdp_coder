@@ -1,0 +1,75 @@
+To better understand and model the distribution of initial states, let's analyze the provided samples:
+
+1. **Agent Position**: The agent can appear at various positions within the grid, but it is generally within the inner part of the grid, away from the walls. The agent is not necessarily always at the same position relative to the goal.
+
+2. **Agent Direction**: The agent can face any of the four cardinal directions (right, down, left, up) with equal probability.
+
+3. **Goal Position**: The goal is consistently placed at a fixed position within the grid, specifically at (8, 8).
+
+Given this analysis, we need to adjust the `initial_func` function to ensure that the agent's position and direction are more varied and consistent with the provided samples.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the goal position (fixed in all samples)
+    goal_pos = (8, 8)
+
+    # Place the goal object in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Randomly select a valid position for the agent
+    valid_positions = [
+        (x, y)
+        for x in range(1, empty_state.width - 1)
+        for y in range(1, empty_state.height - 1)
+        if empty_state.grid[x, y] == ObjectTypes.empty
+    ]
+    agent_pos = valid_positions[np.random.choice(len(valid_positions))]
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice([0, 1, 2, 3])
+
+    # Create the initial state with the agent's position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),  # Ensure a copy to avoid modifying the original grid
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Changes:
+1. **Copy the Grid**: We use `grid=empty_state.grid.copy()` to ensure that the original grid is not modified when creating the initial state. This is important to maintain the integrity of the empty state.
+
+2. **Valid Positions**: The valid positions for the agent are determined by ensuring they are within the inner part of the grid and not occupied by any other objects. This matches the observed samples where the agent is generally placed in the center of the grid.
+
+3. **Random Direction**: The agent's direction is chosen randomly from the four possible directions, which aligns with the observed samples where the agent can face any direction.
+
+### Testing:
+To ensure the `initial_func` function works as expected, you can test it by generating multiple initial states and verifying that the agent's position and direction vary appropriately while the goal is consistently placed at (8, 8).
+
+```python
+# Example usage
+empty_state = MinigridState(
+    grid=np.full((10, 10), ObjectTypes.wall, dtype=np.int8),
+    agent_pos=(0, 0),
+    agent_dir=0,
+    carrying=None
+)
+
+# Generate a few initial states
+for _ in range(5):
+    initial_state = initial_func(empty_state)
+    print(f"agent_pos={initial_state.agent_pos}, agent_dir={initial_state.agent_dir}, grid=\n{initial_state.grid}")
+```
+
+This should provide a more accurate and varied distribution of initial states that match the observed samples.

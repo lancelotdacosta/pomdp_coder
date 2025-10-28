@@ -1,0 +1,50 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    # Create a new state based on the current state
+    new_state = MinigridState(
+        grid=np.copy(state.grid),
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying,
+    )
+
+    # Determine the next position based on the action and current direction
+    def move_forward(agent_pos, agent_dir):
+        forward_pos = np.array(agent_pos) + DIR_TO_VEC[agent_dir]
+        # Ensure the new position is within bounds
+        if 0 <= forward_pos[0] < new_state.width and 0 <= forward_pos[1] < new_state.height:
+            return tuple(forward_pos)
+        return agent_pos
+
+    # Handle the actions
+    if action == Actions.left:
+        new_state.agent_dir = (new_state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        new_state.agent_dir = (new_state.agent_dir + 1) % 4
+    elif action == Actions.forward:
+        next_pos = move_forward(new_state.agent_pos, new_state.agent_dir)
+        if new_state.grid[next_pos] not in [ObjectTypes.wall, ObjectTypes.closed_door, ObjectTypes.locked_door]:
+            new_state.agent_pos = next_pos
+    elif action == Actions.pickup:
+        if new_state.carrying is None and new_state.grid[new_state.agent_pos] != ObjectTypes.empty:
+            new_state.carrying = new_state.grid[new_state.agent_pos]
+            new_state.grid[new_state.agent_pos] = ObjectTypes.empty
+    elif action == Actions.drop:
+        if new_state.carrying is not None and new_state.grid[new_state.agent_pos] == ObjectTypes.empty:
+            new_state.grid[new_state.agent_pos] = new_state.carrying
+            new_state.carrying = None
+    elif action == Actions.toggle:
+        # Toggling can involve opening/closing doors, picking up keys, etc.
+        pass  # For simplicity, we are not implementing the toggle action in this example
+    elif action == Actions.done:
+        pass  # The done action typically indicates the end of an episode
+
+    return new_state
+```

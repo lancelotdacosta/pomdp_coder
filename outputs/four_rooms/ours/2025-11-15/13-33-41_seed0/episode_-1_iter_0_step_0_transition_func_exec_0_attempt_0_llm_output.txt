@@ -1,0 +1,51 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+
+    def move_forward(state):
+        next_pos = tuple(np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir])
+        if 0 <= next_pos[0] < state.width and 0 <= next_pos[1] < state.height:
+            next_cell = state.grid[next_pos]
+            if next_cell == ObjectTypes.empty or next_cell == ObjectTypes.open_door:
+                return MinigridState(
+                    grid=state.grid.copy(),
+                    agent_pos=next_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=state.carrying
+                )
+        return state
+
+    def turn_left(state):
+        new_dir = (state.agent_dir - 1) % 4
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_dir,
+            carrying=state.carrying
+        )
+
+    def turn_right(state):
+        new_dir = (state.agent_dir + 1) % 4
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_dir,
+            carrying=state.carrying
+        )
+
+    if action == Actions.left:
+        return turn_left(state)
+    elif action == Actions.right:
+        return turn_right(state)
+    elif action == Actions.forward:
+        return move_forward(state)
+    else:
+        # For simplicity, actions like pickup, drop, toggle, and done are not implemented here.
+        return state
+```

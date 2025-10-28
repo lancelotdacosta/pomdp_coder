@@ -1,0 +1,51 @@
+Based on the provided samples, the distribution of initial states in the environment can be described as follows:
+
+- The agent's initial position can vary across different locations within the grid, but it is typically placed in an open area (denoted by `1` in the grid).
+- The agent's initial direction can also vary and can be one of four possible directions: facing right (0), down (1), left (2), or up (3).
+- The grid contains walls (`2`), an empty goal tile (`10`), and open spaces (`1`).
+- The agent starts with no items (`carrying=None`).
+
+Given this distribution, we can implement the `initial_func` function to sample initial states that follow this distribution. Here is the implementation:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Ensure the goal tile is placed at a valid location
+    while True:
+        goal_x, goal_y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+        if grid[goal_x, goal_y] == ObjectTypes.empty:
+            grid[goal_x, goal_y] = ObjectTypes.goal
+            break
+
+    # Sample a random position for the agent
+    while True:
+        agent_x, agent_y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+        if grid[agent_x, agent_y] == ObjectTypes.empty:
+            agent_pos = (agent_x, agent_y)
+            break
+
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Ensure the agent is not placed on the goal tile
+    if grid[agent_pos[0], agent_pos[1]] == ObjectTypes.goal:
+        grid[agent_pos[0], agent_pos[1]] = ObjectTypes.empty
+
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+```
+
+This function ensures that:
+1. The goal tile is placed at a random valid location within the grid.
+2. The agent's position is sampled from an open space in the grid.
+3. The agent's direction is randomly chosen from the four possible directions.
+4. The agent is not placed on the goal tile.
+
+This implementation should provide a diverse set of initial states that match the distribution observed in the provided samples.

@@ -1,0 +1,47 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    def random_free_position(grid):
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def random_direction():
+        return np.random.choice(list(Direction))
+
+    # Create a copy of the empty state to modify
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(0, 0),
+        agent_dir=0,
+        carrying=None
+    )
+
+    # Place the agent in a random free position
+    state.agent_pos = random_free_position(state.grid)
+    state.agent_dir = random_direction()
+
+    # Place a single goal object in a random free position
+    goal_pos = random_free_position(state.grid)
+    state.grid[goal_pos] = ObjectTypes.goal
+
+    return state
+```
+
+### Explanation of the Distribution of Initial States
+
+The distribution of initial states appears to be as follows:
+
+1. **Agent Position**: The agent starts at a random free position within the grid, excluding the walls.
+2. **Agent Direction**: The agent's initial direction is chosen randomly from one of the four possible directions (right, down, left, up).
+3. **Goal Object**: A single goal object is placed at a random free position within the grid, excluding the walls and the agent's initial position.
+
+This distribution ensures that the environment is varied and unpredictable, providing a diverse set of initial conditions for the agent to explore.

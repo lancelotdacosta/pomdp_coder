@@ -1,0 +1,53 @@
+Based on the provided samples, it appears that the initial state distribution is characterized by:
+
+1. The agent can start at any valid position within the grid, excluding the walls.
+2. The agent's direction (facing right, down, left, up) is uniformly distributed.
+3. The grid is mostly empty, with the exception of walls around the perimeter and a goal object (`ObjectTypes.goal`) located at the bottom-right corner of the grid.
+
+Given this understanding, the `initial_func` function will:
+
+1. Ensure the grid is correctly initialized with walls.
+2. Randomly place the agent in a valid empty cell.
+3. Randomly set the agent's direction.
+4. Ensure the goal object is placed in the bottom-right corner of the grid.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+import numpy as np
+
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Place the goal object at the bottom-right corner
+    grid[height - 2, width - 2] = ObjectTypes.goal
+
+    # Randomly choose a valid position for the agent
+    while True:
+        x = np.random.randint(1, width - 1)
+        y = np.random.randint(1, height - 1)
+        if grid[y, x] == ObjectTypes.empty:
+            break
+
+    # Randomly choose the agent's direction
+    agent_dir = np.random.choice([0, 1, 2, 3])
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=(x, y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This function initializes the grid with the goal object in the bottom-right corner and places the agent in a random empty cell within the grid. The agent's direction is also randomly chosen from the four possible directions.

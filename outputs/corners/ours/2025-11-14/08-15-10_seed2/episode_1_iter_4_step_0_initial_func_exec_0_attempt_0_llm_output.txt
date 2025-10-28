@@ -1,0 +1,57 @@
+To better model the true distribution of initial states, we need to ensure that the agent and the goal are placed in a way that is more consistent with the observed samples. Specifically, the agent and the goal should be placed in a more diverse set of positions and directions.
+
+The observed samples show that:
+1. The agent can be placed at various positions within the grid, away from the walls.
+2. The agent's direction can be any of the four possible directions.
+3. The goal can be placed at any empty position within the grid, away from the walls and the agent's position.
+
+To improve the `initial_func` function, we will:
+1. Ensure that the agent is placed at a random empty position within the grid, away from the walls.
+2. Ensure that the agent's direction is randomly chosen from the four possible directions.
+3. Place the goal at a random empty position within the grid, ensuring it is not the same as the agent's position.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def random_position(grid):
+        """Generate a random position that is not a wall and not a goal."""
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def random_direction():
+        """Generate a random direction for the agent."""
+        return np.random.choice(list(Direction))
+
+    # Generate a random position for the agent
+    agent_pos = random_position(empty_state.grid)
+
+    # Generate a random direction for the agent
+    agent_dir = random_direction()
+
+    # Place the goal at a random position (not on walls or where the agent is)
+    goal_pos = random_position(empty_state.grid)
+    while goal_pos == agent_pos:
+        goal_pos = random_position(empty_state.grid)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Return the initial state
+    return MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+This function ensures that the agent and the goal are placed in a diverse set of positions and directions, which should better match the observed distribution of initial states.
