@@ -30,7 +30,7 @@ agent:
   learn_reward: true
   learn_observation: true
   dataset_path: "environments/minigrid/trajectory_data/${env_name}.pkl"
-  env_description: "Unlock door with key to reach the goal square"
+  env_description: ""
   empty_state:
     _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_state_gen
     env_name: ${env_name}

@@ -28,7 +28,7 @@ Explain what you believe is {what_to_model} in english, then improve your code t
 Please implement the code for the following the template. 
 You must implement the ‘ {model_name} ‘ function. 
 
-The code needs to be directly runnable {model_input} and return {model_output}. 
+The code needs to be directly runnable with {model_input} and return {model_output}. 
 
 Do not output examples. 
 Do not create any new classes. 
@@ -36,3 +36,4 @@ Do not rewrite existing classes.
 Do not import any new modules from anywhere.
 Do not list out specific indices that overfit to the examples, but include ranges.
 Put the ‘ {model_name} ‘ function in a python code block.
+You must provide exactly ONE Python code block containing the complete, final solution.

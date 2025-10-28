@@ -35,4 +35,4 @@ Do not rewrite existing classes.
 Do not import any new modules from anywhere.
 Do not overfit to the specific samples.
 Put the ‘ {model_name} ‘ function in a python code block.
-Do NOT use <think> tags.
+You must provide exactly ONE Python code block containing the complete, final solution.
