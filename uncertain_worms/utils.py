@@ -172,7 +172,8 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str,
             # Use OpenAI client with Ollama
             response = ollama_client.chat.completions.create(
                 model=ENGINE,
-                messages=message
+                messages=message,
+                extra_body={"thinking": {"enabled": False}}
             )
             
             # Extract token usage
