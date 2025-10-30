@@ -36,4 +36,3 @@ Do not rewrite existing classes.
 Do not import any new modules from anywhere.
 Do not list out specific indices that overfit to the examples, but include ranges.
 Put the ‘ {model_name} ‘ function in a python code block.
-You must provide exactly ONE Python code block containing the complete, final solution.

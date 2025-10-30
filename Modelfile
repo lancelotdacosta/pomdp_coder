@@ -1,2 +1,13 @@
 FROM qwen2.5-coder:32b
+
+# Context window - increase from default 2048 to 32K
 PARAMETER num_ctx 32768
+
+# Creativity settings
+PARAMETER temperature 1.0
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+
+# Optional: Adjust repetition penalty for more varied outputs
+PARAMETER repeat_penalty 1.05
+

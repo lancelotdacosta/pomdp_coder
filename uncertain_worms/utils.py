@@ -87,7 +87,9 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 # ENGINE = "openai/o1"
 # ENGINE = "codellama:34b-instruct-q5_K_M"
 # ENGINE = "deepseek-r1-large"
-ENGINE = "qwen-32k"
+# ENGINE = "qwen-32k"
+# ENGINE = "llama33-largecontext"
+ENGINE = "qwen25-largecontext"
 
 # Add Ollama client:
 ollama_client = OpenAI(
