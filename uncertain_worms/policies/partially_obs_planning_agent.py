@@ -6,8 +6,11 @@ import logging
 import math
 import os
 import random
+import signal
+import time
 import traceback
 from collections import Counter, defaultdict
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -407,11 +410,28 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
         # ------------------------------------------------------------------ #
         # 2) Rejuvenate / initialise until we hit self.num_particles         #
         # ------------------------------------------------------------------ #
+        rejuvenation_start = time.time()
+        attempts_checkpoint = 0
+        last_log_time = rejuvenation_start
+        
         while (
             sum(weighted_particles.values()) < self.num_particles
             and self.num_attempts < self.max_attempts
         ):
             self.num_attempts += 1
+            attempts_checkpoint += 1
+            
+            # Log progress every 5 seconds
+            current_time = time.time()
+            if current_time - last_log_time > 5.0:
+                log.warning(
+                    f"Rejuvenation slow: {attempts_checkpoint} attempts in last 5s, "
+                    f"total: {self.num_attempts}, valid particles: {len(weighted_particles)}, "
+                    f"acceptance rate: {len(weighted_particles)/self.num_attempts:.4f}"
+                )
+                attempts_checkpoint = 0
+                last_log_time = current_time
+            
             try:
                 candidate = self.planner.initial_model(copy.deepcopy(self.empty_state))
             except Exception:
@@ -442,8 +462,15 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                     weighted_particles.get(next_state, 0) + 1.0
                 )
 
+        rejuvenation_time = time.time() - rejuvenation_start
+        log.info(f"Rejuvenation took {rejuvenation_time:.2f}s")
         log.info(f"Num attempts: {self.num_attempts}/{self.max_attempts}")
         log.info("Num valid initial particles: " + str(len(weighted_particles)))
+        
+        if rejuvenation_time > 10.0:
+            log.warning(
+                f"Slow rejuvenation detected! Acceptance rate: {len(weighted_particles)/max(1, self.num_attempts):.4f}"
+            )
 
         if not weighted_particles:
             return None, {
@@ -499,11 +526,21 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             self.current_belief = belief
 
         steps_left = self.max_steps - self.steps_taken
-        action, error = self.planner.plan_next_action(belief, max_steps=steps_left)
+        
+        # Add timeout for planning to prevent infinite loops
+        try:
+            log.info(f"Starting planning with {len(self.current_belief.to_list())} particles and {steps_left} steps left")
+            with timeout(60):  # 60 second timeout for planning
+                action, error = self.planner.plan_next_action(belief, max_steps=steps_left)
+        except TimeoutError as e:
+            log.error(f"Planning timed out: {e}")
+            log.error(f"Belief size: {len(self.current_belief.to_list())} particles")
+            action = random.choice(self.actions)
+            error = {"planning": "timeout"}
 
         self.action_hist.append(action)
         if len(error) != 0:
-            log.info("Planning error, taking random action")
+            log.info(f"Planning error: {error}, taking random action")
             action = random.choice(self.actions)
 
         self.steps_taken += 1
@@ -1174,64 +1211,64 @@ class LLMPartiallyObsPlanningAgent(
         to_update = True
         if rex_node.to_update:
             log.info(f"Updating {model_name}")
-
+x_node.train_empirical_dist
             # Rank the probabilities of empirical distribution under the model
             if error is not None:
-                log.info(
-                    f"[{model_name}] Episode {episode} Iter {iter_num}, step {self.step_num} bug: {error}"
-                )
+                log.info(g model")
+                    f"[{model_name}] Episode {episode} Iter {iter_num}, step {self.step_num} bug: {error}"ases where the LLM generated models were wrong and feed back
+                )_prompt(
 
                 messages.append({"role": "user", "content": error})
-                code_str = self.gpt_update_model(
-                    messages, model_name, iter_num=iter_num, exec_attempt=exec_attempt, episode=episode
+                code_str = self.gpt_update_model(odel_dist,
+                    messages, model_name, iter_num=iter_num, exec_attempt=exec_attempt, episode=episode   rex_node.train_empirical_dist,
                 )
                 assert code_str is not None
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": code_str,
-                    }
-                )
+                messages.append( is not None:
+                    {ompting for feedback")
+                        "role": "assistant",", "content": prompt}]
+                        "content": code_str,str = self.gpt_update_model(
+                    }   messages,
+                )   model_name=model_name,
             else:
                 log.info(f"[{model_name}] no execution errors")
-                prompt: Optional[str] = None
+                prompt: Optional[str] = Nonede,
                 if rex_node.previous_code is None:
                     log.info(f"[{model_name}] First model update")
-                    # First model update. LLM has not generated any code yet
+                    # First model update. LLM has not generated any code yet                    messages.append(
                     prompt = self.get_starting_prompt(
-                        model_name, rex_node.train_empirical_dist
-                    )
-                else:
-                    log.info(f"[{model_name}] Refining model")
-                    # Check for cases where the LLM generated models were wrong and feed back
-                    prompt = self.get_feedback_prompt(
-                        model_name,
-                        rex_node.previous_code,
-                        rex_node.train_model_dist,
-                        rex_node.train_empirical_dist,
-                    )
-
-                if prompt is not None:
+                if prompt is not None:                            "role": "assistant",
                     log.info(f"[{model_name}] Prompting for feedback")
                     messages = [{"role": "system", "content": prompt}]
-                    code_str = self.gpt_update_model(
+                    code_str = self.gpt_update_model(                    )
                         messages,
-                        model_name=model_name,
-                        iter_num=iter_num,
-                        exec_attempt=exec_attempt,
-                        episode=episode,
-                    )
-                    assert code_str is not None
-                    messages.append(
-                        {
-                            "role": "assistant",
-                            "content": code_str,
-                        }
-                    )
-                else:
-                    log.info(f"[{model_name}] No feedback needed")
-                    # Model has full support, no need to update
-                    to_update = False
+                        model_name=model_name,edback needed")
+                        iter_num=iter_num,                    # Model has full support, no need to update
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        self.planner.__setattr__(model_name, model)    def _set_model(self, model_name: str, model: Any) -> None:        return self.planner.__getattribute__(model_name)    def _get_model(self, model_name: str) -> Dict[str, Any]:        return to_update, messages, code_str                    messages = copy.deepcopy(rex_node.messages)                    code_str = rex_node.previous_code                    to_update = False                    # Model has full support, no need to update                    log.info(f"[{model_name}] No feedback needed")                else:                    )                        }                            "content": code_str,                            "role": "assistant",                        {                    messages.append(                    assert code_str is not None                    )                        episode=episode,                        exec_attempt=exec_attempt,                    to_update = False
                     code_str = rex_node.previous_code
                     messages = copy.deepcopy(rex_node.messages)
 
@@ -1242,3 +1279,18 @@ class LLMPartiallyObsPlanningAgent(
 
     def _set_model(self, model_name: str, model: Any) -> None:
         self.planner.__setattr__(model_name, model)
+
+
+@contextmanager
+def timeout(seconds):
+    """Context manager for timeout."""
+    def timeout_handler(signum, frame):
+        raise TimeoutError(f"Operation timed out after {seconds} seconds")
+    
+    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
