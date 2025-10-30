@@ -370,6 +370,11 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
         # ------------------------------------------------------------------ #
         # 1) Propagate existing particles and weight them                    #
         # ------------------------------------------------------------------ #
+        num_rejected_inf = 0
+        num_rejected_threshold = 0
+        num_accepted = 0
+        distances = []
+        
         if current_belief:
             a_last = action_history[-1]
             o_last = observation_history[-1]
@@ -386,8 +391,11 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                     return None, {"model": traceback.format_exc()}
 
                 dist = model_obs.distance(o_last)
+                if not math.isinf(dist):
+                    distances.append(dist)
 
                 if math.isinf(dist):
+                    num_rejected_inf += 1
                     continue  # impossible
 
                 if distance_threshold is not None:
@@ -395,17 +403,35 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                         weighted_particles[next_state] = (
                             weighted_particles.get(next_state, 0) + 1.0
                         )
+                        num_accepted += 1
+                    else:
+                        num_rejected_threshold += 1
                 else:
                     w = math.exp(-dist / max(kernel_bandwidth, 1e-12))
                     if w > 0.0:
                         weighted_particles[next_state] = (
                             weighted_particles.get(next_state, 0) + w
                         )
+                        num_accepted += 1
 
         log.info(
             "Num valid initial particles pre-rejuvenation: "
             f"{len(weighted_particles)}"
         )
+        if current_belief:
+            total_particles = len(current_belief.to_list())
+            log.info(
+                f"Particle rejection: {num_rejected_inf} infinite distance, "
+                f"{num_rejected_threshold} beyond threshold, {num_accepted} accepted "
+                f"out of {total_particles} total"
+            )
+            if distances:
+                log.info(
+                    f"Distance stats: min={min(distances):.4f}, "
+                    f"max={max(distances):.4f}, mean={sum(distances)/len(distances):.4f}"
+                )
+            else:
+                log.warning("All particles had infinite distance!")
 
         # ------------------------------------------------------------------ #
         # 2) Rejuvenate / initialise until we hit self.num_particles         #
@@ -413,6 +439,8 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
         rejuvenation_start = time.time()
         attempts_checkpoint = 0
         last_log_time = rejuvenation_start
+        rejuv_rejected_inf = 0
+        rejuv_rejected_threshold = 0
         
         while (
             sum(weighted_particles.values()) < self.num_particles
@@ -427,7 +455,8 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                 log.warning(
                     f"Rejuvenation slow: {attempts_checkpoint} attempts in last 5s, "
                     f"total: {self.num_attempts}, valid particles: {len(weighted_particles)}, "
-                    f"acceptance rate: {len(weighted_particles)/self.num_attempts:.4f}"
+                    f"acceptance rate: {len(weighted_particles)/self.num_attempts:.4f}, "
+                    f"rejected: inf={rejuv_rejected_inf}, threshold={rejuv_rejected_threshold}"
                 )
                 attempts_checkpoint = 0
                 last_log_time = current_time
@@ -451,9 +480,12 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                     return None, {"model": traceback.format_exc()}
 
                 dist = cand_obs.distance(obs)
-                if math.isinf(dist) or (
-                    distance_threshold is not None and dist > distance_threshold
-                ):
+                if math.isinf(dist):
+                    rejuv_rejected_inf += 1
+                    ok = False
+                    break
+                elif distance_threshold is not None and dist > distance_threshold:
+                    rejuv_rejected_threshold += 1
                     ok = False
                     break
 
