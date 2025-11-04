@@ -283,9 +283,6 @@ class PO_DAStar(
                     if prob == 0.0:
                         continue
                     
-                    # Debug: Log observation branch size
-                    log.info(f"Processing obs={obs}, states in dist={len(dist)}, prob={prob}")
-                    
                     exp_r = 0.0
                     term_flags: List[bool] = []
                     
