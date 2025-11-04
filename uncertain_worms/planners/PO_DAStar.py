@@ -259,9 +259,16 @@ class PO_DAStar(
                     prob = sum(dist.values())
                     if prob == 0.0:
                         continue
-
+                    
+                    # Debug: Log observation branch size
+                    log.info(f"Processing obs={obs}, states in dist={len(dist)}, prob={prob}")
+                    
                     exp_r = 0.0
                     term_flags: List[bool] = []
+                    
+                    belief_size = len(current_node.belief.dist)
+                    log.info(f"Current belief size: {belief_size}")
+                    
                     for s_prev, p_prev in current_node.belief.dist.items():
                         for s_next, p_sn in dist.items():
                             p_joint = p_prev * (p_sn / prob)
@@ -271,6 +278,8 @@ class PO_DAStar(
                                 term_flags.append(term)
                             except Exception:
                                 log.info(traceback.format_exc())
+                    
+                    log.info(f"Computed exp_r={exp_r}, is_term={all(term_flags)}")
                     is_term = all(term_flags)
 
                     norm_dist = {s: p / prob for s, p in dist.items()}
