@@ -6,11 +6,8 @@ import logging
 import math
 import os
 import random
-import signal
-import time
 import traceback
 from collections import Counter, defaultdict
-from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -370,11 +367,6 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
         # ------------------------------------------------------------------ #
         # 1) Propagate existing particles and weight them                    #
         # ------------------------------------------------------------------ #
-        num_rejected_inf = 0
-        num_rejected_threshold = 0
-        num_accepted = 0
-        distances = []
-        
         if current_belief:
             a_last = action_history[-1]
             o_last = observation_history[-1]
@@ -391,11 +383,8 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                     return None, {"model": traceback.format_exc()}
 
                 dist = model_obs.distance(o_last)
-                if not math.isinf(dist):
-                    distances.append(dist)
 
                 if math.isinf(dist):
-                    num_rejected_inf += 1
                     continue  # impossible
 
                 if distance_threshold is not None:
@@ -403,64 +392,26 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                         weighted_particles[next_state] = (
                             weighted_particles.get(next_state, 0) + 1.0
                         )
-                        num_accepted += 1
-                    else:
-                        num_rejected_threshold += 1
                 else:
                     w = math.exp(-dist / max(kernel_bandwidth, 1e-12))
                     if w > 0.0:
                         weighted_particles[next_state] = (
                             weighted_particles.get(next_state, 0) + w
                         )
-                        num_accepted += 1
 
         log.info(
             "Num valid initial particles pre-rejuvenation: "
             f"{len(weighted_particles)}"
         )
-        if current_belief:
-            total_particles = len(current_belief.to_list())
-            log.info(
-                f"Particle rejection: {num_rejected_inf} infinite distance, "
-                f"{num_rejected_threshold} beyond threshold, {num_accepted} accepted "
-                f"out of {total_particles} total"
-            )
-            if distances:
-                log.info(
-                    f"Distance stats: min={min(distances):.4f}, "
-                    f"max={max(distances):.4f}, mean={sum(distances)/len(distances):.4f}"
-                )
-            else:
-                log.warning("All particles had infinite distance!")
 
         # ------------------------------------------------------------------ #
         # 2) Rejuvenate / initialise until we hit self.num_particles         #
         # ------------------------------------------------------------------ #
-        rejuvenation_start = time.time()
-        attempts_checkpoint = 0
-        last_log_time = rejuvenation_start
-        rejuv_rejected_inf = 0
-        rejuv_rejected_threshold = 0
-        
         while (
             sum(weighted_particles.values()) < self.num_particles
             and self.num_attempts < self.max_attempts
         ):
             self.num_attempts += 1
-            attempts_checkpoint += 1
-            
-            # Log progress every 5 seconds
-            current_time = time.time()
-            if current_time - last_log_time > 5.0:
-                log.warning(
-                    f"Rejuvenation slow: {attempts_checkpoint} attempts in last 5s, "
-                    f"total: {self.num_attempts}, valid particles: {len(weighted_particles)}, "
-                    f"acceptance rate: {len(weighted_particles)/self.num_attempts:.4f}, "
-                    f"rejected: inf={rejuv_rejected_inf}, threshold={rejuv_rejected_threshold}"
-                )
-                attempts_checkpoint = 0
-                last_log_time = current_time
-            
             try:
                 candidate = self.planner.initial_model(copy.deepcopy(self.empty_state))
             except Exception:
@@ -480,12 +431,9 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                     return None, {"model": traceback.format_exc()}
 
                 dist = cand_obs.distance(obs)
-                if math.isinf(dist):
-                    rejuv_rejected_inf += 1
-                    ok = False
-                    break
-                elif distance_threshold is not None and dist > distance_threshold:
-                    rejuv_rejected_threshold += 1
+                if math.isinf(dist) or (
+                    distance_threshold is not None and dist > distance_threshold
+                ):
                     ok = False
                     break
 
@@ -494,15 +442,8 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                     weighted_particles.get(next_state, 0) + 1.0
                 )
 
-        rejuvenation_time = time.time() - rejuvenation_start
-        log.info(f"Rejuvenation took {rejuvenation_time:.2f}s")
         log.info(f"Num attempts: {self.num_attempts}/{self.max_attempts}")
         log.info("Num valid initial particles: " + str(len(weighted_particles)))
-        
-        if rejuvenation_time > 10.0:
-            log.warning(
-                f"Slow rejuvenation detected! Acceptance rate: {len(weighted_particles)/max(1, self.num_attempts):.4f}"
-            )
 
         if not weighted_particles:
             return None, {
@@ -558,21 +499,11 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             self.current_belief = belief
 
         steps_left = self.max_steps - self.steps_taken
-        
-        # Add timeout for planning to prevent infinite loops
-        try:
-            log.info(f"Starting planning with {len(self.current_belief.to_list())} particles and {steps_left} steps left")
-            with timeout(60):  # 60 second timeout for planning
-                action, error = self.planner.plan_next_action(belief, max_steps=steps_left)
-        except TimeoutError as e:
-            log.error(f"Planning timed out: {e}")
-            log.error(f"Belief size: {len(self.current_belief.to_list())} particles")
-            action = random.choice(self.actions)
-            error = {"planning": "timeout"}
+        action, error = self.planner.plan_next_action(belief, max_steps=steps_left)
 
         self.action_hist.append(action)
         if len(error) != 0:
-            log.info(f"Planning error: {error}, taking random action")
+            log.info("Planning error, taking random action")
             action = random.choice(self.actions)
 
         self.steps_taken += 1
@@ -919,7 +850,7 @@ class LLMPartiallyObsPlanningAgent(
                 + "\n"
             )
             experiences += (
-                "And here are some samples from your code under the same conditions (they are wrong)\n"
+                "And here are some samples from your code under the same conditions\n"
                 + model_io_str
                 + "\n"
             )
@@ -1311,18 +1242,3 @@ class LLMPartiallyObsPlanningAgent(
 
     def _set_model(self, model_name: str, model: Any) -> None:
         self.planner.__setattr__(model_name, model)
-
-
-@contextmanager
-def timeout(seconds):
-    """Context manager for timeout."""
-    def timeout_handler(signum, frame):
-        raise TimeoutError(f"Operation timed out after {seconds} seconds")
-    
-    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(seconds)
-    try:
-        yield
-    finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old_handler)
