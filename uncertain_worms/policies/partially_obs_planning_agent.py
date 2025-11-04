@@ -372,7 +372,6 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             o_last = observation_history[-1]
 
             for particle in current_belief.to_list():
-                print(f"Propagating particle: {particle}")
                 try:
                     next_state = self.planner.transition_model(
                         copy.deepcopy(particle), a_last
@@ -386,7 +385,6 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
                 dist = model_obs.distance(o_last)
 
                 if math.isinf(dist):
-                    print(f"Particle {particle} is impossible")
                     continue  # impossible
 
                 if distance_threshold is not None:

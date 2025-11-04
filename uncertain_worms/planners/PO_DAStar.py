@@ -163,7 +163,7 @@ class PO_DAStar(
         log.info("Search graph saved to %s", path)
 
     def plan_next_action(
-        self, belief_state: ParticleBelief, max_steps: int
+        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 10000
     ) -> Tuple[ActType, Dict]:
         counter = itertools.count()
         open_set: List[Tuple[float, int, float, BeliefNode[ActType], int]] = []
@@ -189,16 +189,31 @@ class PO_DAStar(
         closed = set()
         num_expansions = 0
         best_priority = cost_values[start_node]
+        
+        # Circuit breaker for repeated errors
+        consecutive_errors = 0
+        max_consecutive_errors = 100
 
         # ==================================================================#
         # A* loop
         # ==================================================================#
-        while open_set:
+        iteration_count = 0
+        while open_set and iteration_count < max_iterations:
+            iteration_count += 1
+            
             if (
                 self.max_expansions is not None
                 and num_expansions >= self.max_expansions
             ):
                 break
+            
+            # Circuit breaker check
+            if consecutive_errors >= max_consecutive_errors:
+                log.warning(
+                    f"Hit circuit breaker: {consecutive_errors} consecutive errors. "
+                    "Stopping planning and returning random action."
+                )
+                return random.choice(self.actions), {}
 
             priority, _, current_g, current_node, steps = heapq.heappop(open_set)
             best_priority = (
@@ -222,6 +237,7 @@ class PO_DAStar(
                 continue
 
             for action in self.actions:
+                action_succeeded = False
                 try:
                     total_outcome = defaultdict(float)
                     for state, p_s in current_node.belief.dist.items():
@@ -234,8 +250,10 @@ class PO_DAStar(
                     merged = CategoricalBelief[StateType, ObsType](
                         dist=dict(total_outcome)
                     )
+                    action_succeeded = True
                 except Exception:
                     log.info(traceback.format_exc())
+                    consecutive_errors += 1
                     continue
 
                 branches: Dict[ObsType, Dict[StateType, float]] = defaultdict(
@@ -253,7 +271,12 @@ class PO_DAStar(
                             branches[obs][s2] += p_m * (cnt / tot_o)
                 except Exception:
                     log.info(traceback.format_exc())
+                    consecutive_errors += 1
                     continue
+                
+                # If we got here without errors, reset the counter
+                if action_succeeded:
+                    consecutive_errors = 0
 
                 for obs, dist in branches.items():
                     prob = sum(dist.values())
@@ -266,9 +289,6 @@ class PO_DAStar(
                     exp_r = 0.0
                     term_flags: List[bool] = []
                     
-                    belief_size = len(current_node.belief.dist)
-                    log.info(f"Current belief size: {belief_size}")
-                    
                     for s_prev, p_prev in current_node.belief.dist.items():
                         for s_next, p_sn in dist.items():
                             p_joint = p_prev * (p_sn / prob)
@@ -278,8 +298,8 @@ class PO_DAStar(
                                 term_flags.append(term)
                             except Exception:
                                 log.info(traceback.format_exc())
+                                consecutive_errors += 1
                     
-                    log.info(f"Computed exp_r={exp_r}, is_term={all(term_flags)}")
                     is_term = all(term_flags)
 
                     norm_dist = {s: p / prob for s, p in dist.items()}
@@ -311,6 +331,14 @@ class PO_DAStar(
                         came_from[child] = (current_node, action)
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
+        
+        # Check if we hit max iterations
+        if iteration_count >= max_iterations:
+            log.warning(
+                f"Planning terminated after {max_iterations} iterations. "
+                "Returning random action."
+            )
+            return random.choice(self.actions), {}
 
         # ==================================================================#
         # Search finished – pick best candidate by same objective
