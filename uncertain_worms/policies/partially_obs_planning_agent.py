@@ -688,6 +688,7 @@ class LLMPartiallyObsPlanningAgent(
                 in_error_state = True
             else:
                 self.current_belief = belief
+                log.info("Belief established.")
         else:
             # Otherwise update the belief using the last action and the new observation
             belief, error = self.update_belief(
@@ -700,6 +701,7 @@ class LLMPartiallyObsPlanningAgent(
                 in_error_state = True
             else:
                 self.current_belief = belief
+                log.info("Belief updated.")
 
         if in_error_state == 0:
             steps_left = self.max_steps - self.steps_taken
