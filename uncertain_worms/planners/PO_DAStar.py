@@ -332,7 +332,7 @@ class PO_DAStar(
         # Check if we hit max iterations
         if iteration_count >= max_iterations:
             log.warning(
-                f"Planning terminated after {max_iterations} iterations. "
+                f"Planning terminated after {iteration_count} iterations. "
                 "Returning random action."
             )
             return random.choice(self.actions), {}
