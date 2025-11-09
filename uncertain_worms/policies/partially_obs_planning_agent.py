@@ -606,7 +606,8 @@ class LLMPartiallyObsPlanningAgent(
         env_code_path: str = "",
         env_description: str = "",
         goal_description: str = "",
-        num_model_attempts: int = 25,
+        # num_model_attempts: int = 25,
+        num_model_attempts: int = 5,  # for debugging
         num_online_model_attempts: int = 25,
         num_input_examples: int = 5,
         learn_transition: bool = False,

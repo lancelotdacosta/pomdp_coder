@@ -34,7 +34,7 @@ class StreamToLogger:
 
 
 def setup_logger() -> None:
-    log_level = logging.DEBUG
+    log_level = logging.INFO
 
     # Get the Hydra log directory
     log_dir = get_log_dir()
@@ -44,7 +44,7 @@ def setup_logger() -> None:
     logger = logging.getLogger()
     logging.getLogger("matplotlib.font_manager").disabled = True
     pil_logger = logging.getLogger("PIL")
-    pil_logger.setLevel(logging.INFO)
+    pil_logger.setLevel(logging.DEBUG)
     logger.setLevel(log_level)
 
     # Remove any existing handlers to prevent duplicate logging
