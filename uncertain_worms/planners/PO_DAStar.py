@@ -193,6 +193,7 @@ class PO_DAStar(
         # Circuit breaker for repeated errors
         consecutive_errors = 0
         max_consecutive_errors = 100
+        log.debug("This comes before the loop.")
 
         # ==================================================================#
         # A* loop
