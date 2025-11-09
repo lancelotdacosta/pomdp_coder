@@ -21,7 +21,8 @@ agent:
   _target_: uncertain_worms.policies.partially_obs_planning_agent.LLMPartiallyObsPlanningAgent
   max_attempts: 250000
   num_particles: 100
-  num_model_attempts: 25
+  # num_model_attempts: 25
+  num_model_attempts: 5 # for faster debugging
   fully_obs: false
   env_code_path: environments/minigrid
   actions: *actions
