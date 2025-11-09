@@ -200,6 +200,11 @@ class PO_DAStar(
         iteration_count = 0
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
+            if iteration_count % 1000 == 0:
+                            log.debug(
+                                f"Iteration {iteration_count}: open_set size={len(open_set)}, "
+                                f"closed size={len(closed)}, expansions={num_expansions}"
+                            )
             
             if (
                 self.max_expansions is not None
