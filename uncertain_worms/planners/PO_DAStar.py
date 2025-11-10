@@ -254,6 +254,7 @@ class PO_DAStar(
                         )
                         tot = sum(counts.values())
                         log.warning(f"State {state} -> Action {action}: {counts}")
+                        input("Press Enter to continue...")
                         for s2, cnt in counts.items():
                             log.warning(f"  Outcome state {s2} with prob {cnt / tot:.3f}, weighted {p_s * (cnt / tot):.3f}")
                             total_outcome[s2] += p_s * (cnt / tot)
