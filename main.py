@@ -34,7 +34,7 @@ class StreamToLogger:
 
 
 def setup_logger() -> None:
-    log_level = logging.INFO
+    log_level = logging.DEBUG
 
     # Get the Hydra log directory
     log_dir = get_log_dir()
