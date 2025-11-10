@@ -200,6 +200,7 @@ class PO_DAStar(
         # ==================================================================#
         iteration_count = 0
         while open_set and iteration_count < max_iterations:
+            input(f"Open set: {open_set}. Press Enter to continue...")
             iteration_count += 1
             if iteration_count % 1000 == 0:
                             log.warning(
@@ -285,6 +286,7 @@ class PO_DAStar(
                         for obs, cnt in obs_counts.items():
                             weight = p_m * (cnt / tot_o)
                             log.warning(f"      Obs {obs}: count={cnt}, prob={cnt/tot_o:.3f}, weight={weight:.3f}")
+                            input("Press Enter to continue...")
                             branches[obs][s2] += weight
                 except Exception:
                     log.info(traceback.format_exc())
@@ -345,6 +347,7 @@ class PO_DAStar(
                         or new_cost < cost_so_far[child] \
                         and not _is_descendant(child, current_node, came_from):
                         cost_so_far[child] = new_cost
+                        input("Added a child node to the open set. Press Enter to continue...")
                         heapq.heappush(
                             open_set,
                             (priority, next(counter), new_cost, child, steps + 1),
@@ -377,6 +380,7 @@ class PO_DAStar(
                 cost_so_far,
             )
         if plan:
+            input(f"Discovered plan: {plan}. Press Enter to continue...")
             return plan[0], {}
 
         log.info("No path discovered, defaulting to random action")
