@@ -193,7 +193,7 @@ class PO_DAStar(
         # Circuit breaker for repeated errors
         consecutive_errors = 0
         max_consecutive_errors = 100
-        log.debug("This comes before the loop.")
+        log.warning("This comes before the loop.")
 
         # ==================================================================#
         # A* loop
@@ -202,7 +202,7 @@ class PO_DAStar(
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
             if iteration_count % 1000 == 0:
-                            log.debug(
+                            log.warning(
                                 f"Iteration {iteration_count}: open_set size={len(open_set)}, "
                                 f"closed size={len(closed)}, expansions={num_expansions}"
                             )
@@ -243,7 +243,7 @@ class PO_DAStar(
                 continue
 
             for action in self.actions:
-                log.debug(f"Trying action: {action}")
+                log.warning(f"Trying action: {action}")
                 action_succeeded = False
                 try:
                     total_outcome = defaultdict(float)
@@ -252,9 +252,9 @@ class PO_DAStar(
                             self.transition_model, [state, action], self.num_rollouts
                         )
                         tot = sum(counts.values())
-                        log.debug(f"State {state} -> Action {action}: {counts}")
+                        log.warning(f"State {state} -> Action {action}: {counts}")
                         for s2, cnt in counts.items():
-                            log.debug(f"  Outcome state {s2} with prob {cnt / tot:.3f}, weighted {p_s * (cnt / tot):.3f}")
+                            log.warning(f"  Outcome state {s2} with prob {cnt / tot:.3f}, weighted {p_s * (cnt / tot):.3f}")
                             total_outcome[s2] += p_s * (cnt / tot)
                     merged = CategoricalBelief[StateType, ObsType](
                         dist=dict(total_outcome)
@@ -270,17 +270,17 @@ class PO_DAStar(
                 )
                 try:
                     for s2, p_m in merged.dist.items():
-                        log.debug(f"  Processing merged state {s2} with prob {p_m:.3f}")
+                        log.warning(f"  Processing merged state {s2} with prob {p_m:.3f}")
                         obs_counts = rollout_fn(
                             self.observation_model,
                             [s2, action, self.empty_observation],
                             self.num_rollouts,
                         )
                         tot_o = sum(obs_counts.values())
-                        log.debug(f"    Got {len(obs_counts)} observations from state {s2}, total count: {tot_o}")
+                        log.warning(f"    Got {len(obs_counts)} observations from state {s2}, total count: {tot_o}")
                         for obs, cnt in obs_counts.items():
                             weight = p_m * (cnt / tot_o)
-                            log.debug(f"      Obs {obs}: count={cnt}, prob={cnt/tot_o:.3f}, weight={weight:.3f}")
+                            log.warning(f"      Obs {obs}: count={cnt}, prob={cnt/tot_o:.3f}, weight={weight:.3f}")
                             branches[obs][s2] += weight
                 except Exception:
                     log.info(traceback.format_exc())
@@ -293,7 +293,7 @@ class PO_DAStar(
 
                 for obs, dist in branches.items():
                     prob = sum(dist.values())
-                    log.debug(f"    Branch obs={obs}: prob={prob:.3f}, {len(dist)} states")
+                    log.warning(f"    Branch obs={obs}: prob={prob:.3f}, {len(dist)} states")
                     if prob == 0.0:
                         continue
                     
@@ -305,7 +305,7 @@ class PO_DAStar(
                             p_joint = p_prev * (p_sn / prob)
                             try:
                                 r, term = self.reward_model(s_prev, action, s_next)
-                                log.debug(f"      Reward: s_prev={s_prev}, s_next={s_next}, r={r:.3f}, term={term}, p_joint={p_joint:.3f}")
+                                log.warning(f"      Reward: s_prev={s_prev}, s_next={s_next}, r={r:.3f}, term={term}, p_joint={p_joint:.3f}")
                                 exp_r += r * p_joint
                                 term_flags.append(term)
                             except Exception:
