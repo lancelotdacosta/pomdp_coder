@@ -244,6 +244,7 @@ class PO_DAStar(
 
             for action in self.actions:
                 log.warning(f"Trying action: {action}")
+                input("Press Enter to continue...")
                 action_succeeded = False
                 try:
                     total_outcome = defaultdict(float)
@@ -315,6 +316,7 @@ class PO_DAStar(
                     
                     # Log summary instead of individual transitions
                     log.warning(f"Evaluated {transition_count} state transitions, expected reward: {exp_r:.3f}")
+                    input("Press Enter to continue...")
 
                     is_term = all(term_flags)
 
