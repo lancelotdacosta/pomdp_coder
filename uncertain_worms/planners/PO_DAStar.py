@@ -300,18 +300,22 @@ class PO_DAStar(
                     exp_r = 0.0
                     term_flags: List[bool] = []
                     
+                    transition_count = 0
                     for s_prev, p_prev in current_node.belief.dist.items():
                         for s_next, p_sn in dist.items():
                             p_joint = p_prev * (p_sn / prob)
                             try:
                                 r, term = self.reward_model(s_prev, action, s_next)
-                                log.warning(f"      Reward: s_prev={s_prev}, s_next={s_next}, r={r:.3f}, term={term}, p_joint={p_joint:.3f}")
                                 exp_r += r * p_joint
                                 term_flags.append(term)
+                                transition_count += 1
                             except Exception:
                                 log.info(traceback.format_exc())
                                 consecutive_errors += 1
                     
+                    # Log summary instead of individual transitions
+                    log.warning(f"Evaluated {transition_count} state transitions, expected reward: {exp_r:.3f}")
+
                     is_term = all(term_flags)
 
                     norm_dist = {s: p / prob for s, p in dist.items()}
