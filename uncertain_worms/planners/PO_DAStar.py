@@ -248,6 +248,7 @@ class PO_DAStar(
                 action_succeeded = False
                 try:
                     total_outcome = defaultdict(float)
+                    log.warning(f"Draw n = {len(current_node.belief.dist)} state particles")
                     for state, p_s in current_node.belief.dist.items():
                         counts = rollout_fn(
                             self.transition_model, [state, action], self.num_rollouts
@@ -271,6 +272,7 @@ class PO_DAStar(
                     lambda: defaultdict(float)
                 )
                 try:
+                    log.warning(f"Draw {len(merged.dist)} observations")
                     for s2, p_m in merged.dist.items():
                         log.warning(f"  Processing merged state {s2} with prob {p_m:.3f}")
                         obs_counts = rollout_fn(
