@@ -199,7 +199,7 @@ class PO_DAStar(
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
             # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
-            if iteration_count % 1000 == 0:
+            if iteration_count % 10000 == 0:
                 input(
                     f"Iteration {iteration_count}: open_set size={len(open_set)}, "
                     f"closed size={len(closed)}, expansions={num_expansions}\n"
@@ -221,14 +221,14 @@ class PO_DAStar(
                 continue
 
             closed.add(current_node)
-            log.warning(f"Added {current_node} to closed set.")
+            # log.warning(f"Added {current_node} to closed set.")
 
-            log.warning(
-                f"Best priority: {best_priority:.2f} | "
-                f"num_expansions: {num_expansions} | "
-                f"current priority: {priority:.2f} | "
-                f"Num nodes: {len(cost_so_far)}"
-            )
+            # log.warning(
+            #     f"Best priority: {best_priority:.2f} | "
+            #     f"num_expansions: {num_expansions} | "
+            #     f"current priority: {priority:.2f} | "
+            #     f"Num nodes: {len(cost_so_far)}"
+            # )
 
             num_expansions += 1
             if steps >= max_steps or current_node.terminal:
@@ -237,11 +237,11 @@ class PO_DAStar(
                 continue
 
             for action in self.actions:
-                log.warning(f"Trying action: {action}")
+                # log.warning(f"Trying action: {action}")
                 action_succeeded = False
                 try:
                     total_outcome = defaultdict(float)
-                    log.warning(f"Draw n = {len(current_node.belief.dist)} state particles")
+                    # log.warning(f"Draw n = {len(current_node.belief.dist)} state particles")
                     for state, p_s in current_node.belief.dist.items():
                         counts = rollout_fn(
                             self.transition_model, [state, action], self.num_rollouts
@@ -263,7 +263,7 @@ class PO_DAStar(
                     lambda: defaultdict(float)
                 )
                 try:
-                    log.warning(f"Draw {len(merged.dist)} observations")
+                    # log.warning(f"Draw {len(merged.dist)} observations")
                     for s2, p_m in merged.dist.items():
                         log.warning(f"  Processing merged state {s2} with prob {p_m:.3f}")
                         obs_counts = rollout_fn(
@@ -272,7 +272,7 @@ class PO_DAStar(
                             self.num_rollouts,
                         )
                         tot_o = sum(obs_counts.values())
-                        log.warning(f"    Got {len(obs_counts)} observations from state {s2}, total count: {tot_o}")
+                        # log.warning(f"    Got {len(obs_counts)} observations from state {s2}, total count: {tot_o}")
                         for obs, cnt in obs_counts.items():
                             weight = p_m * (cnt / tot_o)
                             branches[obs][s2] += weight
@@ -286,7 +286,7 @@ class PO_DAStar(
 
                 for obs, dist in branches.items():
                     prob = sum(dist.values())
-                    log.warning(f"    Branch obs={obs}: prob={prob:.3f}, {len(dist)} states")
+                    # log.warning(f"    Branch obs={obs}: prob={prob:.3f}, {len(dist)} states")
                     if prob == 0.0:
                         continue
                     
@@ -307,7 +307,7 @@ class PO_DAStar(
                                 consecutive_errors += 1
                     
                     # Log summary instead of individual transitions
-                    log.warning(f"Evaluated {transition_count} state transitions, expected reward: {exp_r:.3f}")
+                    # log.warning(f"Evaluated {transition_count} state transitions, expected reward: {exp_r:.3f}")
 
                     is_term = all(term_flags)
 
@@ -342,7 +342,7 @@ class PO_DAStar(
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
             
-            log.warning(f"Went through all actions and corresponding observations.")
+            # log.warning(f"Went through all actions and corresponding observations.")
         
         # Check if we hit max iterations
         if iteration_count >= max_iterations:
