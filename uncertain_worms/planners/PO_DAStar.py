@@ -190,9 +190,6 @@ class PO_DAStar(
         num_expansions = 0
         best_priority = cost_values[start_node]
         
-        # Circuit breaker for repeated errors
-        consecutive_errors = 0
-        max_consecutive_errors = 100
         log.warning("This comes before the loop.")
 
         # ==================================================================#
@@ -215,14 +212,6 @@ class PO_DAStar(
             ):
                 break
             
-            # Circuit breaker check
-            if consecutive_errors >= max_consecutive_errors:
-                log.warning(
-                    f"Hit circuit breaker: {consecutive_errors} consecutive errors. "
-                    "Stopping planning and returning random action."
-                )
-                return random.choice(self.actions), {}
-
             priority, _, current_g, current_node, steps = heapq.heappop(open_set)
             best_priority = (
                 min(best_priority, priority) if num_expansions > 0 else priority
@@ -289,7 +278,6 @@ class PO_DAStar(
                             branches[obs][s2] += weight
                 except Exception:
                     log.info(traceback.format_exc())
-                    consecutive_errors += 1
                     continue
                 
                 # If we got here without errors, reset the counter
@@ -384,6 +372,7 @@ class PO_DAStar(
             return plan[0], {}
 
         log.info("No path discovered, defaulting to random action")
+        input("Press Enter to continue...")
         return random.choice(self.actions), {}
 
     @staticmethod
