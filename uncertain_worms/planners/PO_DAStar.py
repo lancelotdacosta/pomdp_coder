@@ -321,7 +321,6 @@ class PO_DAStar(
                     
                     # Log summary instead of individual transitions
                     log.warning(f"Evaluated {transition_count} state transitions, expected reward: {exp_r:.3f}")
-                    input("Press Enter to continue...")
 
                     is_term = all(term_flags)
 
@@ -347,7 +346,7 @@ class PO_DAStar(
                         or new_cost < cost_so_far[child] \
                         and not _is_descendant(child, current_node, came_from):
                         cost_so_far[child] = new_cost
-                        input("Added a child node to the open set. Press Enter to continue...")
+                        log.warning("Added a child node to the open set.")
                         heapq.heappush(
                             open_set,
                             (priority, next(counter), new_cost, child, steps + 1),
