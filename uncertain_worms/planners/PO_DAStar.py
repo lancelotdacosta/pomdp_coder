@@ -190,7 +190,7 @@ class PO_DAStar(
         num_expansions = 0
         best_priority = cost_values[start_node]
 
-        max_iterations = 1000  # Safety cap to prevent infinite loops
+        max_iterations = 100  # Safety cap to prevent infinite loops
         iterations_count = 0
 
         # ==================================================================#
