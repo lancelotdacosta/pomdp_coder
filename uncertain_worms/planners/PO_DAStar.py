@@ -265,7 +265,7 @@ class PO_DAStar(
                 try:
                     # log.warning(f"Draw {len(merged.dist)} observations")
                     for s2, p_m in merged.dist.items():
-                        log.warning(f"  Processing merged state {s2} with prob {p_m:.3f}")
+                        # log.warning(f"  Processing merged state {s2} with prob {p_m:.3f}")
                         obs_counts = rollout_fn(
                             self.observation_model,
                             [s2, action, self.empty_observation],
@@ -333,7 +333,7 @@ class PO_DAStar(
                         or new_cost < cost_so_far[child] \
                         and not _is_descendant(child, current_node, came_from):
                         cost_so_far[child] = new_cost
-                        log.warning("Added a child node to the open set.")
+                        # log.warning("Added a child node to the open set.")
                         heapq.heappush(
                             open_set,
                             (priority, next(counter), new_cost, child, steps + 1),
