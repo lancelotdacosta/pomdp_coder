@@ -343,14 +343,15 @@ class PO_DAStar(
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
             
-                if iteration_count % 100 == 0:
-                    # Sample top-10 nodes from open_set to check belief sizes
-                    sample_nodes = [item[3] for item in sorted(open_set)[:10]]
-                    belief_sizes = [len(node.belief.dist) for node in sample_nodes]
-                    avg_size = sum(belief_sizes) / len(belief_sizes) if belief_sizes else 0
-                    log.warning(
-                        f"Belief sizes in top-10 open_set: {belief_sizes}, avg={avg_size:.1f}"
-                    )
+            if iteration_count % 100 == 0:
+                # Sample top-10 nodes from open_set to check belief sizes
+                sample_nodes = [item[3] for item in sorted(open_set)[:10]]
+                belief_sizes = [len(node.belief.dist) for node in sample_nodes]
+                avg_size = sum(belief_sizes) / len(belief_sizes) if belief_sizes else 0
+                log.warning(
+                    f"Belief sizes in top-10 open_set: {belief_sizes}, avg={avg_size:.1f}"
+                )
+            
             # log.warning(f"Went through all actions and corresponding observations.")
         
         # Check if we hit max iterations
