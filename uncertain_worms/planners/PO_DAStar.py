@@ -244,19 +244,11 @@ class PO_DAStar(
                 action_succeeded = False
                 try:
                     total_outcome = defaultdict(float)
-                    # log.warning(f"Draw n = {len(current_node.belief.dist)} state particles")
                     for state, p_s in current_node.belief.dist.items():
                         counts = rollout_fn(
                             self.transition_model, [state, action], self.num_rollouts
                         )
                         tot = sum(counts.values())
-                        unique_next_states = len(counts)
-                        if unique_next_states > 5:
-                            log.warning(
-                                f"High transition uncertainty: {unique_next_states} unique next states "
-                                f"from {self.num_rollouts} samples for state {state}, action {action}"
-                            )
-                        # log.warning(f"State {state} -> Action {action}: {counts}")
                         for s2, cnt in counts.items():
                             total_outcome[s2] += p_s * (cnt / tot)
                     merged = CategoricalBelief[StateType, ObsType](
@@ -271,18 +263,6 @@ class PO_DAStar(
                     lambda: defaultdict(float)
                 )
                 try:
-                    # Sample observations to check diversity
-                    sampled_states = list(merged.dist.keys())[:10]
-                    sampled_obs = []
-                    for s2 in sampled_states:
-                        obs = self.observation_model(s2, action, self.empty_observation)
-                        sampled_obs.append(obs)
-                    unique_obs = len(set(sampled_obs))
-                    if unique_obs <= 2:
-                        log.warning(
-                            f"Low observation diversity: {unique_obs} unique observations from {len(sampled_states)} states"
-                        )
-                    
                     for s2, p_m in merged.dist.items():
                         obs_counts = rollout_fn(
                             self.observation_model,
@@ -296,6 +276,7 @@ class PO_DAStar(
                 except Exception:
                     log.info(traceback.format_exc())
                     continue
+
                 
                 for obs, dist in branches.items():
                     prob = sum(dist.values())
