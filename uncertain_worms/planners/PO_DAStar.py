@@ -163,7 +163,7 @@ class PO_DAStar(
         log.info("Search graph saved to %s", path)
 
     def plan_next_action(
-        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 100000
+        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 10000
     ) -> Tuple[ActType, Dict]:
         counter = itertools.count()
         open_set: List[Tuple[float, int, float, BeliefNode[ActType], int]] = []
@@ -200,11 +200,7 @@ class PO_DAStar(
             iteration_count += 1
             # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
             if iteration_count % 100 == 0:
-                input(
-                    f"Iteration {iteration_count}: open_set size={len(open_set)}, "
-                    f"closed size={len(closed)}, expansions={num_expansions}\n"
-                    "Press Enter to continue..."
-                )
+                log.warning(f"Iteration {iteration_count}")
 
             if iteration_count % 10000 == 0:
                 input(
@@ -343,15 +339,14 @@ class PO_DAStar(
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
             
-            if iteration_count % 100 == 0:
-                # Sample top-10 nodes from open_set to check belief sizes
-                sample_nodes = [item[3] for item in sorted(open_set)[:10]]
-                belief_sizes = [len(node.belief.dist) for node in sample_nodes]
-                avg_size = sum(belief_sizes) / len(belief_sizes) if belief_sizes else 0
-                log.warning(
-                    f"Belief sizes in top-10 open_set: {belief_sizes}, avg={avg_size:.1f}"
-                )
-            
+                if iteration_count % 100 == 0:
+                    # Sample top-10 nodes from open_set to check belief sizes
+                    sample_nodes = [item[3] for item in sorted(open_set)[:10]]
+                    belief_sizes = [len(node.belief.dist) for node in sample_nodes]
+                    avg_size = sum(belief_sizes) / len(belief_sizes) if belief_sizes else 0
+                    log.warning(
+                        f"Belief sizes in top-10 open_set: {belief_sizes}, avg={avg_size:.1f}"
+                    )
             # log.warning(f"Went through all actions and corresponding observations.")
         
         # Check if we hit max iterations
