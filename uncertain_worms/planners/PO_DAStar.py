@@ -201,12 +201,13 @@ class PO_DAStar(
         iteration_count = 0
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
-            input(f"Iteration {iteration_count}: \nPress Enter to continue...")
+            # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
             if iteration_count % 100 == 0:
-                            log.warning(
-                                f"Iteration {iteration_count}: open_set size={len(open_set)}, "
-                                f"closed size={len(closed)}, expansions={num_expansions}"
-                            )
+                input(
+                    f"Iteration {iteration_count}: open_set size={len(open_set)}, "
+                    f"closed size={len(closed)}, expansions={num_expansions}\n"
+                    "Press Enter to continue..."
+                )
             
             if (
                 self.max_expansions is not None
@@ -243,7 +244,7 @@ class PO_DAStar(
             num_expansions += 1
             if steps >= max_steps or current_node.terminal:
                 log.warning(f"steps={steps} >= max_steps={max_steps}: {steps >= max_steps} | terminal: {current_node.terminal}")
-                input("Reached terminal/max steps. Press Enter to continue...")
+                # input("Reached terminal/max steps. Press Enter to continue...")
                 continue
 
             for action in self.actions:
