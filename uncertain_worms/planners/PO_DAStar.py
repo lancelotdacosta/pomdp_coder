@@ -198,7 +198,7 @@ class PO_DAStar(
         iteration_count = 0
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
-            input(f"Iteration {iteration_count}: \nPress Enter to continue...")
+            # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
             if iteration_count % 1000 == 0:
                 input(
                     f"Iteration {iteration_count}: open_set size={len(open_set)}, "
