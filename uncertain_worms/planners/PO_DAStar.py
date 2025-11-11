@@ -163,7 +163,7 @@ class PO_DAStar(
         log.info("Search graph saved to %s", path)
 
     def plan_next_action(
-        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 10000
+        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 1000
     ) -> Tuple[ActType, Dict]:
         counter = itertools.count()
         open_set: List[Tuple[float, int, float, BeliefNode[ActType], int]] = []
@@ -202,7 +202,7 @@ class PO_DAStar(
         while open_set and iteration_count < max_iterations:
             input(f"Open set: {open_set}. Press Enter to continue...")
             iteration_count += 1
-            if iteration_count % 1000 == 0:
+            if iteration_count % 100 == 0:
                             log.warning(
                                 f"Iteration {iteration_count}: open_set size={len(open_set)}, "
                                 f"closed size={len(closed)}, expansions={num_expansions}"
@@ -231,7 +231,7 @@ class PO_DAStar(
                 continue
 
             closed.add(current_node)
-            input(f"Added {current_node} to closed set. Press Enter to continue...")
+            log.warning(f"Added {current_node} to closed set.")
 
             # print(
             #     f"Best priority: {best_priority:.2f} | "
@@ -246,7 +246,6 @@ class PO_DAStar(
 
             for action in self.actions:
                 log.warning(f"Trying action: {action}")
-                input("Press Enter to continue...")
                 action_succeeded = False
                 try:
                     total_outcome = defaultdict(float)
@@ -257,9 +256,7 @@ class PO_DAStar(
                         )
                         tot = sum(counts.values())
                         log.warning(f"State {state} -> Action {action}: {counts}")
-                        input("Press Enter to continue...")
                         for s2, cnt in counts.items():
-                            log.warning(f"  Outcome state {s2} with prob {cnt / tot:.3f}, weighted {p_s * (cnt / tot):.3f}")
                             total_outcome[s2] += p_s * (cnt / tot)
                     merged = CategoricalBelief[StateType, ObsType](
                         dist=dict(total_outcome)
@@ -269,6 +266,8 @@ class PO_DAStar(
                     log.info(traceback.format_exc())
                     consecutive_errors += 1
                     continue
+                
+                input(f"Went through action {action}. Press Enter to continue...")
 
                 branches: Dict[ObsType, Dict[StateType, float]] = defaultdict(
                     lambda: defaultdict(float)
@@ -286,13 +285,13 @@ class PO_DAStar(
                         log.warning(f"    Got {len(obs_counts)} observations from state {s2}, total count: {tot_o}")
                         for obs, cnt in obs_counts.items():
                             weight = p_m * (cnt / tot_o)
-                            log.warning(f"      Obs {obs}: count={cnt}, prob={cnt/tot_o:.3f}, weight={weight:.3f}")
-                            input("Press Enter to continue...")
                             branches[obs][s2] += weight
                 except Exception:
                     log.info(traceback.format_exc())
                     consecutive_errors += 1
                     continue
+                
+                input(f"Went through observations for action {action}. Press Enter to continue...")
                 
                 # If we got here without errors, reset the counter
                 if action_succeeded:
