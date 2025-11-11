@@ -200,18 +200,16 @@ class PO_DAStar(
             iteration_count += 1
             # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
             if iteration_count % 100 == 0:
-                log.warning(f"Iteration {iteration_count}")
-
-            if iteration_count % 10000 == 0:
-                # Compute best_g from open_set
-                best_g = min(item[2] for item in open_set) if open_set else float('inf')
-                # Get depths (steps) from first 5 items in open_set
-                depths = [item[4] for item in list(open_set)[:5]]
-                
                 input(
                     f"Iteration {iteration_count}: open_set size={len(open_set)}, "
-                    f"closed size={len(closed)}, expansions={num_expansions}, "
-                    f"best_g={best_g:.2f}, depths={depths}\n"
+                    f"closed size={len(closed)}, expansions={num_expansions}\n"
+                    "Press Enter to continue..."
+                )
+
+            if iteration_count % 10000 == 0:
+                input(
+                    f"Iteration {iteration_count}: open_set size={len(open_set)}, "
+                    f"closed size={len(closed)}, expansions={num_expansions}\n"
                     "Press Enter to continue..."
                 )
             
@@ -345,6 +343,14 @@ class PO_DAStar(
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
             
+                if iteration_count % 100 == 0:
+                    # Sample top-10 nodes from open_set to check belief sizes
+                    sample_nodes = [item[3] for item in sorted(open_set)[:10]]
+                    belief_sizes = [len(node.belief.dist) for node in sample_nodes]
+                    avg_size = sum(belief_sizes) / len(belief_sizes) if belief_sizes else 0
+                    log.warning(
+                        f"Belief sizes in top-10 open_set: {belief_sizes}, avg={avg_size:.1f}"
+                    )
             # log.warning(f"Went through all actions and corresponding observations.")
         
         # Check if we hit max iterations
