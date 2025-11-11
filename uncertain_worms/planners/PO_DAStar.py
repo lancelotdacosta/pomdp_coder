@@ -250,6 +250,12 @@ class PO_DAStar(
                             self.transition_model, [state, action], self.num_rollouts
                         )
                         tot = sum(counts.values())
+                        unique_next_states = len(counts)
+                        if unique_next_states > 5:
+                            log.warning(
+                                f"High transition uncertainty: {unique_next_states} unique next states "
+                                f"from {self.num_rollouts} samples for state {state}, action {action}"
+                            )
                         # log.warning(f"State {state} -> Action {action}: {counts}")
                         for s2, cnt in counts.items():
                             total_outcome[s2] += p_s * (cnt / tot)
@@ -265,16 +271,25 @@ class PO_DAStar(
                     lambda: defaultdict(float)
                 )
                 try:
-                    # log.warning(f"Draw {len(merged.dist)} observations")
+                    # Sample observations to check diversity
+                    sampled_states = list(merged.dist.keys())[:10]
+                    sampled_obs = []
+                    for s2 in sampled_states:
+                        obs = self.observation_model(s2, action, self.empty_observation)
+                        sampled_obs.append(obs)
+                    unique_obs = len(set(sampled_obs))
+                    if unique_obs <= 2:
+                        log.warning(
+                            f"Low observation diversity: {unique_obs} unique observations from {len(sampled_states)} states"
+                        )
+                    
                     for s2, p_m in merged.dist.items():
-                        # log.warning(f"  Processing merged state {s2} with prob {p_m:.3f}")
                         obs_counts = rollout_fn(
                             self.observation_model,
                             [s2, action, self.empty_observation],
                             self.num_rollouts,
                         )
                         tot_o = sum(obs_counts.values())
-                        # log.warning(f"    Got {len(obs_counts)} observations from state {s2}, total count: {tot_o}")
                         for obs, cnt in obs_counts.items():
                             weight = p_m * (cnt / tot_o)
                             branches[obs][s2] += weight
@@ -339,14 +354,6 @@ class PO_DAStar(
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
             
-                if iteration_count % 100 == 0:
-                    # Sample top-10 nodes from open_set to check belief sizes
-                    sample_nodes = [item[3] for item in sorted(open_set)[:10]]
-                    belief_sizes = [len(node.belief.dist) for node in sample_nodes]
-                    avg_size = sum(belief_sizes) / len(belief_sizes) if belief_sizes else 0
-                    log.warning(
-                        f"Belief sizes in top-10 open_set: {belief_sizes}, avg={avg_size:.1f}"
-                    )
             # log.warning(f"Went through all actions and corresponding observations.")
         
         # Check if we hit max iterations
