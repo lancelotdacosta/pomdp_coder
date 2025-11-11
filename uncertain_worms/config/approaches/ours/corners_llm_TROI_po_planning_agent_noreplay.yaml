@@ -7,7 +7,7 @@ num_episodes: 10
 seed: 0
 gamma: 0.98
 save_log: false
-replay_path: "uncertain_worms/config/pre_generated_functions"
+replay_path: "../../pre_generated_functions"
 
 actions: &actions [0, 1, 2, 3, 4, 5]
 env_name: &env_name "CornerGoalRandom-Empty-10x10-v0"
