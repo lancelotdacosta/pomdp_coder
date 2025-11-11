@@ -163,7 +163,7 @@ class PO_DAStar(
         log.info("Search graph saved to %s", path)
 
     def plan_next_action(
-        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 1000
+        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 10000
     ) -> Tuple[ActType, Dict]:
         counter = itertools.count()
         open_set: List[Tuple[float, int, float, BeliefNode[ActType], int]] = []
@@ -198,13 +198,13 @@ class PO_DAStar(
         iteration_count = 0
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
-            # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
-            # if iteration_count % 100 == 0:
-            #     input(
-            #         f"Iteration {iteration_count}: open_set size={len(open_set)}, "
-            #         f"closed size={len(closed)}, expansions={num_expansions}\n"
-            #         "Press Enter to continue..."
-            #     )
+            input(f"Iteration {iteration_count}: \nPress Enter to continue...")
+            if iteration_count % 1000 == 0:
+                input(
+                    f"Iteration {iteration_count}: open_set size={len(open_set)}, "
+                    f"closed size={len(closed)}, expansions={num_expansions}\n"
+                    "Press Enter to continue..."
+                )
             
             if (
                 self.max_expansions is not None
