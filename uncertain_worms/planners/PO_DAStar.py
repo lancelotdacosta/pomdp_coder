@@ -243,6 +243,7 @@ class PO_DAStar(
             num_expansions += 1
             if steps >= max_steps or current_node.terminal:
                 log.warning(f"steps={steps} >= max_steps={max_steps}: {steps >= max_steps} | terminal: {current_node.terminal}")
+                input("Reached terminal/max steps. Press Enter to continue...")
                 continue
 
             for action in self.actions:
@@ -352,7 +353,7 @@ class PO_DAStar(
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
             
-            input(f"Went through all actions and corresponding observations. Press Enter to continue...")
+            log.warning(f"Went through all actions and corresponding observations.")
         
         # Check if we hit max iterations
         if iteration_count >= max_iterations:
