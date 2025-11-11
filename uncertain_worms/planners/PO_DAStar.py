@@ -163,7 +163,7 @@ class PO_DAStar(
         log.info("Search graph saved to %s", path)
 
     def plan_next_action(
-        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 10000
+        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 100000
     ) -> Tuple[ActType, Dict]:
         counter = itertools.count()
         open_set: List[Tuple[float, int, float, BeliefNode[ActType], int]] = []
