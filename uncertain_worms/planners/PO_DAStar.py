@@ -231,6 +231,7 @@ class PO_DAStar(
                 continue
 
             closed.add(current_node)
+            input(f"Added {current_node} to closed set. Press Enter to continue...")
 
             # print(
             #     f"Best priority: {best_priority:.2f} | "
