@@ -201,7 +201,7 @@ class PO_DAStar(
         iteration_count = 0
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
-            input(f"Iteration {iteration_count}: \n Open set: {open_set}. Press Enter to continue...")
+            input(f"Iteration {iteration_count}: \nPress Enter to continue...")
             if iteration_count % 100 == 0:
                             log.warning(
                                 f"Iteration {iteration_count}: open_set size={len(open_set)}, "
@@ -256,7 +256,7 @@ class PO_DAStar(
                             self.transition_model, [state, action], self.num_rollouts
                         )
                         tot = sum(counts.values())
-                        log.warning(f"State {state} -> Action {action}: {counts}")
+                        # log.warning(f"State {state} -> Action {action}: {counts}")
                         for s2, cnt in counts.items():
                             total_outcome[s2] += p_s * (cnt / tot)
                     merged = CategoricalBelief[StateType, ObsType](
@@ -289,8 +289,6 @@ class PO_DAStar(
                     log.info(traceback.format_exc())
                     consecutive_errors += 1
                     continue
-                
-                input(f"Went through action and observations for action {action}. Press Enter to continue...")
                 
                 # If we got here without errors, reset the counter
                 if action_succeeded:
@@ -353,6 +351,8 @@ class PO_DAStar(
                         came_from[child] = (current_node, action)
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
+            
+            input(f"Went through all actions and corresponding observations. Press Enter to continue...")
         
         # Check if we hit max iterations
         if iteration_count >= max_iterations:
