@@ -163,7 +163,7 @@ class PO_DAStar(
         log.info("Search graph saved to %s", path)
 
     def plan_next_action(
-        self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 100000
+        self, belief_state: ParticleBelief, max_steps: int
     ) -> Tuple[ActType, Dict]:
         counter = itertools.count()
         open_set: List[Tuple[float, int, float, BeliefNode[ActType], int]] = []
@@ -189,32 +189,21 @@ class PO_DAStar(
         closed = set()
         num_expansions = 0
         best_priority = cost_values[start_node]
-        
-        log.warning("This comes before the loop.")
+
+        max_iterations = 100000  # Safety cap to prevent infinite loops
+        iterations_count = 0
 
         # ==================================================================#
         # A* loop
         # ==================================================================#
-        iteration_count = 0
-        while open_set and iteration_count < max_iterations:
-            iteration_count += 1
-            # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
-            if iteration_count % 100 == 0:
-                log.warning(f"Iteration {iteration_count}")
-
-            if iteration_count % 10000 == 0:
-                input(
-                    f"Iteration {iteration_count}: open_set size={len(open_set)}, "
-                    f"closed size={len(closed)}, expansions={num_expansions}\n"
-                    "Press Enter to continue..."
-                )
-            
+        while open_set and iterations_count < max_iterations:
+            iterations_count += 1
             if (
                 self.max_expansions is not None
                 and num_expansions >= self.max_expansions
             ):
                 break
-            
+
             priority, _, current_g, current_node, steps = heapq.heappop(open_set)
             best_priority = (
                 min(best_priority, priority) if num_expansions > 0 else priority
@@ -224,9 +213,8 @@ class PO_DAStar(
                 continue
 
             closed.add(current_node)
-            # log.warning(f"Added {current_node} to closed set.")
 
-            # log.warning(
+            # print(
             #     f"Best priority: {best_priority:.2f} | "
             #     f"num_expansions: {num_expansions} | "
             #     f"current priority: {priority:.2f} | "
@@ -235,13 +223,9 @@ class PO_DAStar(
 
             num_expansions += 1
             if steps >= max_steps or current_node.terminal:
-                log.warning(f"steps={steps} >= max_steps={max_steps}: {steps >= max_steps} | terminal: {current_node.terminal}")
-                # input("Reached terminal/max steps. Press Enter to continue...")
                 continue
 
             for action in self.actions:
-                # log.warning(f"Trying action: {action}")
-                action_succeeded = False
                 try:
                     total_outcome = defaultdict(float)
                     for state, p_s in current_node.belief.dist.items():
@@ -254,11 +238,10 @@ class PO_DAStar(
                     merged = CategoricalBelief[StateType, ObsType](
                         dist=dict(total_outcome)
                     )
-                    action_succeeded = True
                 except Exception:
                     log.info(traceback.format_exc())
                     continue
-                
+
                 branches: Dict[ObsType, Dict[StateType, float]] = defaultdict(
                     lambda: defaultdict(float)
                 )
@@ -271,23 +254,18 @@ class PO_DAStar(
                         )
                         tot_o = sum(obs_counts.values())
                         for obs, cnt in obs_counts.items():
-                            weight = p_m * (cnt / tot_o)
-                            branches[obs][s2] += weight
+                            branches[obs][s2] += p_m * (cnt / tot_o)
                 except Exception:
                     log.info(traceback.format_exc())
                     continue
 
-                
                 for obs, dist in branches.items():
                     prob = sum(dist.values())
-                    # log.warning(f"    Branch obs={obs}: prob={prob:.3f}, {len(dist)} states")
                     if prob == 0.0:
                         continue
-                    
+
                     exp_r = 0.0
                     term_flags: List[bool] = []
-                    
-                    transition_count = 0
                     for s_prev, p_prev in current_node.belief.dist.items():
                         for s_next, p_sn in dist.items():
                             p_joint = p_prev * (p_sn / prob)
@@ -295,13 +273,8 @@ class PO_DAStar(
                                 r, term = self.reward_model(s_prev, action, s_next)
                                 exp_r += r * p_joint
                                 term_flags.append(term)
-                                transition_count += 1
                             except Exception:
                                 log.info(traceback.format_exc())
-                    
-                    # Log summary instead of individual transitions
-                    # log.warning(f"Evaluated {transition_count} state transitions, expected reward: {exp_r:.3f}")
-
                     is_term = all(term_flags)
 
                     norm_dist = {s: p / prob for s, p in dist.items()}
@@ -326,7 +299,6 @@ class PO_DAStar(
                         or new_cost < cost_so_far[child] \
                         and not _is_descendant(child, current_node, came_from):
                         cost_so_far[child] = new_cost
-                        # log.warning("Added a child node to the open set.")
                         heapq.heappush(
                             open_set,
                             (priority, next(counter), new_cost, child, steps + 1),
@@ -334,17 +306,6 @@ class PO_DAStar(
                         came_from[child] = (current_node, action)
                         expanded_steps[child] = num_expansions
                         cost_values[child] = priority
-            
-            # log.warning(f"Went through all actions and corresponding observations.")
-        
-        # Check if we hit max iterations
-        if iteration_count >= max_iterations:
-            log.warning(
-                f"Planning terminated after {iteration_count} iterations. "
-                "Returning random action."
-            )
-            input("Press Enter to continue...")
-            return random.choice(self.actions), {}
 
         # ==================================================================#
         # Search finished – pick best candidate by same objective
@@ -362,12 +323,217 @@ class PO_DAStar(
                 cost_so_far,
             )
         if plan:
-            input(f"Discovered plan: {plan}. Press Enter to continue...")
             return plan[0], {}
 
         log.info("No path discovered, defaulting to random action")
-        input("Press Enter to continue...")
         return random.choice(self.actions), {}
+
+#     def plan_next_action(
+#         self, belief_state: ParticleBelief, max_steps: int, max_iterations: int = 100000
+#     ) -> Tuple[ActType, Dict]:
+#         counter = itertools.count()
+#         open_set: List[Tuple[float, int, float, BeliefNode[ActType], int]] = []
+#         expanded_steps: Dict[BeliefNode[ActType], int] = {}
+#         cost_values: Dict[BeliefNode[ActType], float] = {}
+#         all_edges: List[Tuple[BeliefNode[ActType], BeliefNode[ActType], ActType]] = []
+# 
+#         start_belief = CategoricalBelief[StateType, ObsType](
+#             normalize(belief_state.particles)
+#         )
+#         start_node = BeliefNode[ActType](
+#             belief=start_belief,
+#             terminal=False,
+#             expected_reward=0.0,
+#         )
+# 
+#         print(f"Start entropy: {start_node.belief.get_entropy():.2f}")
+#         heapq.heappush(open_set, (0.0, next(counter), 0.0, start_node, 0))
+#         cost_values[start_node] = float("inf")
+# 
+#         came_from: Dict[BeliefNode[ActType], Tuple[BeliefNode[ActType], ActType]] = {}
+#         cost_so_far: Dict[BeliefNode[ActType], float] = {start_node: 0.0}
+#         closed = set()
+#         num_expansions = 0
+#         best_priority = cost_values[start_node]
+#         
+#         log.warning("This comes before the loop.")
+# 
+#         # ==================================================================#
+#         # A* loop
+#         # ==================================================================#
+#         iteration_count = 0
+#         while open_set and iteration_count < max_iterations:
+#             iteration_count += 1
+#             # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
+#             if iteration_count % 100 == 0:
+#                 log.warning(f"Iteration {iteration_count}")
+# 
+#             if iteration_count % 10000 == 0:
+#                 input(
+#                     f"Iteration {iteration_count}: open_set size={len(open_set)}, "
+#                     f"closed size={len(closed)}, expansions={num_expansions}\n"
+#                     "Press Enter to continue..."
+#                 )
+#             
+#             if (
+#                 self.max_expansions is not None
+#                 and num_expansions >= self.max_expansions
+#             ):
+#                 break
+#             
+#             priority, _, current_g, current_node, steps = heapq.heappop(open_set)
+#             best_priority = (
+#                 min(best_priority, priority) if num_expansions > 0 else priority
+#             )
+# 
+#             if current_node in closed:
+#                 continue
+# 
+#             closed.add(current_node)
+#             # log.warning(f"Added {current_node} to closed set.")
+# 
+#             # log.warning(
+#             #     f"Best priority: {best_priority:.2f} | "
+#             #     f"num_expansions: {num_expansions} | "
+#             #     f"current priority: {priority:.2f} | "
+#             #     f"Num nodes: {len(cost_so_far)}"
+#             # )
+# 
+#             num_expansions += 1
+#             if steps >= max_steps or current_node.terminal:
+#                 log.warning(f"steps={steps} >= max_steps={max_steps}: {steps >= max_steps} | terminal: {current_node.terminal}")
+#                 # input("Reached terminal/max steps. Press Enter to continue...")
+#                 continue
+# 
+#             for action in self.actions:
+#                 # log.warning(f"Trying action: {action}")
+#                 action_succeeded = False
+#                 try:
+#                     total_outcome = defaultdict(float)
+#                     for state, p_s in current_node.belief.dist.items():
+#                         counts = rollout_fn(
+#                             self.transition_model, [state, action], self.num_rollouts
+#                         )
+#                         tot = sum(counts.values())
+#                         for s2, cnt in counts.items():
+#                             total_outcome[s2] += p_s * (cnt / tot)
+#                     merged = CategoricalBelief[StateType, ObsType](
+#                         dist=dict(total_outcome)
+#                     )
+#                     action_succeeded = True
+#                 except Exception:
+#                     log.info(traceback.format_exc())
+#                     continue
+#                 
+#                 branches: Dict[ObsType, Dict[StateType, float]] = defaultdict(
+#                     lambda: defaultdict(float)
+#                 )
+#                 try:
+#                     for s2, p_m in merged.dist.items():
+#                         obs_counts = rollout_fn(
+#                             self.observation_model,
+#                             [s2, action, self.empty_observation],
+#                             self.num_rollouts,
+#                         )
+#                         tot_o = sum(obs_counts.values())
+#                         for obs, cnt in obs_counts.items():
+#                             weight = p_m * (cnt / tot_o)
+#                             branches[obs][s2] += weight
+#                 except Exception:
+#                     log.info(traceback.format_exc())
+#                     continue
+# 
+#                 
+#                 for obs, dist in branches.items():
+#                     prob = sum(dist.values())
+#                     # log.warning(f"    Branch obs={obs}: prob={prob:.3f}, {len(dist)} states")
+#                     if prob == 0.0:
+#                         continue
+#                     
+#                     exp_r = 0.0
+#                     term_flags: List[bool] = []
+#                     
+#                     transition_count = 0
+#                     for s_prev, p_prev in current_node.belief.dist.items():
+#                         for s_next, p_sn in dist.items():
+#                             p_joint = p_prev * (p_sn / prob)
+#                             try:
+#                                 r, term = self.reward_model(s_prev, action, s_next)
+#                                 exp_r += r * p_joint
+#                                 term_flags.append(term)
+#                                 transition_count += 1
+#                             except Exception:
+#                                 log.info(traceback.format_exc())
+#                     
+#                     # Log summary instead of individual transitions
+#                     # log.warning(f"Evaluated {transition_count} state transitions, expected reward: {exp_r:.3f}")
+# 
+#                     is_term = all(term_flags)
+# 
+#                     norm_dist = {s: p / prob for s, p in dist.items()}
+#                     child_belief = CategoricalBelief[StateType, ObsType](dist=norm_dist)
+# 
+#                     new_cost = (
+#                         current_g
+#                         - exp_r
+#                         - self.lambda_coeff * np.log(prob)
+#                         + self.action_cost
+#                     )
+#                     ent = child_belief.get_entropy()
+# 
+#                     child = BeliefNode[ActType](
+#                         belief=child_belief, terminal=is_term, expected_reward=exp_r
+#                     )
+# 
+#                     priority = new_cost + self.entropy_coeff * ent
+# 
+#                     all_edges.append((current_node, child, action))
+#                     if child not in cost_so_far \
+#                         or new_cost < cost_so_far[child] \
+#                         and not _is_descendant(child, current_node, came_from):
+#                         cost_so_far[child] = new_cost
+#                         # log.warning("Added a child node to the open set.")
+#                         heapq.heappush(
+#                             open_set,
+#                             (priority, next(counter), new_cost, child, steps + 1),
+#                         )
+#                         came_from[child] = (current_node, action)
+#                         expanded_steps[child] = num_expansions
+#                         cost_values[child] = priority
+#             
+#             # log.warning(f"Went through all actions and corresponding observations.")
+#         
+#         # Check if we hit max iterations
+#         if iteration_count >= max_iterations:
+#             log.warning(
+#                 f"Planning terminated after {iteration_count} iterations. "
+#                 "Returning random action."
+#             )
+#             input("Press Enter to continue...")
+#             return random.choice(self.actions), {}
+# 
+#         # ==================================================================#
+#         # Search finished – pick best candidate by same objective
+#         # ==================================================================#
+#         best = min(cost_values.keys(), key=lambda n: cost_values[n])
+#         plan = self._reconstruct_plan(best, came_from, start_node)
+# 
+#         if self.visualize_graph:
+#             self.save_search_graph(
+#                 came_from,
+#                 start_node,
+#                 expanded_steps,
+#                 cost_values,
+#                 all_edges,
+#                 cost_so_far,
+#             )
+#         if plan:
+#             input(f"Discovered plan: {plan}. Press Enter to continue...")
+#             return plan[0], {}
+# 
+#         log.info("No path discovered, defaulting to random action")
+#         input("Press Enter to continue...")
+#         return random.choice(self.actions), {}
 
     @staticmethod
     def _reconstruct_plan(
