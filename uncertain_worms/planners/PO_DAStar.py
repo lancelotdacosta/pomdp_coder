@@ -200,8 +200,8 @@ class PO_DAStar(
         # ==================================================================#
         iteration_count = 0
         while open_set and iteration_count < max_iterations:
-            input(f"Open set: {open_set}. Press Enter to continue...")
             iteration_count += 1
+            input(f"Iteration {iteration_count}: \n Open set: {open_set}. Press Enter to continue...")
             if iteration_count % 100 == 0:
                             log.warning(
                                 f"Iteration {iteration_count}: open_set size={len(open_set)}, "
@@ -233,15 +233,16 @@ class PO_DAStar(
             closed.add(current_node)
             log.warning(f"Added {current_node} to closed set.")
 
-            # print(
-            #     f"Best priority: {best_priority:.2f} | "
-            #     f"num_expansions: {num_expansions} | "
-            #     f"current priority: {priority:.2f} | "
-            #     f"Num nodes: {len(cost_so_far)}"
-            # )
+            log.warning(
+                f"Best priority: {best_priority:.2f} | "
+                f"num_expansions: {num_expansions} | "
+                f"current priority: {priority:.2f} | "
+                f"Num nodes: {len(cost_so_far)}"
+            )
 
             num_expansions += 1
             if steps >= max_steps or current_node.terminal:
+                log.warning(f"steps={steps} >= max_steps={max_steps}: {steps >= max_steps} | terminal: {current_node.terminal}")
                 continue
 
             for action in self.actions:
@@ -267,8 +268,6 @@ class PO_DAStar(
                     consecutive_errors += 1
                     continue
                 
-                input(f"Went through action {action}. Press Enter to continue...")
-
                 branches: Dict[ObsType, Dict[StateType, float]] = defaultdict(
                     lambda: defaultdict(float)
                 )
@@ -291,7 +290,7 @@ class PO_DAStar(
                     consecutive_errors += 1
                     continue
                 
-                input(f"Went through observations for action {action}. Press Enter to continue...")
+                input(f"Went through action and observations for action {action}. Press Enter to continue...")
                 
                 # If we got here without errors, reset the counter
                 if action_succeeded:
