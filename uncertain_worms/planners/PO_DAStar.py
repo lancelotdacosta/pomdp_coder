@@ -203,9 +203,15 @@ class PO_DAStar(
                 log.warning(f"Iteration {iteration_count}")
 
             if iteration_count % 10000 == 0:
+                # Compute best_g from open_set
+                best_g = min(item[2] for item in open_set) if open_set else float('inf')
+                # Get depths (steps) from first 5 items in open_set
+                depths = [item[4] for item in list(open_set)[:5]]
+                
                 input(
                     f"Iteration {iteration_count}: open_set size={len(open_set)}, "
-                    f"closed size={len(closed)}, expansions={num_expansions}\n"
+                    f"closed size={len(closed)}, expansions={num_expansions}, "
+                    f"best_g={best_g:.2f}, depths={depths}\n"
                     "Press Enter to continue..."
                 )
             
