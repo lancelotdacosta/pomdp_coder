@@ -107,7 +107,7 @@ class PO_DAStar(
         visualize_graph: bool = False,
         entropy_coeff: float = 1.0,
         lambda_coeff: float = 1.0,
-        num_rollouts: int = 1,
+        num_rollouts: int = 10,
         action_cost: float = 0.01,
         **kwargs: Any,
     ) -> None:
