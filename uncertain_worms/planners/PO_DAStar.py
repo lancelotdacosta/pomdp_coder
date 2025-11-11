@@ -199,12 +199,12 @@ class PO_DAStar(
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
             # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
-            if iteration_count % 100 == 0:
-                input(
-                    f"Iteration {iteration_count}: open_set size={len(open_set)}, "
-                    f"closed size={len(closed)}, expansions={num_expansions}\n"
-                    "Press Enter to continue..."
-                )
+            # if iteration_count % 100 == 0:
+            #     input(
+            #         f"Iteration {iteration_count}: open_set size={len(open_set)}, "
+            #         f"closed size={len(closed)}, expansions={num_expansions}\n"
+            #         "Press Enter to continue..."
+            #     )
             
             if (
                 self.max_expansions is not None
@@ -350,6 +350,7 @@ class PO_DAStar(
                 f"Planning terminated after {iteration_count} iterations. "
                 "Returning random action."
             )
+            input("Press Enter to continue...")
             return random.choice(self.actions), {}
 
         # ==================================================================#
