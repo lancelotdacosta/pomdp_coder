@@ -199,6 +199,9 @@ class PO_DAStar(
         while open_set and iteration_count < max_iterations:
             iteration_count += 1
             # input(f"Iteration {iteration_count}: \nPress Enter to continue...")
+            if iteration_count % 100 == 0:
+                log.warning(f"Iteration {iteration_count}")
+
             if iteration_count % 10000 == 0:
                 input(
                     f"Iteration {iteration_count}: open_set size={len(open_set)}, "
@@ -256,7 +259,6 @@ class PO_DAStar(
                     action_succeeded = True
                 except Exception:
                     log.info(traceback.format_exc())
-                    consecutive_errors += 1
                     continue
                 
                 branches: Dict[ObsType, Dict[StateType, float]] = defaultdict(
@@ -280,10 +282,6 @@ class PO_DAStar(
                     log.info(traceback.format_exc())
                     continue
                 
-                # If we got here without errors, reset the counter
-                if action_succeeded:
-                    consecutive_errors = 0
-
                 for obs, dist in branches.items():
                     prob = sum(dist.values())
                     # log.warning(f"    Branch obs={obs}: prob={prob:.3f}, {len(dist)} states")
@@ -304,7 +302,6 @@ class PO_DAStar(
                                 transition_count += 1
                             except Exception:
                                 log.info(traceback.format_exc())
-                                consecutive_errors += 1
                     
                     # Log summary instead of individual transitions
                     # log.warning(f"Evaluated {transition_count} state transitions, expected reward: {exp_r:.3f}")
