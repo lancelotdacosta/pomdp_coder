@@ -19,7 +19,8 @@ agent:
   _target_: uncertain_worms.policies.partially_obs_planning_agent.LLMPartiallyObsPlanningAgent
   max_attempts: 250000
   num_particles: 3000
-  num_model_attempts: 25
+  # num_model_attempts: 25
+  num_model_attempts: 5  # faster for testing, change back to 25 for final runs
   num_initial_model_samples: 1000
   fully_obs: false
   env_code_path: environments/tiger
