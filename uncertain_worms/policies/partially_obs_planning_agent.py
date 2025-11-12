@@ -943,6 +943,7 @@ class LLMPartiallyObsPlanningAgent(
                 "online_train/" + model_name, node.train_coverage, episode
             )  # type:ignore
 
+        input("Press Enter to continue...")  # Pause for user input before proceeding
         self.reset()
         for model_name in self.model_names:
             (emperical_dist, model_dist), error = self.evaluate_model(
