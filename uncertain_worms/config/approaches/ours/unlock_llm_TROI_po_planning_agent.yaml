@@ -30,6 +30,8 @@ agent:
   learn_initial: true
   learn_reward: true
   learn_observation: true
+  use_online: true
+  use_offline: true
   dataset_path: "environments/minigrid/trajectory_data/${env_name}.pkl"
   env_description: "Unlock door with key to reach the goal square"
   empty_state:
