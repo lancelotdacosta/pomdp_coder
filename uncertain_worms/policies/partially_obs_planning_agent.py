@@ -883,6 +883,7 @@ class LLMPartiallyObsPlanningAgent(
         log.info("Online updating models")
 
         if not self.use_online:
+            log.warning("Online learning is disabled, skipping online update.")
             return
 
         if self.use_offline:
