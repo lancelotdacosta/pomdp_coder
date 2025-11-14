@@ -2,7 +2,7 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-max_steps: 30
+max_steps: 20
 num_episodes: 10
 seed: 0
 gamma: 0.98
