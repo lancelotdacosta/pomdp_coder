@@ -3,7 +3,7 @@ defaults:
   - override hydra/hydra_logging: colorlog
 
 max_steps: 100
-num_episodes: 1
+num_episodes: 10
 seed: 0
 gamma: 0.98
 save_log: false
