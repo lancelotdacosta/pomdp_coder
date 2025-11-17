@@ -1,0 +1,96 @@
+The error you're encountering is due to a syntax issue in the definition of `TigerObservationEnum`. The correct way to define an enum in Python is to use a colon (`:`) instead of a comma (`,`). Let's correct that and ensure the `reward_func` function is properly implemented.
+
+Here is the corrected code:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int  # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:  # Tiger is behind the left door
+            reward = -1.0  # Opening the door with the tiger results in a negative reward
+            done = True
+        else:
+            reward = 1.0  # Opening the door without the tiger results in a positive reward
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:  # Tiger is behind the right door
+            reward = -1.0  # Opening the door with the tiger results in a negative reward
+            done = True
+        else:
+            reward = 1.0  # Opening the door without the tiger results in a positive reward
+            done = True
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # Listening does not provide a reward, but the episode continues
+        done = False
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return reward, done
+```
+
+### Explanation of the Reward Function
+
+The reward function is designed based on the logic of the Tiger problem:
+
+1. **Opening the Door with the Tiger**:
+   - If the agent opens the door where the tiger is located (either LEFT or RIGHT), it receives a negative reward of -1.0 and the episode ends (`done = True`).
+
+2. **Opening the Door without the Tiger**:
+   - If the agent opens the door where the tiger is not located, it receives a positive reward of 1.0 and the episode ends (`done = True`).
+
+3. **Listening**:
+   - If the agent chooses to listen, it receives no immediate reward (0.0) and the episode continues (`done = False`).
+
+This reward structure encourages the agent to avoid opening the door with the tiger while trying to find the door without the tiger, and it provides the option to gather more information by listening without any immediate cost.

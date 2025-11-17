@@ -8,8 +8,9 @@ seed: 0
 gamma: 0.98
 save_log: false
 replay_path: None
-env_name: &env_name "CornerGoalRandom-Empty-10x10-v0"
+
 actions: &actions [0, 1, 2, 3, 4, 5]
+env_name: &env_name "MiniGrid-Empty-5x5-v0"
 
 env:
   _target_: uncertain_worms.environments.minigrid.minigrid_env.MinigridEnvironment
@@ -33,7 +34,7 @@ agent:
   planner:
     _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
     actions: *actions
-    max_expansions: 1000
+    # max_expansions: 1000
 
     empty_observation:
       _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen

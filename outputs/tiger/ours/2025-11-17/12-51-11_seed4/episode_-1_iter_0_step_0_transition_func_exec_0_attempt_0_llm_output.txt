@@ -1,0 +1,93 @@
+Based on the provided samples, it seems that the environment does not change the tiger's location when the agent performs the `LISTEN` action or when it opens the door where the tiger is not located. The tiger's location only changes (or might change) when the agent opens the door where the tiger is located.
+
+Given this understanding, we can model the transition function as follows:
+
+1. **LISTEN Action**: The tiger's location remains unchanged.
+2. **OPEN LEFT Action**: If the tiger is behind the left door, the tiger's location might change to the right door with some probability. If the tiger is behind the right door, the tiger's location remains unchanged.
+3. **OPEN RIGHT Action**: If the tiger is behind the right door, the tiger's location might change to the left door with some probability. If the tiger is behind the left door, the tiger's location remains unchanged.
+
+Here is the implementation of the `transition_func` function:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def transition_func(state, action):
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    if action == TigerActions.LISTEN:
+        # The tiger's location remains unchanged when listening
+        return state
+    
+    # Determine the new state based on the action and current state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            # If the tiger is behind the left door and the agent opens it,
+            # the tiger's location might change to the right door with some probability
+            if random.random() < 0.5:
+                return TigerState(tiger_location=1)
+            else:
+                return state
+        else:
+            # If the tiger is behind the right door, the location remains unchanged
+            return state
+    
+    if action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            # If the tiger is behind the right door and the agent opens it,
+            # the tiger's location might change to the left door with some probability
+            if random.random() < 0.5:
+                return TigerState(tiger_location=0)
+            else:
+                return state
+        else:
+            # If the tiger is behind the left door, the location remains unchanged
+            return state
+```
+
+This implementation ensures that the transition function behaves as described based on the provided samples and the logic of the classic Tiger problem.

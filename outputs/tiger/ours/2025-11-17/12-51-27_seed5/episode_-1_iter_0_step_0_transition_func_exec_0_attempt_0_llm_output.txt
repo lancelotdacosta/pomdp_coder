@@ -1,0 +1,27 @@
+Based on the provided samples, it appears that the environment transitions are as follows:
+
+- If the action is `LISTEN` (2), the state does not change.
+- If the action is `OPEN_LEFT` (0) or `OPEN_RIGHT` (1), the state remains the same.
+
+Given this, the distribution of next states conditioned on actions and previous states can be described as:
+- For `LISTEN` action, the next state is always the same as the current state.
+- For `OPEN_LEFT` or `OPEN_RIGHT` actions, the next state is also the same as the current state.
+
+Here is the implementation of the `transition_func` function:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    # If the action is LISTEN, the state does not change
+    if action == TigerActions.LISTEN:
+        return state
+    
+    # For OPEN_LEFT and OPEN_RIGHT actions, the state remains the same
+    return state
+```

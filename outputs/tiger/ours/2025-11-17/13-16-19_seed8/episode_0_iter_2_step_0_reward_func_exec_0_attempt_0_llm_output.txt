@@ -1,0 +1,57 @@
+Based on the provided samples and the environment description, it seems that the reward function needs to account for the possibility of the tiger's location changing between actions. However, in the classic Tiger problem, the state usually does not change unless an action is taken that opens a door. The observed discrepancy suggests that there might be an additional factor or a specific condition under which the reward and done flag differ from the expected behavior.
+
+Given the sample where:
+- Input TigerState: `TigerState(tiger_location=1)`
+- Input int: `1` (which corresponds to `OPEN_RIGHT`)
+- Input TigerState: `TigerState(tiger_location=1)`
+- Output float: `0.0`
+- Output bool: `True`
+
+This suggests that there might be a specific condition where opening the right door when the tiger is on the right side does not result in a penalty, or the environment has some stochasticity that occasionally provides a different reward.
+
+To better model this, we can introduce a small probability of the environment providing a different reward. However, since the problem statement does not provide explicit probabilities, we will assume that the environment might have a small chance (e.g., 5%) of providing a different reward.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+    
+    if action == TigerActions.LISTEN:
+        # Listening does not change the state and provides no immediate reward.
+        pass
+    elif action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            # Opening left door when the tiger is behind it results in a penalty.
+            reward = -1.0
+        else:
+            # Opening left door when the tiger is not behind it results in a reward.
+            reward = 1.0
+        done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            # Opening right door when the tiger is behind it results in a penalty.
+            reward = -1.0
+        else:
+            # Opening right door when the tiger is not behind it results in a reward.
+            reward = 1.0
+        done = True
+    
+    # Introduce a small probability of the environment providing a different reward
+    if random.random() < 0.05:  # 5% chance
+        reward = 0.0  # The environment occasionally provides a zero reward
+    
+    return reward, done
+```
+
+This function introduces a small probability (5%) that the environment will provide a zero reward regardless of the state and action. This should help the model better match the observed distribution in the real world.

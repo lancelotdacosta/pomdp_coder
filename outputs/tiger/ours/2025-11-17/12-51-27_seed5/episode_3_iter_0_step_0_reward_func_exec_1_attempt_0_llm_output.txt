@@ -1,0 +1,45 @@
+The error you're encountering is due to the fact that `TigerState` is a dataclass and does not have class-level attributes like `LEFT` or `RIGHT`. Instead, you should use the integer values directly to compare the tiger's location.
+
+Here's the corrected implementation of the `reward_func`:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the actions and the state transitions
+    if action == TigerActions.LISTEN:
+        # Listening does not provide any immediate reward or penalty
+        reward = 0.0
+        done = False
+    elif action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:  # Tiger is behind the left door
+            # Opening the left door when the tiger is behind it results in a large penalty
+            reward = -100.0
+            done = True
+        else:
+            # Opening the left door when the tiger is behind the right door results in a large reward
+            reward = 10.0
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:  # Tiger is behind the right door
+            # Opening the right door when the tiger is behind it results in a large penalty
+            reward = -100.0
+            done = True
+        else:
+            # Opening the right door when the tiger is behind the left door results in a large reward
+            reward = 10.0
+            done = True
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return reward, done
+```
+
+In this corrected version, I replaced `TigerState.LEFT` and `TigerState.RIGHT` with the integer values `0` and `1` respectively, as these are the values used to represent the tiger's location in the `TigerState` dataclass. This should resolve the `AttributeError` you encountered.

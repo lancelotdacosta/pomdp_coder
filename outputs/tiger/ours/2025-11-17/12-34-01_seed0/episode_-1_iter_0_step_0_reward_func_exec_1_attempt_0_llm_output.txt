@@ -1,0 +1,55 @@
+The error you're encountering is due to the fact that `LEFT` and `RIGHT` are not defined in the scope of the `reward_func` function. These should be constants or enums representing the locations of the tiger. Since `TigerState` uses integers to represent the tiger's location, we can use 0 for `LEFT` and 1 for `RIGHT`.
+
+Here's the corrected `reward_func`:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    LEFT = 0
+    RIGHT = 1
+
+    # Define the reward and done based on the state, action, and next state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == LEFT:
+            reward = -1.0  # Opening left door when tiger is behind it
+        else:
+            reward = 1.0  # Opening left door when tiger is behind right door
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == RIGHT:
+            reward = -1.0  # Opening right door when tiger is behind it
+        else:
+            reward = 1.0  # Opening right door when tiger is behind left door
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # No reward for listening
+        done = False  # Episode continues after listening
+
+    return reward, done
+```
+
+### Explanation
+- **Constants `LEFT` and `RIGHT`**:
+  - These constants are defined within the `reward_func` to represent the locations of the tiger.
+- **Action Conditions**:
+  - **Opening the Left Door (Action 0)**: 
+    - If the tiger is behind the left door (`state.tiger_location == LEFT`), the agent receives a reward of -1.0.
+    - Otherwise, the agent receives a reward of 1.0.
+    - The episode ends (`done = True`).
+  - **Opening the Right Door (Action 1)**:
+    - If the tiger is behind the right door (`state.tiger_location == RIGHT`), the agent receives a reward of -1.0.
+    - Otherwise, the agent receives a reward of 1.0.
+    - The episode ends (`done = True`).
+  - **Listening (Action 2)**:
+    - The agent receives no reward (0.0).
+    - The episode continues (`done = False`).
+
+This should resolve the `NameError` and correctly implement the reward function based on the provided samples.

@@ -1,0 +1,38 @@
+{
+  "0": {
+    "input_tokens": 766,
+    "output_tokens": 501
+  },
+  "1": {
+    "input_tokens": 855,
+    "output_tokens": 826
+  },
+  "2": {
+    "input_tokens": 1838,
+    "output_tokens": 712
+  },
+  "3": {
+    "input_tokens": 1294,
+    "output_tokens": 631
+  },
+  "4": {
+    "input_tokens": 898,
+    "output_tokens": 827
+  },
+  "5": {
+    "input_tokens": 1883,
+    "output_tokens": 732
+  },
+  "6": {
+    "input_tokens": 664,
+    "output_tokens": 600
+  },
+  "7": {
+    "input_tokens": 1421,
+    "output_tokens": 531
+  },
+  "8": {
+    "input_tokens": 2978,
+    "output_tokens": 546
+  }
+}

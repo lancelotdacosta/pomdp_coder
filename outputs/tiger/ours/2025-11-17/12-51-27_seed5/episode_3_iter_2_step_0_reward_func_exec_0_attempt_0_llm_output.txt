@@ -1,0 +1,62 @@
+Based on the discrepancies between the real-world samples and the generated model, it appears that the reward function is not correctly modeling certain edge cases. Specifically, there are instances where the tiger is behind one door, but opening the other door results in a smaller reward of 1.0 instead of the expected 10.0 or -100.0. Additionally, there are cases where the reward is 0.0 when it should be -100.0.
+
+To address these issues, we need to refine the reward function to account for these edge cases. The key observation is that the reward function should not only consider the tiger's location but also the action taken and the resulting state transition. Here's an improved version of the `reward_func` function:
+
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the actions and the state transitions
+    if action == TigerActions.LISTEN:
+        # Listening does not provide any immediate reward or penalty
+        reward = 0.0
+        done = False
+    elif action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:  # Tiger is behind the left door
+            # Opening the left door when the tiger is behind it results in a large penalty
+            reward = -100.0
+            done = True
+        elif state.tiger_location == 1 and next_state.tiger_location == 0:  # Special case
+            reward = 1.0
+            done = True
+        else:
+            # Opening the left door when the tiger is behind the right door results in a large reward
+            reward = 10.0
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:  # Tiger is behind the right door
+            # Opening the right door when the tiger is behind it results in a large penalty
+            reward = -100.0
+            done = True
+        elif state.tiger_location == 0 and next_state.tiger_location == 1:  # Special case
+            reward = 1.0
+            done = True
+        else:
+            # Opening the right door when the tiger is behind the left door results in a large reward
+            reward = 10.0
+            done = True
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return reward, done
+```
+
+### Explanation
+- **Listening Action**: No change here. Listening always results in a reward of 0.0 and the episode does not end.
+- **Opening Left Door**:
+  - If the tiger is behind the left door (`state.tiger_location == 0`), the reward is -100.0 and the episode ends.
+  - If the tiger is behind the right door (`state.tiger_location == 1`) but the next state is the left door (`next_state.tiger_location == 0`), this is a special case where the reward is 1.0 and the episode ends.
+  - Otherwise, the reward is 10.0 and the episode ends.
+- **Opening Right Door**:
+  - If the tiger is behind the right door (`state.tiger_location == 1`), the reward is -100.0 and the episode ends.
+  - If the tiger is behind the left door (`state.tiger_location == 0`) but the next state is the right door (`next_state.tiger_location == 1`), this is a special case where the reward is 1.0 and the episode ends.
+  - Otherwise, the reward is 10.0 and the episode ends.
+
+This revised function should better model the true distribution of rewards in the environment.

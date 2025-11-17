@@ -1,0 +1,64 @@
+Based on the provided samples, it appears that the tiger location is more likely to be on the right side (RIGHT). However, to avoid overfitting, we should model the distribution as close to 50/50 with a slight bias towards the right side.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def initial_func(empty_state: TigerState):
+    """
+    Input:
+        empty_state (TigerState): An empty state with only the walls filled into the grid
+    Returns:
+        state (TigerState): the initial state of the environment
+    """
+    # Define the probabilities for the tiger location
+    probabilities = [0.4, 0.6]  # Slightly biased towards the right side
+    
+    # Sample the tiger location based on the defined probabilities
+    tiger_location = random.choices([0, 1], probabilities)[0]
+    
+    # Create and return the initial state
+    return TigerState(tiger_location=tiger_location)
+```
+
+This implementation ensures that the initial state is sampled with a slight bias towards the tiger being on the right side, while still maintaining a reasonable distribution to avoid overfitting to the specific samples provided.

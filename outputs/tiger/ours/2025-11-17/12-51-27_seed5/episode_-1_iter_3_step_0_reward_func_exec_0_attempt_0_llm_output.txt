@@ -1,0 +1,65 @@
+Based on the observed discrepancies between the real world samples and the generated model, it seems that the reward distribution is not correctly capturing the probabilities for certain transitions. Specifically, when the agent opens the wrong door, there is a 5% chance of receiving a smaller reward (-1.0 or 1.0) instead of the large negative or positive reward (-100.0 or 10.0).
+
+To better model this, we need to ensure that the reward function correctly reflects the probability distribution for these cases. Here's the improved `reward_func` function:
+
+```python
+from __future__ import annotations
+
+import random
+from dataclasses import dataclass
+from typing import Tuple
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerState:
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the state-action-next_state transition
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            # Opening the door with the tiger results in a large negative reward
+            if random.random() < 0.95:  # 95% chance of -100.0
+                return -100.0, True
+            else:  # 5% chance of -1.0
+                return -1.0, True
+        else:
+            if random.random() < 0.95:  # 95% chance of 10.0
+                return 10.0, True
+            else:  # 5% chance of 1.0
+                return 1.0, True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            # Opening the door with the tiger results in a large negative reward
+            if random.random() < 0.95:  # 95% chance of -100.0
+                return -100.0, True
+            else:  # 5% chance of -1.0
+                return -1.0, True
+        else:
+            if random.random() < 0.95:  # 95% chance of 10.0
+                return 10.0, True
+            else:  # 5% chance of 1.0
+                return 1.0, True
+    elif action == TigerActions.LISTEN:
+        return 0.0, False  # Listening does not change the state and provides no immediate reward
+
+    # Default case (should not happen in a well-defined environment)
+    return 0.0, False
+```
+
+This function now correctly models the reward distribution for the cases where the agent opens the wrong door. It ensures that there is a 5% chance of receiving a smaller reward (-1.0 or 1.0) instead of the large negative or positive reward (-100.0 or 10.0). This should bring the generated model closer to the true distribution observed in the real world.

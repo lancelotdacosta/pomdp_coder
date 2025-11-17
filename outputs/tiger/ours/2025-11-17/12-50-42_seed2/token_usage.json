@@ -1,0 +1,22 @@
+{
+  "0": {
+    "input_tokens": 766,
+    "output_tokens": 596
+  },
+  "1": {
+    "input_tokens": 855,
+    "output_tokens": 832
+  },
+  "2": {
+    "input_tokens": 898,
+    "output_tokens": 916
+  },
+  "3": {
+    "input_tokens": 664,
+    "output_tokens": 457
+  },
+  "4": {
+    "input_tokens": 1278,
+    "output_tokens": 519
+  }
+}

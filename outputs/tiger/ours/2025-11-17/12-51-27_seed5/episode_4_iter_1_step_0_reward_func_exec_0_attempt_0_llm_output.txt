@@ -1,0 +1,67 @@
+Certainly! Let's start by explaining the reward conditioned on state, action, and next state transition in the context of the Tiger problem.
+
+### Explanation
+
+1. **State**: The state is defined by the location of the tiger, which can either be behind the left door (`0`) or the right door (`1`).
+2. **Action**: The agent can take one of three actions:
+   - `OPEN_LEFT` (0): Open the left door.
+   - `OPEN_RIGHT` (1): Open the right door.
+   - `LISTEN` (2): Listen to hear where the tiger might be.
+3. **Next State**: In this problem, the next state is the same as the current state because the tiger's location does not change.
+4. **Reward**:
+   - If the agent opens the door with the tiger behind it, the reward is `-1.0`.
+   - If the agent opens the door without the tiger behind it, the reward is `1.0`.
+   - If the agent listens, the reward is `0.0`.
+
+### Issue in the Code
+
+The issue in the provided code is that the reward is always `-1.0` or `1.0` when the agent opens a door, regardless of the next state. However, the real-world samples show that there are cases where opening a door results in a reward of `0.0` and the episode ending.
+
+This suggests that there might be an additional condition or edge case that needs to be handled in the reward function.
+
+### Improved Code
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:  # Tiger is behind the left door
+            reward = -1.0  # Opening the door with the tiger results in a negative reward
+            done = True
+        elif state.tiger_location == 1 and next_state.tiger_location == 1:  # Tiger is behind the right door and remains there
+            reward = 1.0  # Opening the door without the tiger results in a positive reward
+            done = True
+        else:
+            reward = 0.0  # Edge case: opening the left door when the tiger is not behind it, but the next state is different
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:  # Tiger is behind the right door
+            reward = -1.0  # Opening the door with the tiger results in a negative reward
+            done = True
+        elif state.tiger_location == 0 and next_state.tiger_location == 0:  # Tiger is behind the left door and remains there
+            reward = 1.0  # Opening the door without the tiger results in a positive reward
+            done = True
+        else:
+            reward = 0.0  # Edge case: opening the right door when the tiger is not behind it, but the next state is different
+            done = True
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # Listening does not provide a reward, but the episode continues
+        done = False
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return reward, done
+```
+
+This improved function handles the edge cases where the reward is `0.0` and the episode ends, even though the agent opens a door. It ensures that the model is closer to the true distribution of the environment.

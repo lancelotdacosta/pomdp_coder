@@ -1,0 +1,37 @@
+Based on the provided samples, it seems that the `tiger_location` does not change when the agent performs the `LISTEN` action (action `2`). This suggests that the environment's state remains the same when the agent listens.
+
+However, for actions `OPEN_LEFT` (0) and `OPEN_RIGHT` (1), the behavior is not explicitly shown in the provided samples. Typically, in the Tiger problem, opening a door either reveals the tiger or rewards the agent. The state after these actions might reset or change based on the outcome. For simplicity, let's assume that if the agent opens a door and the tiger is behind it, the state resets to a random location. If the agent opens a door and the tiger is not behind it, the state remains the same.
+
+Here is the implementation of the `transition_func` function:
+
+```python
+def transition_func(state: TigerState, action: int) -> TigerState:
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    if action == TigerActions.LISTEN:
+        # The tiger's location does not change when the agent listens
+        return state
+    
+    elif action == TigerActions.OPEN_LEFT:
+        # If the agent opens the left door and the tiger is behind it, reset the tiger's location randomly
+        if state.tiger_location == 0:
+            return TigerState(tiger_location=random.choice([0, 1]))
+        else:
+            # If the tiger is not behind the left door, the state remains the same
+            return state
+    
+    elif action == TigerActions.OPEN_RIGHT:
+        # If the agent opens the right door and the tiger is behind it, reset the tiger's location randomly
+        if state.tiger_location == 1:
+            return TigerState(tiger_location=random.choice([0, 1]))
+        else:
+            # If the tiger is not behind the right door, the state remains the same
+            return state
+```
+
+This function models the transition logic based on the provided samples and the typical behavior of the Tiger problem. The `LISTEN` action does not change the state, while opening a door with the tiger behind it resets the state to a random location. If the tiger is not behind the opened door, the state remains unchanged.

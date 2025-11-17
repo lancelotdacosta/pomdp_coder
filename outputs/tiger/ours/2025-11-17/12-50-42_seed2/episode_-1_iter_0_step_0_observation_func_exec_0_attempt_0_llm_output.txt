@@ -1,0 +1,87 @@
+Based on the provided samples, it appears that the observations are influenced by the tiger's location and the action the agent takes. Specifically:
+
+- When the tiger is on the right (state `tiger_location = 1`), the agent is more likely to hear the tiger on the right (`obs = 1`), but there is some probability of hearing the tiger on the left (`obs = 0`) or hearing nothing (`obs = 2`).
+- When the tiger is on the left (state `tiger_location = 0`), the agent is more likely to hear the tiger on the left (`obs = 0`), but there is some probability of hearing the tiger on the right (`obs = 1`) or hearing nothing (`obs = 2`).
+
+The action `LISTEN` (action `2`) seems to influence the likelihood of hearing the tiger, while actions `OPEN_LEFT` and `OPEN_RIGHT` (actions `0` and `1`) result in a higher probability of hearing nothing (`obs = 2`).
+
+Given this, we can model the observation distribution conditioned on the state and action as follows:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int  # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def observation_func(state: TigerState, action: int, empty_obs: TigerObservation) -> TigerObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action == TigerActions.LISTEN:
+        # If the agent listens, the probability of correctly identifying the tiger's location is higher.
+        if state.tiger_location == 0:  # Tiger on the left
+            obs = random.choices([0, 1, 2], weights=[0.85, 0.05, 0.1])[0]
+        else:  # Tiger on the right
+            obs = random.choices([0, 1, 2], weights=[0.05, 0.85, 0.1])[0]
+    else:
+        # If the agent opens a door, the probability of hearing nothing is higher.
+        obs = random.choices([0, 1, 2], weights=[0.1, 0.1, 0.8])[0]
+
+    return TigerObservation(obs=obs)
+```
+
+This function models the observation distribution based on the provided samples and the described logic. It uses `random.choices` to sample the observations according to the specified probabilities conditioned on the state and action.
