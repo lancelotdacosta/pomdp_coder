@@ -1,0 +1,49 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but you are passing a list of tuples. To resolve this, we need to ensure that the positions are selected correctly and that the choice function is used appropriately.
+
+Here's the corrected version of the `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    
+    # Define the possible positions for the goal and the agent
+    possible_positions = [
+        (9, 1), (9, 2), (9, 8),
+        (5, 3), (6, 2), (4, 4), (3, 8), (3, 3)
+    ]
+    
+    # Randomly select a position for the goal
+    goal_pos = possible_positions[np.random.choice(len(possible_positions))]
+    grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal position from the possible agent positions
+    possible_agent_positions = [pos for pos in possible_positions if pos != goal_pos]
+    
+    # Randomly select a position for the agent
+    agent_pos = possible_agent_positions[np.random.choice(len(possible_agent_positions))]
+    
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation:
+1. **Possible Positions**: We define the list of possible positions for both the goal and the agent.
+2. **Select Goal Position**: We use `np.random.choice` to select an index from the list of possible positions. This index is then used to select the goal position.
+3. **Remove Goal Position**: We create a new list of possible agent positions by excluding the chosen goal position.
+4. **Select Agent Position**: Similarly, we use `np.random.choice` to select an index from the list of possible agent positions. This index is then used to select the agent position.
+5. **Select Agent Direction**: We randomly choose a direction for the agent from the `Direction` enum.
+
+This approach ensures that the `np.random.choice` function is used correctly with 1-dimensional arrays (or lists) and should resolve the error you encountered.

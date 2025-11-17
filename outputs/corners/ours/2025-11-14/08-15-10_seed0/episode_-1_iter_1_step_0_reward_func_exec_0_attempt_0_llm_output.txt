@@ -1,0 +1,52 @@
+To better model the reward conditioned on state, action, and next state transition, we need to consider the following aspects:
+
+1. **Goal Cell**: If the agent moves into a goal cell, it should receive a large positive reward (e.g., 10.0) and the episode should terminate.
+2. **Pickup Action**: If the agent performs a pickup action and successfully picks up an object, it should receive a small positive reward (e.g., 1.0).
+3. **Drop Action**: If the agent performs a drop action and successfully drops an object, it should receive a small negative reward (e.g., -1.0).
+4. **Toggle Action**: If the agent performs a toggle action on a door, it should receive a small negative reward (e.g., -1.0).
+5. **Step Penalty**: To encourage faster completion, a small negative reward should be given for each step (e.g., -0.1).
+
+However, there are some edge cases that need to be handled:
+
+- **Moving into a goal cell from any direction** should result in a positive reward and the episode should terminate.
+- **Performing actions that do not change the state** (e.g., trying to move into a wall) should result in a small negative reward.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has moved into the goal cell
+    if next_state.grid[next_state.agent_pos] == ObjectTypes.goal:
+        return 10.0, True
+    
+    # Check if the agent has picked up an object
+    if action == Actions.pickup and next_state.carrying is not None:
+        return 1.0, False
+    
+    # Check if the agent has dropped an object
+    if action == Actions.drop and state.carrying is not None and next_state.carrying is None:
+        return -1.0, False
+    
+    # Check if the agent has toggled a door
+    if action == Actions.toggle and state.grid[state.front_pos] in [ObjectTypes.closed_door, ObjectTypes.open_door]:
+        return -1.0, False
+    
+    # Check if the agent is still in the same position after an action
+    if state.agent_pos == next_state.agent_pos and action != Actions.done:
+        return -0.1, False
+    
+    # Small negative reward for each step to encourage faster completion
+    return -0.1, False
+```
+
+This function should better model the true distribution of rewards in the Minigrid environment. It handles the edge cases where the agent moves into a goal cell from any direction and ensures that actions that do not change the state (e.g., moving into a wall) result in a small negative reward.

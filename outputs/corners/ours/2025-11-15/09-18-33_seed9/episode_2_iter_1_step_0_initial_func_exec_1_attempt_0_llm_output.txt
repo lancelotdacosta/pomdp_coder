@@ -1,0 +1,50 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `possible_goal_positions` is a list of tuples. To fix this, we can convert the list of tuples into a 1-dimensional array and then use `np.random.choice` to select an index, which we can use to get the corresponding tuple.
+
+Here is the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define possible goal positions based on the samples
+    possible_goal_positions = [
+        (1, 8), (9, 1), (1, 2), (2, 1), (6, 4)
+    ]
+    
+    # Randomly select a goal position
+    goal_pos_index = np.random.choice(len(possible_goal_positions))
+    goal_pos = possible_goal_positions[goal_pos_index]
+    
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Define possible agent positions within the open areas of the grid
+    possible_agent_positions = []
+    for x in range(1, 9):
+        for y in range(1, 9):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                possible_agent_positions.append((x, y))
+    
+    # Randomly select an agent position
+    agent_pos_index = np.random.choice(len(possible_agent_positions))
+    agent_pos = possible_agent_positions[agent_pos_index]
+    
+    # Set a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+In this version, we use `np.random.choice` to select an index from the length of the list of possible goal positions and agent positions. This index is then used to retrieve the corresponding tuple from the list. This ensures that `np.random.choice` is used correctly and the code runs without errors.

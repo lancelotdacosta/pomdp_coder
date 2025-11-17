@@ -1,0 +1,56 @@
+To better model the true distribution of initial states, we need to ensure that the agent's starting position and direction are more diverse and aligned with the observed samples. From the provided samples, it seems that:
+
+1. The goal object is always placed at position (8, 9).
+2. The agent's starting positions are more varied but tend to be in the middle or lower part of the grid.
+3. The agent's starting directions are also varied.
+
+Here's an improved version of the `initial_func` function that better matches these observations:
+
+```python
+import random
+
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Extract the grid from the empty state
+    grid = empty_state.grid.copy()
+    
+    # Ensure the goal object is present in the grid
+    goal_position = (8, 9)
+    grid[goal_position] = ObjectTypes.goal
+    
+    # Define the valid positions for the agent (open spaces)
+    valid_positions = np.where(grid == ObjectTypes.empty)
+    valid_positions = list(zip(valid_positions[0], valid_positions[1]))
+    
+    # Filter valid positions to be more in the middle or lower part of the grid
+    valid_positions = [pos for pos in valid_positions if pos[0] >= 4 and pos[1] >= 3]
+    
+    # Randomly select a valid position for the agent
+    agent_pos = random.choice(valid_positions)
+    
+    # Randomly select an initial direction for the agent
+    agent_dir = random.choice(list(Direction))
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+### Explanation:
+1. **Goal Object Placement**: The goal object is always placed at position (8, 9) as observed in the samples.
+2. **Valid Positions**: We filter the valid positions to be more in the middle or lower part of the grid (i.e., rows 4 and above, and columns 3 and above). This ensures that the agent's starting positions are more aligned with the observed samples.
+3. **Agent Direction**: The agent's direction is randomly chosen from all possible directions.
+
+This approach should better match the distribution of initial states observed in the real world.

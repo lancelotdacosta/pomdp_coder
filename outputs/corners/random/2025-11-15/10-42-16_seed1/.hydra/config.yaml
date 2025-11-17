@@ -1,0 +1,18 @@
+max_steps: 40
+num_episodes: 10
+seed: 1
+gamma: 0.98
+save_log: false
+replay_path: None
+env_name: CornerGoalRandom-Empty-10x10-v0
+env:
+  _target_: uncertain_worms.environments.minigrid.minigrid_env.MinigridEnvironment
+  fully_obs: false
+  env_name: ${env_name}
+agent:
+  _target_: uncertain_worms.policies.random_policy.RandomPolicy
+  fully_obs: false
+  actions:
+  - 0
+  - 1
+  - 2

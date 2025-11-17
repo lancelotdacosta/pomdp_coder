@@ -1,0 +1,58 @@
+To better model the true distribution of initial states, we need to ensure that the agent's position, direction, and the placement of the goal object are more representative of the real-world samples. The current implementation places the agent and the goal randomly within the open area, which might lead to an uneven distribution.
+
+### Observations from Real-World Samples:
+1. **Agent Position**: The agent is often placed closer to the center or the edges of the grid but not too close to the walls.
+2. **Agent Direction**: The agent's direction seems to be uniformly distributed.
+3. **Goal Object Placement**: The goal object is often placed in positions that are not directly adjacent to the agent, and it is also spread out across the grid.
+
+### Improved Distribution:
+1. **Agent Position**: Sample the agent's position from a more likely range, such as 2-8 for both x and y coordinates (for a 10x10 grid).
+2. **Agent Direction**: Keep the uniform distribution for the agent's direction.
+3. **Goal Object Placement**: Place the goal object in a position that is not immediately adjacent to the agent and ensure it is spread out across the grid.
+
+### Implementation:
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Get the dimensions of the grid
+    width, height = empty_state.width, empty_state.height
+    
+    # Sample a random position for the agent within the open area, avoiding immediate proximity to walls
+    while True:
+        x, y = np.random.randint(2, width - 2), np.random.randint(2, height - 2)
+        if empty_state.grid[x, y] == ObjectTypes.empty:
+            break
+    
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Place the goal object in a random position within the open area, ensuring it is not adjacent to the agent
+    while True:
+        goal_x, goal_y = np.random.randint(2, width - 2), np.random.randint(2, height - 2)
+        if empty_state.grid[goal_x, goal_y] == ObjectTypes.empty and \
+           (abs(goal_x - x) > 1 or abs(goal_y - y) > 1):
+            empty_state.grid[goal_x, goal_y] = ObjectTypes.goal
+            break
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(x, y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+### Explanation:
+1. **Agent Position**: The agent's position is sampled from a range of 2 to `width-2` and 2 to `height-2`, which ensures that the agent is not placed too close to the walls.
+2. **Agent Direction**: The agent's direction is uniformly chosen from the `Direction` enum.
+3. **Goal Object Placement**: The goal object is placed in a position that is not immediately adjacent to the agent. This is ensured by checking that the Manhattan distance between the agent's position and the goal's position is greater than 1.
+
+This should better reflect the distribution observed in the real-world samples.

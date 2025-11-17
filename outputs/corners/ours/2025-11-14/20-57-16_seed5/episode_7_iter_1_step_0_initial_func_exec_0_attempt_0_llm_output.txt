@@ -1,0 +1,70 @@
+Certainly! Let's analyze the observed distribution and improve the `initial_func` function to better model the true distribution.
+
+### Observed Distribution Analysis
+
+1. **Grid Dimensions**:
+   - The grid is always 10x10.
+   - The walls are always present around the perimeter (i.e., positions (0, x), (9, x), (y, 0), (y, 9) for all x, y in [0, 9]).
+
+2. **Agent Position**:
+   - The agent can be placed anywhere inside the grid, but not on the walls.
+   - The agent's position ranges from (1, 1) to (8, 8).
+
+3. **Agent Direction**:
+   - The agent can face any of the four directions (0: right, 1: down, 2: left, 3: up).
+
+4. **Goal Position**:
+   - The goal can also be placed anywhere inside the grid, but not on the walls.
+   - The goal's position ranges from (1, 1) to (8, 8).
+   - The goal and the agent can occupy the same position.
+
+### Improved `initial_func` Function
+
+To better model the true distribution, we need to ensure that both the agent and the goal are placed within the valid range (1, 1) to (8, 8). We also need to ensure that the placement of the agent and the goal is random and independent.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    def is_valid_position(pos: Tuple[int, int], grid: NDArray[np.int8]) -> bool:
+        """Check if the position is valid (not a wall or already occupied)."""
+        x, y = pos
+        return 1 <= x < 9 and 1 <= y < 9 and grid[x, y] == ObjectTypes.empty
+
+    # Randomly place the goal object
+    goal_pos = None
+    while goal_pos is None or not is_valid_position(goal_pos, empty_state.grid):
+        goal_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Randomly place the agent
+    agent_pos = None
+    while agent_pos is None or not is_valid_position(agent_pos, empty_state.grid):
+        agent_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+    empty_state.agent_pos = agent_pos
+
+    # Randomly set the agent's direction
+    empty_state.agent_dir = np.random.choice(list(Direction))
+
+    return empty_state
+```
+
+### Explanation of Improvements
+
+1. **Position Validation**:
+   - The `is_valid_position` function ensures that the chosen position is within the valid range (1, 1) to (8, 8) and is not already occupied by a wall or another object.
+
+2. **Random Placement**:
+   - Both the goal and the agent are placed randomly within the valid range.
+   - The placement is done using a loop that continues until a valid position is found, ensuring that the positions are independent and random.
+
+3. **Agent Direction**:
+   - The agent's direction is set randomly from the list of possible directions.
+
+This improved function should better match the observed distribution of initial states in the environment.

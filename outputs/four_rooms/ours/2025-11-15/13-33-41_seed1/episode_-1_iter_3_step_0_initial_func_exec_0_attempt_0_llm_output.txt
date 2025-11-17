@@ -1,0 +1,45 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The agent's starting position is always (1, 1) and facing right
+    agent_pos = (1, 1)
+    agent_dir = Direction.facing_right
+    carrying = None
+
+    # Initialize the grid with the provided empty state
+    grid = empty_state.grid.copy()
+
+    # Place the agent at the starting position
+    grid[agent_pos] = ObjectTypes.agent
+
+    # Randomly place a goal object in one of the open cells
+    open_cells = np.where((grid == ObjectTypes.empty))
+    if len(open_cells[0]) > 0:
+        goal_idx = np.random.choice(len(open_cells[0]))
+        goal_pos = (open_cells[0][goal_idx], open_cells[1][goal_idx])
+        grid[goal_pos] = ObjectTypes.goal
+
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=carrying)
+```
+
+### Explanation of the Distribution of Initial States
+
+1. **Agent's Starting Position and Direction**:
+   - The agent always starts at position `(1, 1)` and facing right (`agent_dir = 0`).
+
+2. **Grid Initialization**:
+   - The grid is initialized with the provided `empty_state.grid`, which has only the walls pre-filled.
+
+3. **Agent Placement**:
+   - The agent is placed at the starting position `(1, 1)` by setting the corresponding cell to `ObjectTypes.agent`.
+
+4. **Goal Object Placement**:
+   - A goal object (`ObjectTypes.goal`) is randomly placed in one of the open cells (cells that are currently `ObjectTypes.empty`).
+   - If there are no empty cells available, the goal object is not placed.
+
+This distribution ensures that the environment starts with a consistent agent position and direction, while the goal object's location is randomized to add variability to the initial state.

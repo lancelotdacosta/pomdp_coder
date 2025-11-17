@@ -1,0 +1,59 @@
+Based on the samples provided, it seems that the agent and goal positions are placed randomly within the open cells, but there is a subtle pattern in the distribution:
+
+1. **Agent Position**: The agent can be placed anywhere in the grid as long as it is not on a wall or the goal.
+2. **Goal Position**: The goal can also be placed anywhere in the grid as long as it is not on a wall or the agent.
+3. **Open Cells**: The grid is mostly empty (filled with `ObjectTypes.empty`), except for the walls (filled with `ObjectTypes.wall`).
+
+The key differences between your current model and the true distribution are:
+- The agent and goal positions should be chosen independently of each other, ensuring they do not overlap.
+- The agent's direction should be selected uniformly at random.
+
+Let's improve the `initial_func` function to better model this distribution:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    
+    # Get all open cells (excluding walls)
+    open_cells = np.argwhere(grid == ObjectTypes.empty)
+    if open_cells.size == 0:
+        raise ValueError("No open cells available for placing the goal or agent.")
+    
+    # Place the goal in a random open cell
+    goal_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    grid[goal_pos] = ObjectTypes.goal
+    
+    # Update the list of open cells to exclude the goal position
+    open_cells = np.argwhere(grid == ObjectTypes.empty)
+    if open_cells.size == 0:
+        raise ValueError("No open cells available for placing the agent after placing the goal.")
+    
+    # Select a random open cell for the agent's position, ensuring it is not the same as the goal
+    agent_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    
+    # Ensure the agent is not placed on the goal
+    while agent_pos == goal_pos:
+        open_cells = np.argwhere(grid == ObjectTypes.empty)
+        if open_cells.size == 0:
+            raise ValueError("No open cells available for placing the agent after placing the goal.")
+        
+        agent_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    
+    # Select a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None  # The agent does not carry any object initially
+    )
+```
+
+This improved function ensures that the agent and goal positions are chosen independently and do not overlap, which should better match the true distribution of initial states.

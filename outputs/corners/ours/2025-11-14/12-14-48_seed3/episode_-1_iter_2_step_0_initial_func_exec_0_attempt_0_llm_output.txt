@@ -1,0 +1,58 @@
+Based on the provided samples from the real world, it appears that the distribution of initial states involves placing the agent and the goal in random empty cells within the grid. However, there is no specific constraint that prevents the agent and the goal from being placed in the same row or column, or even being adjacent to each other.
+
+To better model this distribution, we need to ensure that the agent's initial position and the goal's position are both randomly selected from the set of empty cells, with the agent's position and direction being chosen independently.
+
+Here is an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Ensure the grid has the correct dimensions
+    width, height = empty_state.grid.shape
+
+    # Find all empty cells in the grid
+    empty_cells = np.argwhere(empty_state.grid == ObjectTypes.empty)
+
+    # Randomly select one of the empty cells for the agent's initial position
+    agent_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+
+    # Remove the agent's initial position from the list of empty cells
+    remaining_empty_cells = np.delete(empty_cells, np.where((empty_cells == agent_pos).all(axis=1)), axis=0)
+
+    # Randomly select one of the remaining empty cells for the goal's initial position
+    if len(remaining_empty_cells) > 0:
+        goal_pos = tuple(remaining_empty_cells[np.random.choice(len(remaining_empty_cells))])
+    else:
+        raise ValueError("No empty cells left for placing the goal.")
+
+    # Place the goal in the selected position
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Randomly select the agent's initial direction
+    agent_dir = np.random.choice([Direction.facing_right, Direction.facing_down, Direction.facing_left, Direction.facing_up])
+
+    # Initialize the state with the agent's position, direction, and the updated grid
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation:
+1. **Finding Empty Cells**: We first identify all the empty cells in the grid using `np.argwhere`.
+2. **Agent Position**: We randomly select one of these empty cells for the agent's initial position.
+3. **Removing Agent Position**: We remove the agent's position from the list of empty cells to ensure it is not chosen again for the goal.
+4. **Goal Position**: We then randomly select one of the remaining empty cells for the goal's position.
+5. **Agent Direction**: We randomly select one of the four possible directions for the agent.
+6. **State Initialization**: We create and return the `MinigridState` object with the updated grid, agent position, direction, and carrying status.
+
+This approach ensures that both the agent and the goal are placed in random empty cells, and the agent's direction is chosen independently, which should better match the observed distribution of initial states.

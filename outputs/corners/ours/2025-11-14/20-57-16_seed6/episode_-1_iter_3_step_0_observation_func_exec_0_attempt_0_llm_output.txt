@@ -1,0 +1,33 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+
+    def rotate_grid(grid, agent_dir):
+        """Rotate the grid based on the agent's direction."""
+        for _ in range(agent_dir):
+            grid = np.rot90(grid)
+        return grid
+
+    view_size = 3  # The field of view is a 3x3 grid centered on the agent.
+
+    # Get the field of view in front of the agent.
+    fov = state.get_field_of_view(view_size)
+
+    # Rotate the field of view based on the agent's direction.
+    rotated_fov = rotate_grid(fov, state.agent_dir)
+
+    # Create the observation.
+    empty_obs.image = rotated_fov
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+
+    return empty_obs
+```

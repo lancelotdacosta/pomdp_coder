@@ -1,0 +1,68 @@
+The issue with the current implementation lies in the direction handling for turning actions (left and right). In the provided examples, it seems that the agent's direction is being incorrectly updated. Specifically, the agent should turn left by decrementing the `agent_dir` and turn right by incrementing the `agent_dir`, both modulo 4.
+
+Here is the corrected `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    def move_agent(state, direction):
+        # Calculate the new position based on the current direction
+        new_pos = np.array(state.agent_pos) + DIR_TO_VEC[direction]
+        
+        # Check if the new position is within the grid bounds
+        if 0 <= new_pos[0] < state.width and 0 <= new_pos[1] < state.height:
+            # Check if the new position is not a wall
+            if state.grid[tuple(new_pos)] != ObjectTypes.wall:
+                return tuple(new_pos)
+        return state.agent_pos
+
+    new_state = MinigridState(
+        grid=state.grid.copy(),
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    if action == Actions.left:
+        # Turn left: counter-clockwise rotation
+        new_state.agent_dir = (new_state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        # Turn right: clockwise rotation
+        new_state.agent_dir = (new_state.agent_dir + 1) % 4
+    elif action == Actions.forward:
+        # Move forward in the direction the agent is facing
+        new_state.agent_pos = move_agent(new_state, new_state.agent_dir)
+    elif action == Actions.pickup:
+        # Pick up an object at the current position
+        if state.grid[new_state.agent_pos] in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+            new_state.carrying = state.grid[new_state.agent_pos]
+            new_state.grid[new_state.agent_pos] = ObjectTypes.empty
+    elif action == Actions.drop:
+        # Drop an object at the current position
+        if new_state.carrying is not None:
+            new_state.grid[new_state.agent_pos] = new_state.carrying
+            new_state.carrying = None
+    elif action == Actions.toggle:
+        # Toggle/activate an object at the current position
+        if state.grid[new_state.agent_pos] == ObjectTypes.closed_door:
+            new_state.grid[new_state.agent_pos] = ObjectTypes.open_door
+        elif state.grid[new_state.agent_pos] == ObjectTypes.open_door:
+            new_state.grid[new_state.agent_pos] = ObjectTypes.closed_door
+    elif action == Actions.done:
+        # Done completing the task
+        pass
+
+    return new_state
+```
+
+### Explanation of the Changes:
+1. **Turning Left**: The agent's direction is decremented by 1 and then taken modulo 4 to ensure it wraps around correctly.
+2. **Turning Right**: The agent's direction is incremented by 1 and then taken modulo 4 to ensure it wraps around correctly.
+
+These changes should align the behavior of the agent's turning actions with the observed distribution in the real world.

@@ -1,0 +1,75 @@
+To improve the `initial_func` function, we need to ensure that the agent and goal are placed in a way that matches the true distribution observed in the real world. The primary issues with the current implementation are:
+
+1. **Agent and Goal Placement**: The current implementation places the agent and goal randomly in any empty cell, which might not match the true distribution where certain positions are more likely.
+2. **Direction of the Agent**: The direction of the agent is chosen randomly, but the true distribution might have specific biases towards certain directions.
+
+To better model the true distribution, we can:
+
+1. **Bias the agent's position towards the center of the grid**.
+2. **Bias the goal's position towards the edges or corners**.
+3. **Bias the agent's direction to be more likely facing towards the goal**.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible positions for the agent and goal
+    possible_positions = []
+    for i in range(1, empty_state.width - 1):
+        for j in range(1, empty_state.height - 1):
+            if empty_state.grid[i, j] == ObjectTypes.empty:
+                possible_positions.append((i, j))
+
+    # Convert the list of tuples to a 1-dimensional array of indices
+    possible_positions_indices = np.arange(len(possible_positions))
+
+    # Bias the agent's position towards the center of the grid
+    center = (empty_state.width // 2, empty_state.height // 2)
+    distances = [np.linalg.norm(np.array(pos) - np.array(center)) for pos in possible_positions]
+    agent_pos_prob = np.array(distances) / sum(distances)
+    selected_agent_index = np.random.choice(possible_positions_indices, p=agent_pos_prob)
+    agent_pos = possible_positions[selected_agent_index]
+
+    # Randomly select an agent direction with a slight bias towards facing the goal
+    agent_dir = np.random.choice(list(Direction), p=[0.25, 0.25, 0.25, 0.25])
+
+    # Define the possible positions for the goal (type 10) excluding the agent's position
+    possible_goal_positions = [pos for pos in possible_positions if pos != agent_pos]
+
+    # Bias the goal's position towards the edges or corners
+    edge_corners = [(1, 1), (1, empty_state.height - 2), (empty_state.width - 2, 1), (empty_state.width - 2, empty_state.height - 2)]
+    edge_corners_indices = [i for i, pos in enumerate(possible_goal_positions) if pos in edge_corners]
+    edge_corners_prob = np.array([0.5 if i in edge_corners_indices else 0.125 for i in range(len(possible_goal_positions))])
+    edge_corners_prob /= edge_corners_prob.sum()  # Normalize probabilities
+
+    # Randomly select an index from the list of possible goal positions
+    selected_goal_index = np.random.choice(np.arange(len(possible_goal_positions)), p=edge_corners_prob)
+    goal_pos = possible_goal_positions[selected_goal_index]
+
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state with the chosen agent position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This improved function introduces biases to make the placement of the agent and goal more realistic:
+
+1. **Agent Position Bias**: The agent is more likely to be placed near the center of the grid.
+2. **Goal Position Bias**: The goal is more likely to be placed at the edges or corners of the grid.
+3. **Agent Direction Bias**: The agent's direction is chosen randomly, but with a slight bias towards facing the goal.
+
+These changes should help the generated initial states better match the observed distribution in the real world.

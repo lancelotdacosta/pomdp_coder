@@ -1,0 +1,62 @@
+To better model the true distribution of initial states, we need to consider a few key aspects:
+
+1. **Agent and Goal Placement**: The agent and the goal should be placed in open cells (not walls) and should not overlap.
+2. **Direction Distribution**: The agent's direction should be uniformly random.
+3. **Grid Structure**: The grid should have walls around the edges and should be mostly empty except for the agent and the goal.
+
+Based on the provided samples, it seems that the agent and the goal are often placed near the center of the grid. This can help ensure a more realistic distribution of initial states.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Create a copy of the empty state to avoid modifying the original
+    state = MinigridState(
+        grid=np.copy(empty_state.grid),
+        agent_pos=empty_state.agent_pos,
+        agent_dir=empty_state.agent_dir,
+        carrying=empty_state.carrying
+    )
+
+    # Get all positions within the grid that are not walls
+    open_cells = np.where(state.grid == ObjectTypes.empty)
+    open_cells = list(zip(open_cells[0], open_cells[1]))
+
+    # Define a more realistic range for the agent and goal placement (prefer center cells)
+    center_range = (2, 7)  # Example range for a 10x10 grid
+    center_cells = [(x, y) for x in range(center_range[0], center_range[1]) for y in range(center_range[0], center_range[1])]
+    open_center_cells = [cell for cell in center_cells if state.grid[cell] == ObjectTypes.empty]
+
+    # Randomly select an open cell for the agent's initial position from the center cells
+    state.agent_pos = open_center_cells[np.random.randint(len(open_center_cells))]
+
+    # Randomly select a direction for the agent
+    state.agent_dir = np.random.randint(4)
+
+    # Randomly place a goal object in an open cell, ensuring it is not the same as the agent's position
+    goal_pos = open_center_cells[np.random.randint(len(open_center_cells))]
+    while goal_pos == state.agent_pos:
+        goal_pos = open_center_cells[np.random.randint(len(open_center_cells))]
+    state.grid[goal_pos] = ObjectTypes.goal
+
+    # The agent is not carrying any object initially
+    state.carrying = None
+
+    return state
+```
+
+### Explanation:
+1. **Grid Structure**: The grid is assumed to have walls around the edges and mostly empty cells.
+2. **Agent and Goal Placement**:
+   - We define a `center_range` to prefer placing the agent and the goal in the center of the grid.
+   - We create a list of `open_center_cells` that are within this range and are empty.
+   - The agent's initial position and the goal's position are chosen from these center cells, ensuring they do not overlap.
+3. **Direction Distribution**: The agent's direction is chosen uniformly at random from the four possible directions.
+
+This approach ensures that the generated initial states are more likely to match the observed distribution, with the agent and goal often placed near the center of the grid.

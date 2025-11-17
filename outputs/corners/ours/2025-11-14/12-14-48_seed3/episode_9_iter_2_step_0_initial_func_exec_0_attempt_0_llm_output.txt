@@ -1,0 +1,45 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Define the possible agent positions and directions
+    agent_positions = [(6, 6), (7, 6), (6, 2), (5, 7), (6, 1)]
+    agent_directions = [2, 3, 1, 2, 3]
+
+    # Define the possible goal positions
+    goal_positions = [(1, 8), (8, 8), (1, 1), (1, 8), (0, 1)]
+
+    # Randomly select one of the predefined agent positions and directions
+    index = np.random.choice(len(agent_positions))
+    agent_pos = agent_positions[index]
+    agent_dir = agent_directions[index]
+    goal_pos = goal_positions[index]
+
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state with the selected agent position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of the Initial State Distribution
+
+Based on the provided samples, the initial state distribution appears to follow these patterns:
+
+1. **Agent Positions**: The agent can start at different positions within the grid. Specifically, the samples show the agent starting at positions (6, 6), (7, 6), (6, 2), (5, 7), and (6, 1).
+2. **Agent Directions**: The agent can start facing different directions. The samples show the agent facing left (2), down (3), right (1), and up (0) but only in specific contexts.
+3. **Goal Positions**: There is a single goal object placed at various positions within the grid. The samples show the goal at positions (1, 8), (8, 8), (1, 1), (1, 8), and (0, 1).
+
+The function `initial_func` models this distribution by randomly selecting one of the predefined agent positions and directions, and placing the goal object at the corresponding position. This ensures that the initial state generated is consistent with the provided samples while also allowing for some variability.

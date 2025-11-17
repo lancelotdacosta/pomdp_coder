@@ -1,0 +1,58 @@
+Based on the provided samples, the distribution of initial states suggests that:
+
+1. **Agent Position**: The agent can start at any position within the grid, except for walls and goal positions.
+2. **Agent Direction**: The agent can face any direction (0: right, 1: down, 2: left, 3: up).
+3. **Carrying**: The agent does not carry any object initially.
+4. **Grid**: The grid is mostly empty (filled with `1`), with walls (`2`) around the borders and a single goal (`10`) placed at various positions.
+
+Here is the implementation of the `initial_func` function to model the distribution of initial states:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def sample_position(grid):
+        """Sample a random valid position for the agent."""
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+    
+    def sample_direction():
+        """Sample a random direction for the agent."""
+        return np.random.choice(list(Direction))
+    
+    def place_goal(grid):
+        """Place a goal at a random valid position in the grid."""
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                grid[x, y] = ObjectTypes.goal
+                return (x, y)
+    
+    # Place the goal
+    goal_pos = place_goal(empty_state.grid)
+    
+    # Sample agent position and direction
+    agent_pos = sample_position(empty_state.grid)
+    agent_dir = sample_direction()
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+This function ensures that the agent starts at a random valid position (not on a wall or goal), faces a random direction, and the grid contains a single goal placed at a random valid position. The `empty_state` is used as the base grid with walls pre-filled.

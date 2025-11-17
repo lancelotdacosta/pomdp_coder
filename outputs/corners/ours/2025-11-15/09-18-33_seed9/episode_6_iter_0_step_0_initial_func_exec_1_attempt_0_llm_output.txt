@@ -1,0 +1,50 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `valid_positions` is a list of tuples, which is 2-dimensional. To fix this, we can use `np.random.choice` to select an index from the list of valid positions and then use that index to get the actual position tuple.
+
+Here's the corrected implementation of `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    def is_valid_position(pos):
+        """Check if the position is within the grid and not a wall."""
+        x, y = pos
+        return 1 <= x < empty_state.width - 1 and 1 <= y < empty_state.height - 1 and empty_state.grid[x, y] != ObjectTypes.wall
+
+    # Define possible agent directions
+    possible_directions = [0, 1, 2, 3]
+
+    # Find all valid positions for the agent
+    valid_positions = [(x, y) for x in range(1, empty_state.width - 1) for y in range(1, empty_state.height - 1) if is_valid_position((x, y))]
+
+    # Randomly select a valid position and direction for the agent
+    if valid_positions:
+        idx = np.random.choice(len(valid_positions))
+        agent_pos = valid_positions[idx]
+    else:
+        raise ValueError("No valid positions found for the agent.")
+
+    agent_dir = np.random.choice(possible_directions)
+
+    # Create the initial state with the selected position and direction
+    initial_state = MinigridState(
+        grid=np.copy(empty_state.grid),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+In this corrected implementation:
+1. We first check if there are any valid positions available.
+2. If there are valid positions, we use `np.random.choice` to select an index from the list of valid positions and then use that index to get the actual position tuple.
+3. If no valid positions are found, we raise a `ValueError`.
+
+This should resolve the issue you encountered.

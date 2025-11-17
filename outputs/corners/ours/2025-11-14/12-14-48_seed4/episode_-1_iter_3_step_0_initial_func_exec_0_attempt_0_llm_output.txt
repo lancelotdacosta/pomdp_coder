@@ -1,0 +1,62 @@
+Based on the provided samples, it seems that the distribution of initial states has the following characteristics:
+
+1. **Agent Position**: The agent can start at any open cell (not a wall or goal). However, there appears to be a higher concentration of agent positions towards the middle of the grid.
+2. **Agent Direction**: The agent's direction is randomly chosen from the four possible directions.
+3. **Goal Position**: The goal object (10) is also placed in an open cell, and it is not necessarily the same as the agent's position. There appears to be a higher concentration of goal positions towards the bottom of the grid.
+
+To improve the `initial_func` function to better model the true distribution, we can make the following adjustments:
+
+1. **Agent Position**: Increase the likelihood of the agent starting in the middle of the grid.
+2. **Goal Position**: Increase the likelihood of the goal being placed towards the bottom of the grid.
+
+Here is the improved `initial_func` function:
+
+```python
+import random
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The distribution of initial states suggests that:
+    # 1. The agent can start at any open cell (not a wall or goal), with a higher concentration in the middle.
+    # 2. The agent's direction is randomly chosen.
+    # 3. There is a goal object (10) located in one of the cells, with a higher concentration towards the bottom.
+
+    # Get the dimensions of the grid
+    width, height = empty_state.width, empty_state.height
+    
+    # Find all open cells (value == 1)
+    open_cells = []
+    for x in range(1, width - 1):
+        for y in range(1, height - 1):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                open_cells.append((x, y))
+    
+    # Increase the likelihood of the agent starting in the middle of the grid
+    middle_cells = [(x, y) for x in range(3, width - 3) for y in range(3, height - 3)]
+    agent_pos = random.choice(middle_cells + open_cells)
+    
+    # Randomly select a direction for the agent
+    agent_dir = random.choice(list(Direction))
+    
+    # Increase the likelihood of the goal being placed towards the bottom of the grid
+    bottom_cells = [(x, y) for x in range(1, width - 1) for y in range(height // 2, height - 1) if (x, y) != agent_pos]
+    goal_pos = random.choice(bottom_cells + [pos for pos in open_cells if pos != agent_pos])
+    
+    # Create the initial state with the agent and goal placed
+    grid = empty_state.grid.copy()
+    grid[goal_pos] = ObjectTypes.goal
+    
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+This improved function should better reflect the observed distribution of initial states. The agent is more likely to start in the middle of the grid, and the goal is more likely to be placed towards the bottom.

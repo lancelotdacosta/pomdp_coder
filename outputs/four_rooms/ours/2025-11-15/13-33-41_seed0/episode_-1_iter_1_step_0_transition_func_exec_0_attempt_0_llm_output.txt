@@ -1,0 +1,72 @@
+To improve the `transition_func` function, we need to address the cases where the agent's movement is affected by the environment, such as moving through open spaces or stopping at walls. The current implementation does not correctly handle these scenarios, leading to discrepancies between the generated model and the real-world samples.
+
+Here's an improved version of the `transition_func` function:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+
+    def move_forward(state):
+        next_pos = tuple(np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir])
+        if 0 <= next_pos[0] < state.width and 0 <= next_pos[1] < state.height:
+            next_cell = state.grid[next_pos]
+            if next_cell == ObjectTypes.empty or next_cell == ObjectTypes.open_door or next_cell == ObjectTypes.goal:
+                return MinigridState(
+                    grid=state.grid.copy(),
+                    agent_pos=next_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=state.carrying
+                )
+        return state
+
+    def turn_left(state):
+        new_dir = (state.agent_dir - 1) % 4
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_dir,
+            carrying=state.carrying
+        )
+
+    def turn_right(state):
+        new_dir = (state.agent_dir + 1) % 4
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_dir,
+            carrying=state.carrying
+        )
+
+    if action == Actions.left:
+        return turn_left(state)
+    elif action == Actions.right:
+        return turn_right(state)
+    elif action == Actions.forward:
+        return move_forward(state)
+    else:
+        # For simplicity, actions like pickup, drop, toggle, and done are not implemented here.
+        return state
+```
+
+### Explanation
+
+1. **Move Forward**:
+   - The `move_forward` function calculates the next position based on the current direction of the agent.
+   - It checks if the next position is within the grid boundaries.
+   - If the next cell is empty (`ObjectTypes.empty`), an open door (`ObjectTypes.open_door`), or a goal (`ObjectTypes.goal`), the agent moves to that position.
+   - If the next cell is a wall or any other obstacle, the agent remains in the same position.
+
+2. **Turn Left and Turn Right**:
+   - The `turn_left` and `turn_right` functions update the agent's direction by subtracting or adding 1 to the current direction, respectively, and taking the result modulo 4 to ensure it stays within the valid range of directions (0 to 3).
+
+3. **Action Handling**:
+   - The function checks the action and calls the corresponding helper function.
+   - If the action is not `left`, `right`, or `forward`, it returns the current state unchanged (assuming other actions are not implemented).
+
+This improved function should better model the true distribution of next states conditioned on actions and previous states.

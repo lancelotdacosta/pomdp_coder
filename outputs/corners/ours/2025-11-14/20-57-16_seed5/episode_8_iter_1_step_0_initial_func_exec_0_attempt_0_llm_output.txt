@@ -1,0 +1,51 @@
+Based on the provided samples from the real world and your model, it seems that the distribution of initial states has some key characteristics:
+
+1. **Agent Position**: The agent can be placed at any empty cell within the grid.
+2. **Goal Position**: The goal object can also be placed at any empty cell within the grid.
+3. **Agent Direction**: The agent can face in any of the four directions (right, down, left, up).
+4. **Carrying**: The agent is not carrying anything initially.
+
+The issue with your current implementation is that it places the agent and the goal in such a way that they are always in different cells, which might not reflect the true distribution. In the real world samples, the agent and the goal can sometimes be adjacent or even in the same row or column.
+
+To improve the code, we need to ensure that the agent and the goal are placed independently of each other, and that the agent's position and direction are chosen uniformly at random from all possible empty cells and directions.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid layout
+    grid = empty_state.grid.copy()
+
+    # Get all empty cells
+    empty_cells = np.argwhere(grid == ObjectTypes.empty)
+
+    # Place the goal object in one of the empty cells
+    goal_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Choose a random position for the agent
+    agent_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+
+    # Ensure the agent and goal are not in the same position
+    while agent_pos == goal_pos:
+        agent_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+
+    # Choose a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+This function ensures that the agent and the goal are placed independently and that the agent is not placed on the same cell as the goal. The agent's direction is chosen uniformly at random from all four possible directions. This should better reflect the true distribution of initial states.

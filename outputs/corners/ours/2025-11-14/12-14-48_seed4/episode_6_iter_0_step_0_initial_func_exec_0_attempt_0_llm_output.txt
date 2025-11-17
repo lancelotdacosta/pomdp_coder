@@ -1,0 +1,51 @@
+Based on the provided samples, the distribution of initial states seems to have the following characteristics:
+
+1. **Grid Layout**: The grid is a 10x10 grid with walls around the perimeter. There may be a goal object (represented by `10`) at various positions within the grid.
+2. **Agent Position**: The agent can start at various positions within the grid, but it seems to avoid the walls and the goal object.
+3. **Agent Direction**: The agent's initial direction is randomly chosen from the four possible directions (right, down, left, up).
+4. **Carrying Object**: The agent does not carry any object initially.
+
+Given this, the `initial_func` function should model the distribution of initial states by placing the agent at a random valid position, setting a random direction, and ensuring that the grid has walls around the perimeter and a goal object at a random position.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Ensure the grid has walls around the perimeter
+    grid = empty_state.grid
+
+    # Place the goal object at a random valid position
+    while True:
+        goal_x, goal_y = np.random.randint(1, 9), np.random.randint(1, 9)
+        if grid[goal_x, goal_y] == ObjectTypes.empty:
+            grid[goal_x, goal_y] = ObjectTypes.goal
+            break
+
+    # Place the agent at a random valid position (not on the goal or the walls)
+    while True:
+        agent_x, agent_y = np.random.randint(1, 9), np.random.randint(1, 9)
+        if grid[agent_x, agent_y] == ObjectTypes.empty:
+            grid[agent_x, agent_y] = ObjectTypes.agent
+            break
+
+    # Set a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    state = MinigridState(
+        grid=grid,
+        agent_pos=(agent_x, agent_y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+This function ensures that the grid is correctly set up with walls around the perimeter, places a goal object at a random valid position, and places the agent at a random valid position (not on the goal or the walls). The agent's direction is also randomly chosen from the four possible directions.

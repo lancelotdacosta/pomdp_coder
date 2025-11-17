@@ -1,0 +1,1291 @@
+#define system
+You are a robot exploring its environment. 
+
+
+
+Your goal is to model the distribution of initial states  of the world in python. 
+
+You have tried it before and came up with one partially correct solution, but it is not perfect. 
+
+The observed distribution disagrees with the generated model in several cases.
+You need to improve your code to come closer to the true distribution.
+
+Environment Description: 
+Goal Description: 
+
+Here is a solution you came up with before. 
+
+```
+# type: ignore
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import IntEnum
+from typing import Any, List, Optional, Tuple
+
+import numpy as np
+from numpy.typing import NDArray
+
+AGENT_DIR_TO_STR = {0: ">", 1: "V", 2: "<", 3: "^"}
+DIR_TO_VEC = [
+    # Pointing right (positive X)
+    np.array((1, 0)),
+    # Down (positive Y)
+    np.array((0, 1)),
+    # Pointing left (negative X)
+    np.array((-1, 0)),
+    # Up (negative Y)
+    np.array((0, -1)),
+]
+
+SEE_THROUGH_WALLS = True
+
+
+class ObjectTypes(IntEnum):
+    unseen = 0
+    empty = 1
+    wall = 2
+    open_door = 4
+    closed_door = 5
+    locked_door = 6
+    key = 7
+    ball = 8
+    box = 9
+    goal = 10
+    lava = 11
+    agent = 12
+
+
+class Direction(IntEnum):
+    facing_right = 0
+    facing_down = 1
+    facing_left = 2
+    facing_up = 3
+
+
+class Actions(IntEnum):
+    left = 0  # Turn left
+    right = 1  # Turn right
+    forward = 2  # Move forward
+    pickup = 3  # Pick up an object
+    drop = 4  # Drop an object
+    toggle = 5  # Toggle/activate an object
+    done = 6  # Done completing the task
+
+
+@dataclass
+class MinigridObservation(Observation):
+    """
+    Args:
+        `image`: field of view in front of the agent.
+
+        `agent_pos`: agent's position in the real world. It differs from the position
+                     in the observation grid.
+        `agent_dir`: agent's direction in the real world. It differs from the direction
+                     of the agent in the observation grid.
+        `carrying`: what the agent is carrying at the moment.
+    """
+
+    image: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int] = None
+
+
+@dataclass
+class MinigridState(State):
+    """An agent exists in an indoor multi-room environment represented by a
+    grid."""
+
+    grid: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int]
+
+    @property
+    def front_pos(self) -> Tuple[int, int]:
+        """Get the position of the cell that is right in front of the agent."""
+
+        return (
+            np.array(self.agent_pos) + np.array(DIR_TO_VEC[self.agent_dir])
+        ).tolist()
+
+    @property
+    def width(self) -> int:
+        return self.grid.shape[0]
+
+    @property
+    def height(self) -> int:
+        return self.grid.shape[1]
+
+    def get_type_indices(self, type: int) -> List[Tuple[int, int]]:
+        idxs = np.where(self.grid == type)  # Returns (row_indices, col_indices)
+        return list(zip(idxs[0], idxs[1]))  # Combine row and column indices
+
+
+    def get_field_of_view(self, view_size: int) -> NDArray[np.int8]:
+        """Returns the field of view in front of the agent.
+
+        DO NOT modify this function.
+        """
+
+        # Get the extents of the square set of tiles visible to the agent
+        # Facing right
+        if self.agent_dir == 0:
+            topX = self.agent_pos[0]
+            topY = self.agent_pos[1] - view_size // 2
+        # Facing down
+        elif self.agent_dir == 1:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1]
+        # Facing left
+        elif self.agent_dir == 2:
+            topX = self.agent_pos[0] - view_size + 1
+            topY = self.agent_pos[1] - view_size // 2
+        # Facing up
+        elif self.agent_dir == 3:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1] - view_size + 1
+        else:
+            assert False, "invalid agent direction"
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=self.grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, self.grid.shape[0])
+        gy1 = min(topY + view_size, self.grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = self.grid[
+            gx0:gx1, gy0:gy1
+        ]
+
+        for _ in range(self.agent_dir + 1):
+            # Rotate left
+            fov = np.rot90(fov.T, k=1).T
+
+        agent_pos = (self.grid.shape[0] // 2, self.grid.shape[1] - 1)
+        self.grid[agent_pos] = ObjectTypes.agent
+
+        return fov
+
+
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    # Randomly select an open position for the agent with the weighted probability
+    agent_pos = tuple(open_positions[np.random.choice(len(open_positions), p=probabilities)])
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Select a random open position for the goal object (ensure it's not the same as the agent's position)
+    goal_pos = agent_pos
+    while goal_pos == agent_pos:
+        goal_pos = tuple(open_positions[np.random.choice(len(open_positions))])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+
+```
+
+
+Here are some samples from the real world that were impossible under your model
+Output MinigridState: agent_pos=(6, 2)
+agent_dir=2
+carrying=None
+grid=[
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2, 10,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+]
+
+
+
+Output MinigridState: agent_pos=(3, 3)
+agent_dir=1
+carrying=None
+grid=[
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1, 10,  2, ],
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+]
+
+
+
+
+And here are some samples from your code under the same conditions
+Output MinigridState: agent_pos=(np.int64(1), np.int64(5))
+agent_dir=0
+carrying=None
+grid=[
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1, 10,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+]
+
+
+
+Output MinigridState: agent_pos=(np.int64(1), np.int64(3))
+agent_dir=2
+carrying=None
+grid=[
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2, 10,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+]
+
+
+
+Output MinigridState: agent_pos=(np.int64(8), np.int64(8))
+agent_dir=0
+carrying=None
+grid=[
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1, 10,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+]
+
+
+
+Output MinigridState: agent_pos=(np.int64(3), np.int64(3))
+agent_dir=1
+carrying=None
+grid=[
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1, 10,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+]
+
+
+
+Output MinigridState: agent_pos=(np.int64(8), np.int64(2))
+agent_dir=3
+carrying=None
+grid=[
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1, 10,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  1,  1,  1,  1,  1,  1,  1,  1,  2, ],
+[ 2,  2,  2,  2,  2,  2,  2,  2,  2,  2, ],
+]
+
+
+
+
+
+
+Explain what you believe is the distribution of initial states  in english, then improve your code to better model the true distribution.
+
+Please implement the code for the following the template. 
+You must implement the ‘ initial_func ‘ function. 
+
+The code needs to be directly runnable with an empty state with the walls of the grid pre-filled and return a sample initial state. 
+
+Do not output examples. 
+Do not create any new classes. 
+Do not rewrite existing classes.
+Do not import any new modules from anywhere.
+Do not list out specific indices that overfit to the examples, but include ranges.
+Put the ‘ initial_func ‘ function in a python code block.
+#define assistant
+Based on the provided samples from the real world, it seems that the distribution of initial states favors placing the agent and the goal object in the middle and lower parts of the grid. Additionally, the agent and the goal should not be placed in the same position. The following changes will improve the `initial_func` function to better match this distribution:
+
+1. **Agent Position Distribution**: The agent is more likely to be placed in the middle and lower parts of the grid.
+2. **Goal Position Distribution**: The goal object is also more likely to be placed in the middle and lower parts of the grid, but it should not overlap with the agent's position.
+
+Here is the improved `initial_func` function:
+
+```python
+# type: ignore
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import IntEnum
+from typing import Any, List, Optional, Tuple
+
+import numpy as np
+from numpy.typing import NDArray
+
+AGENT_DIR_TO_STR = {0: ">", 1: "V", 2: "<", 3: "^"}
+DIR_TO_VEC = [
+    # Pointing right (positive X)
+    np.array((1, 0)),
+    # Down (positive Y)
+    np.array((0, 1)),
+    # Pointing left (negative X)
+    np.array((-1, 0)),
+    # Up (negative Y)
+    np.array((0, -1)),
+]
+
+SEE_THROUGH_WALLS = True
+
+
+class ObjectTypes(IntEnum):
+    unseen = 0
+    empty = 1
+    wall = 2
+    open_door = 4
+    closed_door = 5
+    locked_door = 6
+    key = 7
+    ball = 8
+    box = 9
+    goal = 10
+    lava = 11
+    agent = 12
+
+
+class Direction(IntEnum):
+    facing_right = 0
+    facing_down = 1
+    facing_left = 2
+    facing_up = 3
+
+
+class Actions(IntEnum):
+    left = 0  # Turn left
+    right = 1  # Turn right
+    forward = 2  # Move forward
+    pickup = 3  # Pick up an object
+    drop = 4  # Drop an object
+    toggle = 5  # Toggle/activate an object
+    done = 6  # Done completing the task
+
+
+@dataclass
+class MinigridObservation(Observation):
+    """
+    Args:
+        `image`: field of view in front of the agent.
+
+        `agent_pos`: agent's position in the real world. It differs from the position
+                     in the observation grid.
+        `agent_dir`: agent's direction in the real world. It differs from the direction
+                     of the agent in the observation grid.
+        `carrying`: what the agent is carrying at the moment.
+    """
+
+    image: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int] = None
+
+
+@dataclass
+class MinigridState(State):
+    """An agent exists in an indoor multi-room environment represented by a
+    grid."""
+
+    grid: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int]
+
+    @property
+    def front_pos(self) -> Tuple[int, int]:
+        """Get the position of the cell that is right in front of the agent."""
+
+        return (
+            np.array(self.agent_pos) + np.array(DIR_TO_VEC[self.agent_dir])
+        ).tolist()
+
+    @property
+    def width(self) -> int:
+        return self.grid.shape[0]
+
+    @property
+    def height(self) -> int:
+        return self.grid.shape[1]
+
+    def get_type_indices(self, type: int) -> List[Tuple[int, int]]:
+        idxs = np.where(self.grid == type)  # Returns (row_indices, col_indices)
+        return list(zip(idxs[0], idxs[1]))  # Combine row and column indices
+
+
+    def get_field_of_view(self, view_size: int) -> NDArray[np.int8]:
+        """Returns the field of view in front of the agent.
+
+        DO NOT modify this function.
+        """
+
+        # Get the extents of the square set of tiles visible to the agent
+        # Facing right
+        if self.agent_dir == 0:
+            topX = self.agent_pos[0]
+            topY = self.agent_pos[1] - view_size // 2
+        # Facing down
+        elif self.agent_dir == 1:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1]
+        # Facing left
+        elif self.agent_dir == 2:
+            topX = self.agent_pos[0] - view_size + 1
+            topY = self.agent_pos[1] - view_size // 2
+        # Facing up
+        elif self.agent_dir == 3:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1] - view_size + 1
+        else:
+            assert False, "invalid agent direction"
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=self.grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, self.grid.shape[0])
+        gy1 = min(topY + view_size, self.grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = self.grid[
+            gx0:gx1, gy0:gy1
+        ]
+
+        for _ in range(self.agent_dir + 1):
+            # Rotate left
+            fov = np.rot90(fov.T, k=1).T
+
+        agent_pos = (self.grid.shape[0] // 2, self.grid.shape[1] - 1)
+        self.grid[agent_pos] = ObjectTypes.agent
+
+        return fov
+
+
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    # Randomly select an open position for the agent with the weighted probability
+    agent_pos = tuple(open_positions[np.random.choice(len(open_positions), p=probabilities)])
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create a probability distribution for the goal object that favors the middle and lower parts of the grid
+    goal_probabilities = probabilities.copy()
+
+    # Ensure the goal is not placed at the same position as the agent
+    goal_open_positions = open_positions[open_positions != agent_pos].tolist()
+    goal_probabilities = probabilities[open_positions != agent_pos]
+
+    goal_probabilities /= goal_probabilities.sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos = tuple(goal_open_positions[np.random.choice(len(goal_open_positions), p=goal_probabilities)])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+```
+
+This improved function ensures that both the agent and the goal are more likely to be placed in the middle and lower parts of the grid, and it also ensures that the agent and the goal are not placed in the same position. The probability distribution for selecting positions is adjusted to favor these areas, which should better match the observed distribution in the real world.
+#define assistant
+
+
+# type: ignore
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import IntEnum
+from typing import Any, List, Optional, Tuple
+
+import numpy as np
+from numpy.typing import NDArray
+
+AGENT_DIR_TO_STR = {0: ">", 1: "V", 2: "<", 3: "^"}
+DIR_TO_VEC = [
+    # Pointing right (positive X)
+    np.array((1, 0)),
+    # Down (positive Y)
+    np.array((0, 1)),
+    # Pointing left (negative X)
+    np.array((-1, 0)),
+    # Up (negative Y)
+    np.array((0, -1)),
+]
+
+SEE_THROUGH_WALLS = True
+
+
+class ObjectTypes(IntEnum):
+    unseen = 0
+    empty = 1
+    wall = 2
+    open_door = 4
+    closed_door = 5
+    locked_door = 6
+    key = 7
+    ball = 8
+    box = 9
+    goal = 10
+    lava = 11
+    agent = 12
+
+
+class Direction(IntEnum):
+    facing_right = 0
+    facing_down = 1
+    facing_left = 2
+    facing_up = 3
+
+
+class Actions(IntEnum):
+    left = 0  # Turn left
+    right = 1  # Turn right
+    forward = 2  # Move forward
+    pickup = 3  # Pick up an object
+    drop = 4  # Drop an object
+    toggle = 5  # Toggle/activate an object
+    done = 6  # Done completing the task
+
+
+@dataclass
+class MinigridObservation(Observation):
+    """
+    Args:
+        `image`: field of view in front of the agent.
+
+        `agent_pos`: agent's position in the real world. It differs from the position
+                     in the observation grid.
+        `agent_dir`: agent's direction in the real world. It differs from the direction
+                     of the agent in the observation grid.
+        `carrying`: what the agent is carrying at the moment.
+    """
+
+    image: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int] = None
+
+
+@dataclass
+class MinigridState(State):
+    """An agent exists in an indoor multi-room environment represented by a
+    grid."""
+
+    grid: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int]
+
+    @property
+    def front_pos(self) -> Tuple[int, int]:
+        """Get the position of the cell that is right in front of the agent."""
+
+        return (
+            np.array(self.agent_pos) + np.array(DIR_TO_VEC[self.agent_dir])
+        ).tolist()
+
+    @property
+    def width(self) -> int:
+        return self.grid.shape[0]
+
+    @property
+    def height(self) -> int:
+        return self.grid.shape[1]
+
+    def get_type_indices(self, type: int) -> List[Tuple[int, int]]:
+        idxs = np.where(self.grid == type)  # Returns (row_indices, col_indices)
+        return list(zip(idxs[0], idxs[1]))  # Combine row and column indices
+
+
+    def get_field_of_view(self, view_size: int) -> NDArray[np.int8]:
+        """Returns the field of view in front of the agent.
+
+        DO NOT modify this function.
+        """
+
+        # Get the extents of the square set of tiles visible to the agent
+        # Facing right
+        if self.agent_dir == 0:
+            topX = self.agent_pos[0]
+            topY = self.agent_pos[1] - view_size // 2
+        # Facing down
+        elif self.agent_dir == 1:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1]
+        # Facing left
+        elif self.agent_dir == 2:
+            topX = self.agent_pos[0] - view_size + 1
+            topY = self.agent_pos[1] - view_size // 2
+        # Facing up
+        elif self.agent_dir == 3:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1] - view_size + 1
+        else:
+            assert False, "invalid agent direction"
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=self.grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, self.grid.shape[0])
+        gy1 = min(topY + view_size, self.grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = self.grid[
+            gx0:gx1, gy0:gy1
+        ]
+
+        for _ in range(self.agent_dir + 1):
+            # Rotate left
+            fov = np.rot90(fov.T, k=1).T
+
+        agent_pos = (self.grid.shape[0] // 2, self.grid.shape[1] - 1)
+        self.grid[agent_pos] = ObjectTypes.agent
+
+        return fov
+
+
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    # Randomly select an open position for the agent with the weighted probability
+    agent_pos = tuple(open_positions[np.random.choice(len(open_positions), p=probabilities)])
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create a probability distribution for the goal object that favors the middle and lower parts of the grid
+    goal_probabilities = probabilities.copy()
+
+    # Ensure the goal is not placed at the same position as the agent
+    goal_open_positions = open_positions[open_positions != agent_pos].tolist()
+    goal_probabilities = probabilities[open_positions != agent_pos]
+
+    goal_probabilities /= goal_probabilities.sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos = tuple(goal_open_positions[np.random.choice(len(goal_open_positions), p=goal_probabilities)])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func200.py", line 196, in initial_func
+    goal_probabilities = probabilities[open_positions != agent_pos]
+                         ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed
+
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func200.py", line 196, in initial_func
+    goal_probabilities = probabilities[open_positions != agent_pos]
+                         ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed
+
+#define assistant
+The error you're encountering is due to an incorrect way of filtering the `open_positions` and `probabilities` arrays. Specifically, the expression `open_positions != agent_pos` is trying to compare a 2D array with a tuple, which results in an array that cannot be used to index the 1D `probabilities` array.
+
+To fix this, we need to correctly filter the `open_positions` and `probabilities` to ensure the goal position is not the same as the agent's position. Here's the corrected `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    # Randomly select an open position for the agent with the weighted probability
+    agent_pos_idx = np.random.choice(len(open_positions), p=probabilities)
+    agent_pos = tuple(open_positions[agent_pos_idx])
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Filter out the agent's position from the list of open positions for the goal
+    goal_open_positions = open_positions[open_positions != agent_pos].tolist()
+    goal_prob_indices = [i for i, pos in enumerate(open_positions.tolist()) if pos != agent_pos]
+
+    # Create a probability distribution for the goal object that excludes the agent's position
+    goal_probabilities = probabilities[goal_prob_indices] / probabilities[goal_prob_indices].sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+    goal_pos = tuple(goal_open_positions[goal_pos_idx])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+```
+
+### Explanation of Changes:
+1. **Agent Position Selection**:
+   - `agent_pos_idx` is the index of the selected agent position.
+   - `agent_pos` is the actual position of the agent.
+
+2. **Filtering Open Positions for Goal**:
+   - `goal_open_positions` is a list of open positions that are not the same as the agent's position.
+   - `goal_prob_indices` is a list of indices for the probabilities array that correspond to the filtered positions.
+
+3. **Probability Distribution for Goal**:
+   - `goal_probabilities` is the adjusted probability distribution for the goal positions, normalized to sum to 1.
+
+4. **Goal Position Selection**:
+   - `goal_pos_idx` is the index of the selected goal position.
+   - `goal_pos` is the actual position of the goal.
+
+This should resolve the `IndexError` and correctly place the agent and goal in the grid according to the desired distribution.
+#define assistant
+
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    # Randomly select an open position for the agent with the weighted probability
+    agent_pos_idx = np.random.choice(len(open_positions), p=probabilities)
+    agent_pos = tuple(open_positions[agent_pos_idx])
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Filter out the agent's position from the list of open positions for the goal
+    goal_open_positions = open_positions[open_positions != agent_pos].tolist()
+    goal_prob_indices = [i for i, pos in enumerate(open_positions.tolist()) if pos != agent_pos]
+
+    # Create a probability distribution for the goal object that excludes the agent's position
+    goal_probabilities = probabilities[goal_prob_indices] / probabilities[goal_prob_indices].sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+    goal_pos = tuple(goal_open_positions[goal_pos_idx])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func200.py", line 39, in initial_func
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "numpy/random/mtrand.pyx", line 987, in numpy.random.mtrand.RandomState.choice
+ValueError: 'a' and 'p' must have same size
+
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func200.py", line 39, in initial_func
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "numpy/random/mtrand.pyx", line 987, in numpy.random.mtrand.RandomState.choice
+ValueError: 'a' and 'p' must have same size
+
+#define assistant
+The error you're encountering is due to a mismatch in the sizes of the `goal_open_positions` list and the `goal_probabilities` array. This can happen if the filtering process results in an empty list for `goal_open_positions`, which would make the `goal_probabilities` array also empty.
+
+To fix this, we need to ensure that `goal_open_positions` is not empty before attempting to select a goal position. If it is empty, we should re-select the agent's position until we have valid positions for both the agent and the goal.
+
+Here is the corrected `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    while True:
+        # Randomly select an open position for the agent with the weighted probability
+        agent_pos_idx = np.random.choice(len(open_positions), p=probabilities)
+        agent_pos = tuple(open_positions[agent_pos_idx])
+
+        # Filter out the agent's position from the list of open positions for the goal
+        goal_open_positions = open_positions[open_positions != agent_pos].tolist()
+
+        if goal_open_positions:
+            break
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create a probability distribution for the goal object that excludes the agent's position
+    goal_prob_indices = [i for i, pos in enumerate(open_positions.tolist()) if pos != agent_pos]
+    goal_probabilities = probabilities[goal_prob_indices] / probabilities[goal_prob_indices].sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+    goal_pos = tuple(goal_open_positions[goal_pos_idx])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+```
+
+### Explanation of Changes:
+1. **Loop to Ensure Valid Positions**:
+   - Added a `while` loop to ensure that the `goal_open_positions` list is not empty.
+   - If `goal_open_positions` is empty, the loop re-selects the agent's position until valid positions are found for both the agent and the goal.
+
+2. **Filtering Open Positions for Goal**:
+   - `goal_open_positions` is a list of open positions that are not the same as the agent's position.
+   - The loop ensures that this list is not empty before proceeding.
+
+3. **Probability Distribution for Goal**:
+   - `goal_prob_indices` is a list of indices for the probabilities array that correspond to the filtered positions.
+   - `goal_probabilities` is the adjusted probability distribution for the goal positions, normalized to sum to 1.
+
+4. **Goal Position Selection**:
+   - `goal_pos_idx` is the index of the selected goal position.
+   - `goal_pos` is the actual position of the goal.
+
+This should ensure that the agent and goal positions are correctly and consistently selected without causing an empty list error.
+#define assistant
+
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    while True:
+        # Randomly select an open position for the agent with the weighted probability
+        agent_pos_idx = np.random.choice(len(open_positions), p=probabilities)
+        agent_pos = tuple(open_positions[agent_pos_idx])
+
+        # Filter out the agent's position from the list of open positions for the goal
+        goal_open_positions = open_positions[open_positions != agent_pos].tolist()
+
+        if goal_open_positions:
+            break
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create a probability distribution for the goal object that excludes the agent's position
+    goal_prob_indices = [i for i, pos in enumerate(open_positions.tolist()) if pos != agent_pos]
+    goal_probabilities = probabilities[goal_prob_indices] / probabilities[goal_prob_indices].sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+    goal_pos = tuple(goal_open_positions[goal_pos_idx])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func200.py", line 43, in initial_func
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "numpy/random/mtrand.pyx", line 987, in numpy.random.mtrand.RandomState.choice
+ValueError: 'a' and 'p' must have same size
+
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func200.py", line 43, in initial_func
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "numpy/random/mtrand.pyx", line 987, in numpy.random.mtrand.RandomState.choice
+ValueError: 'a' and 'p' must have same size
+
+#define assistant
+The error persists because the `goal_open_positions` list is empty, which means that the filtering process is not correctly excluding the agent's position. Let's simplify the process to ensure that we handle the filtering and probability distribution correctly.
+
+Here is the revised `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    while True:
+        # Randomly select an open position for the agent with the weighted probability
+        agent_pos_idx = np.random.choice(len(open_positions), p=probabilities)
+        agent_pos = tuple(open_positions[agent_pos_idx])
+
+        # Filter out the agent's position from the list of open positions for the goal
+        goal_open_positions = [pos for pos in open_positions if not np.array_equal(pos, agent_pos)]
+
+        if goal_open_positions:
+            break
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create a probability distribution for the goal object that excludes the agent's position
+    goal_probabilities = probabilities[goal_open_positions]
+
+    # Normalize the probabilities
+    goal_probabilities /= goal_probabilities.sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+    goal_pos = tuple(goal_open_positions[goal_pos_idx])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+```
+
+### Explanation of Changes:
+1. **Filtering Open Positions for Goal**:
+   - Use a list comprehension to filter out the agent's position from `open_positions` to create `goal_open_positions`.
+   - Ensure `goal_open_positions` is not empty before breaking out of the loop.
+
+2. **Probability Distribution for Goal**:
+   - Use the filtered `goal_open_positions` to create `goal_probabilities`.
+   - Normalize the probabilities to ensure they sum to 1.
+
+3. **Goal Position Selection**:
+   - Use `np.random.choice` with the filtered and normalized probabilities to select the goal position.
+
+This should ensure that the agent and goal positions are correctly and consistently selected without causing an empty list error.
+#define assistant
+
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    while True:
+        # Randomly select an open position for the agent with the weighted probability
+        agent_pos_idx = np.random.choice(len(open_positions), p=probabilities)
+        agent_pos = tuple(open_positions[agent_pos_idx])
+
+        # Filter out the agent's position from the list of open positions for the goal
+        goal_open_positions = [pos for pos in open_positions if not np.array_equal(pos, agent_pos)]
+
+        if goal_open_positions:
+            break
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create a probability distribution for the goal object that excludes the agent's position
+    goal_probabilities = probabilities[goal_open_positions]
+
+    # Normalize the probabilities
+    goal_probabilities /= goal_probabilities.sum()
+
+    # Randomly select an open position for the goal object with the weighted probability
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+    goal_pos = tuple(goal_open_positions[goal_pos_idx])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func200.py", line 45, in initial_func
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "numpy/random/mtrand.pyx", line 985, in numpy.random.mtrand.RandomState.choice
+ValueError: 'p' must be 1-dimensional
+
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func200.py", line 45, in initial_func
+    goal_pos_idx = np.random.choice(len(goal_open_positions), p=goal_probabilities)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "numpy/random/mtrand.pyx", line 985, in numpy.random.mtrand.RandomState.choice
+ValueError: 'p' must be 1-dimensional
+

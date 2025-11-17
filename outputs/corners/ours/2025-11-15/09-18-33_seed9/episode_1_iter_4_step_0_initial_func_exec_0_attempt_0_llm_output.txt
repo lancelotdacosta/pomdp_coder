@@ -1,0 +1,56 @@
+Based on the provided samples from the real world, it seems that both the agent's position and the goal's position are uniformly distributed within the interior of the grid, excluding the walls. The direction of the agent is also uniformly sampled from the four possible directions.
+
+However, in your current implementation, the agent and the goal are being placed in the same iteration without considering that they should not overlap. This could lead to cases where the agent and the goal are placed at the same position, which is not observed in the real-world samples.
+
+To improve the model, we need to ensure that the agent and the goal are placed in different positions. We can achieve this by sampling the positions independently and ensuring that they do not overlap.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    def is_valid_pos(pos):
+        x, y = pos
+        return 1 <= x < empty_state.width - 1 and 1 <= y < empty_state.height - 1
+
+    def sample_pos():
+        while True:
+            x = np.random.randint(1, empty_state.width - 1)
+            y = np.random.randint(1, empty_state.height - 1)
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def sample_agent_dir():
+        return np.random.choice(list(Direction))
+
+    # Sample agent position
+    agent_pos = sample_pos()
+
+    # Place the goal, ensuring it does not overlap with the agent's position
+    while True:
+        goal_pos = sample_pos()
+        if goal_pos != agent_pos:
+            empty_state.grid[goal_pos] = ObjectTypes.goal
+            break
+
+    # Sample agent direction
+    agent_dir = sample_agent_dir()
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None,
+    )
+
+    return initial_state
+```
+
+This function ensures that the agent and the goal are placed in different positions within the interior of the grid. The agent's direction is still uniformly sampled from the four possible directions. This should better match the distribution observed in the real-world samples.

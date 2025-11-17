@@ -1,0 +1,43 @@
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The distribution of initial states suggests that:
+    # 1. The agent can start at any open cell (not a wall or goal).
+    # 2. The agent's direction is randomly chosen.
+    # 3. There is a goal object (10) located in one of the cells.
+    
+    # Get the dimensions of the grid
+    width, height = empty_state.width, empty_state.height
+    
+    # Find all open cells (value == 1)
+    open_cells = []
+    for x in range(1, width - 1):
+        for y in range(1, height - 1):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                open_cells.append((x, y))
+    
+    # Randomly select an open cell for the agent to start
+    agent_pos = tuple(np.random.choice(open_cells))
+    
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Randomly select a goal position (not the same as the agent's position)
+    goal_pos = tuple(np.random.choice([pos for pos in open_cells if pos != agent_pos]))
+    
+    # Create the initial state with the agent and goal placed
+    grid = empty_state.grid.copy()
+    grid[goal_pos] = ObjectTypes.goal
+    
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```

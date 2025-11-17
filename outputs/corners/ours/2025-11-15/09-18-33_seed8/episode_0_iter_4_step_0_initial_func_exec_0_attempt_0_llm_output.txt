@@ -1,0 +1,59 @@
+To better model the true distribution of initial states based on the provided samples, we need to ensure that:
+
+1. The agent can start at various positions within the inner grid (excluding the walls).
+2. The goal cell can be placed at various positions within the inner grid, independent of the agent's position.
+3. The agent's direction is chosen randomly.
+
+The current implementation already covers these aspects, but it seems to have some bias or constraints that do not match the real-world samples. Let's refine the `initial_func` function to ensure the generated states are more representative of the observed distribution.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the range for the inner grid where the agent and goal can start
+    min_pos = 1
+    max_pos = 8
+
+    # Randomly select the agent's position within the inner grid
+    agent_x = np.random.randint(min_pos, max_pos + 1)
+    agent_y = np.random.randint(min_pos, max_pos + 1)
+
+    # Randomly select the agent's direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # Ensure the grid has walls surrounding it
+    grid = empty_state.grid.copy()
+
+    # Place a goal cell at a random position within the inner grid, ensuring it is not the same as the agent's position
+    while True:
+        goal_x = np.random.randint(min_pos, max_pos + 1)
+        goal_y = np.random.randint(min_pos, max_pos + 1)
+        if (goal_x, goal_y) != (agent_x, agent_y):
+            break
+
+    grid[goal_x, goal_y] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=(agent_x, agent_y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation:
+
+1. **Agent Position**: The agent's position is chosen randomly within the inner grid (1 to 8).
+2. **Agent Direction**: The agent's direction is chosen randomly from the available directions.
+3. **Goal Position**: The goal cell is placed at a random position within the inner grid, ensuring it does not overlap with the agent's position. This is achieved by a simple loop that generates new coordinates until they do not match the agent's position.
+
+This approach ensures that the generated states are more representative of the observed distribution, as it allows for a wider range of possible configurations while maintaining the constraints of the environment.

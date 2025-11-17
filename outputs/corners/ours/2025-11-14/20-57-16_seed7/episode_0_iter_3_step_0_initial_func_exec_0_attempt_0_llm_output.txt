@@ -1,0 +1,47 @@
+Based on the samples provided, it appears that the initial states have the following characteristics:
+
+1. **Grid Structure**: The grid is a 10x10 grid with walls (2) around the edges.
+2. **Goal Placement**: The goal (10) is placed in a random empty cell within the grid, excluding the borders.
+3. **Agent Placement**: The agent (12) is placed in a random empty cell within the grid, excluding the borders and ensuring it does not overlap with the goal.
+4. **Direction**: The agent's direction is randomly chosen from the four possible directions (0: right, 1: down, 2: left, 3: up).
+
+The main issue with your current code is that it places the goal and the agent in the grid but does not handle the case where the agent and the goal might overlap. Additionally, the grid should be updated to reflect the agent's position correctly.
+
+Here is an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Ensure the goal is placed in a valid position
+    goal_pos = None
+    while goal_pos is None or grid[goal_pos] != ObjectTypes.empty:
+        goal_pos = (np.random.randint(1, width - 1), np.random.randint(1, height - 1))
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Ensure the agent is placed in a valid position and does not overlap with the goal
+    agent_pos = None
+    while agent_pos is None or grid[agent_pos] != ObjectTypes.empty:
+        agent_pos = (np.random.randint(1, width - 1), np.random.randint(1, height - 1))
+    grid[agent_pos] = ObjectTypes.agent
+
+    # Randomly select an initial direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Return the new state
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+This function ensures that the goal and the agent are placed in valid empty positions without overlapping. The agent's initial direction is randomly selected from the four possible directions. This should better model the true distribution of initial states based on the provided samples.

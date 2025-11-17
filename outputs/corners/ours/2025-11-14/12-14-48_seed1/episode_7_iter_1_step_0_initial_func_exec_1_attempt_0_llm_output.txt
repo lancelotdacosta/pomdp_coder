@@ -1,0 +1,55 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but you are passing a list of tuples. To fix this, you can use a different approach to randomly select an element from a list of tuples.
+
+Here's the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    # Define the possible agent positions and directions
+    possible_agent_positions = [
+        (3, 3), (5, 3), (6, 2)
+    ]
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Randomly select an agent position and direction
+    agent_pos = possible_agent_positions[np.random.choice(len(possible_agent_positions))]
+    agent_dir = np.random.choice(possible_agent_directions)
+
+    # Define the possible goal positions
+    possible_goal_positions = [
+        (8, 1), (9, 8), (8, 8)
+    ]
+
+    # Randomly select a goal position
+    goal_pos = possible_goal_positions[np.random.choice(len(possible_goal_positions))]
+
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of the Changes
+
+1. **Agent Position Selection**:
+   - Instead of using `np.random.choice` directly on the list of tuples, we use `np.random.choice` to select an index from the range of the length of the list.
+   - We then use this index to select the corresponding tuple from the list.
+
+2. **Goal Position Selection**:
+   - Similarly, for the goal position, we use `np.random.choice` to select an index and then use this index to select the corresponding tuple from the list of possible goal positions.
+
+These changes ensure that the function works correctly by selecting a random element from the lists of tuples.

@@ -1,0 +1,52 @@
+It looks like there was a typo in the code. The correct attribute for checking if a cell is a wall should be `ObjectTypes.wall`. Let's correct that and ensure the function works as intended.
+
+Here is the corrected `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid
+    width, height = grid.shape
+
+    # Place the goal object at a random position within the grid, avoiding walls
+    goal_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+    while grid[goal_pos] != ObjectTypes.empty:
+        goal_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent at a random position within the grid, avoiding walls and the goal
+    agent_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+    while grid[agent_pos] == ObjectTypes.wall or agent_pos == goal_pos:
+        agent_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+
+    # Set a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Changes:
+1. **Corrected Typo**:
+   - Replaced `ObjectTypes墙` with `ObjectTypes.wall` to correctly check if a cell is a wall.
+
+2. **Agent and Goal Placement**:
+   - The agent and goal are placed within the inner cells of the grid, avoiding walls.
+   - The agent is ensured not to be placed on the same cell as the goal.
+
+3. **Random Direction**:
+   - The agent's direction is chosen uniformly at random from the possible directions.
+
+This corrected function should now work without errors and better capture the true distribution of initial states by allowing the agent and goal to be placed more flexibly within the grid.

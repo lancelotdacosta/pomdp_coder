@@ -1,0 +1,45 @@
+The error you're encountering is due to the `np.random.choice` function expecting a 1-dimensional array. However, `possible_positions` is a list of tuples, which is 2-dimensional. To fix this, you can use `np.random.choice` to select an index and then use that index to select the position from `possible_positions`.
+
+Here's the corrected implementation of `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible positions and directions for the agent
+    possible_positions = [
+        (8, 4), (3, 3), (5, 3), (6, 4), (4, 6)
+    ]
+    possible_directions = [0, 1, 2, 3]
+
+    # Randomly select an index for the position and direction
+    pos_index = np.random.choice(len(possible_positions))
+    dir_index = np.random.choice(len(possible_directions))
+
+    # Get the selected position and direction
+    agent_pos = possible_positions[pos_index]
+    agent_dir = possible_directions[dir_index]
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    # Place the agent in the selected position
+    initial_state.grid[agent_pos] = ObjectTypes.agent
+
+    return initial_state
+```
+
+### Explanation of the Changes
+1. **Selecting an Index**: Instead of directly using `np.random.choice` on the list of positions, we first select a random index from the range of the length of `possible_positions` and `possible_directions`.
+2. **Using the Selected Index**: We then use the selected indices to get the corresponding position and direction.
+
+This approach ensures that `np.random.choice` is always used with a 1-dimensional array, which resolves the `ValueError` you encountered.

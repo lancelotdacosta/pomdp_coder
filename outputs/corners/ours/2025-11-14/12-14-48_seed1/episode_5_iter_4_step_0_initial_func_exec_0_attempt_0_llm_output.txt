@@ -1,0 +1,56 @@
+To better model the true distribution of initial states, we need to ensure that the agent and goal positions are placed more accurately according to the observed distribution. Based on the provided samples, it seems that the goal is often placed in the bottom-right region of the grid, and the agent can be placed anywhere within the empty cells.
+
+Here's an improved version of the `initial_func` function that better models the true distribution:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible positions for the agent
+    possible_agent_positions = [
+        (i, j) for i in range(1, empty_state.grid.shape[0] - 1)
+        for j in range(1, empty_state.grid.shape[1] - 1)
+        if empty_state.grid[i, j] == ObjectTypes.empty
+    ]
+
+    # Randomly select an agent position and direction
+    agent_pos = possible_agent_positions[np.random.choice(len(possible_agent_positions))]
+    agent_dir = np.random.choice(list(Direction))
+
+    # Ensure the grid is correctly initialized with the walls
+    grid = empty_state.grid.copy()
+
+    # Place the goal object in a random position within the grid, avoiding walls and the agent's position
+    possible_goal_positions = [
+        (i, j) for i in range(1, empty_state.grid.shape[0] - 1)
+        for j in range(1, empty_state.grid.shape[1] - 1)
+        if empty_state.grid[i, j] == ObjectTypes.empty and (i, j) != agent_pos
+    ]
+
+    # Weight the positions to favor the bottom-right region
+    weights = [(i + j) for i, j in possible_goal_positions]
+    weights = np.array(weights) / sum(weights)
+
+    goal_pos = possible_goal_positions[np.random.choice(len(possible_goal_positions), p=weights)]
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Improvements:
+1. **Agent Positioning**: The agent can be placed anywhere within the empty cells, which is already handled correctly in the provided code.
+2. **Goal Positioning**: The goal is more likely to be placed in the bottom-right region of the grid. To achieve this, we use a weighted probability distribution where positions with higher sum of indices (i + j) are more likely to be chosen. This favors positions closer to the bottom-right corner.
+
+By using these weighted probabilities, the distribution of goal positions will better match the observed samples, making the generated initial states more realistic.

@@ -1,0 +1,58 @@
+Certainly! Let's analyze the observed distribution and improve the `initial_func` function to better match it.
+
+### Observed Distribution:
+
+1. **Grid Layout**: The grid is a 10x10 grid with walls (2) surrounding the edges. The inner cells are either empty (1) or contain a goal (10).
+2. **Agent Position**: The agent can be placed in any open (empty) cell except where the goal is.
+3. **Agent Direction**: The agent can face any of the four directions (right, down, left, up).
+4. **Goal Position**: The goal is always placed in one of the open cells.
+
+### Improvements Needed:
+- Ensure that the agent and the goal are not placed on the same cell.
+- Ensure that the agent is placed in an open cell.
+- Ensure that the goal is placed in an open cell.
+- Ensure that the grid layout remains consistent (walls surrounding the edges).
+
+### Updated `initial_func` Function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    
+    # Place the goal in a random open cell
+    open_cells = np.argwhere(grid == ObjectTypes.empty)
+    goal_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    grid[goal_pos] = ObjectTypes.goal
+    
+    # Select a random open cell for the agent's position, ensuring it's not the same as the goal
+    open_cells = np.argwhere(grid == ObjectTypes.empty)
+    agent_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    
+    while agent_pos == goal_pos:
+        open_cells = np.argwhere(grid == ObjectTypes.empty)
+        agent_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    
+    # Select a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None  # The agent does not carry any object initially
+    )
+```
+
+### Explanation:
+- **Grid Copy**: We start by copying the empty state's grid to avoid modifying the original state.
+- **Goal Placement**: We find all open cells (where `grid == ObjectTypes.empty`) and place the goal in one of these cells randomly.
+- **Agent Placement**: We then find the new list of open cells (since one cell is now occupied by the goal) and place the agent in one of these cells randomly. We ensure that the agent is not placed on the same cell as the goal.
+- **Agent Direction**: The agent's direction is chosen randomly from the four possible directions.
+
+This should better match the observed distribution and ensure that the agent and goal are correctly placed in the environment.

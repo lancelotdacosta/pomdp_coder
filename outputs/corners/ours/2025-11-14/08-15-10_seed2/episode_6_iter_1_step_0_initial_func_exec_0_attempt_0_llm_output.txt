@@ -1,0 +1,51 @@
+Based on the provided samples, it seems that the initial states are characterized by:
+
+1. The agent is placed at a random position within the grid, usually not on the walls or the goal location.
+2. The agent's direction (facing) is chosen randomly from the four possible directions: right (0), down (1), left (2), or up (3).
+3. The agent is not carrying any object (`carrying=None`).
+4. The grid is mostly empty with walls around the perimeter and a single goal location (object type 10) somewhere inside the grid.
+
+Given this understanding, we can implement the `initial_func` to generate such initial states.
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    def random_position(grid):
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def random_direction():
+        return np.random.choice(list(Direction))
+
+    # Place the goal in a random empty cell inside the grid
+    goal_pos = random_position(empty_state.grid)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent in a random empty cell inside the grid
+    agent_pos = random_position(empty_state.grid)
+    agent_dir = random_direction()
+
+    # Ensure the agent position is not on the goal
+    while agent_pos == goal_pos:
+        agent_pos = random_position(empty_state.grid)
+
+    return MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+This implementation ensures that the initial state is generated according to the observed distribution:
+- The agent's position and direction are randomly chosen.
+- The goal is placed in a random empty cell within the grid.
+- The agent is not placed on the goal or any walls.

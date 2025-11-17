@@ -1,0 +1,52 @@
+Based on the provided samples from the real world, it appears that the agent can start at various positions within the grid, including areas where there are obstacles or goals. The goal object is always placed in the bottom-right corner, but the agent's starting position can be anywhere within the walkable area of the grid.
+
+Here are the key observations:
+1. The agent can start at any valid position (not on walls or obstacles).
+2. The goal object is consistently placed at the second-to-last row and column.
+3. The agent's direction is randomly chosen.
+
+The current implementation places the agent randomly in an empty cell, which is correct. However, it might not cover all possible valid positions, especially if some cells are not empty due to other objects being placed in the grid.
+
+To improve the code, we need to ensure that the agent can start in any valid position, including those near the goal or other objects. We can achieve this by checking for all valid positions and then selecting one randomly.
+
+Here is the improved `initial_func` function:
+
+```python
+import numpy as np
+
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Place the goal object at the bottom-right corner
+    grid[height - 2, width - 2] = ObjectTypes.goal
+
+    # Find all valid positions for the agent (excluding walls and goal)
+    valid_positions = [
+        (x, y) for x in range(1, width - 1) for y in range(1, height - 1) if grid[y, x] == ObjectTypes.empty
+    ]
+
+    # Randomly choose a valid position for the agent
+    agent_pos = valid_positions[np.random.randint(len(valid_positions))]
+
+    # Randomly choose the agent's direction
+    agent_dir = np.random.choice([0, 1, 2, 3])
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This function ensures that the agent can start at any valid position within the grid, including those near the goal or other objects. It checks for all empty cells and selects one of them randomly, which should better match the observed distribution in the real world.

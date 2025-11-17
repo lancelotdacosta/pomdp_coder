@@ -1,0 +1,63 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+
+    def get_field_of_view(state, view_size=3):
+        """Returns the field of view in front of the agent.
+
+        This is a helper function to handle the field of view logic.
+        """
+        # Get the extents of the square set of tiles visible to the agent
+        topX, topY = 0, 0
+        if state.agent_dir == Direction.facing_right:
+            topX = state.agent_pos[0]
+            topY = state.agent_pos[1] - view_size // 2
+        elif state.agent_dir == Direction.facing_down:
+            topX = state.agent_pos[0] - view_size // 2
+            topY = state.agent_pos[1]
+        elif state.agent_dir == Direction.facing_left:
+            topX = state.agent_pos[0] - view_size + 1
+            topY = state.agent_pos[1] - view_size // 2
+        elif state.agent_dir == Direction.facing_up:
+            topX = state.agent_pos[0] - view_size // 2
+            topY = state.agent_pos[1] - view_size + 1
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=state.grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, state.grid.shape[0])
+        gy1 = min(topY + view_size, state.grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = state.grid[gx0:gx1, gy0:gy1]
+
+        for _ in range(state.agent_dir + 1):
+            # Rotate left
+            fov = np.rot90(fov.T, k=1).T
+
+        return fov
+
+    # Get the field of view based on the agent's direction
+    fov = get_field_of_view(state)
+
+    # Create the observation
+    empty_obs.image = fov
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+
+    return empty_obs
+```

@@ -1,0 +1,72 @@
+The error you are encountering is due to the variable `grid` not being defined in the scope of the `initial_func` function. To fix this, we need to ensure that `grid` is properly referenced. In this context, `grid` should be `empty_state.grid`.
+
+Here is the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    def random_position(grid):
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def random_direction():
+        return np.random.choice(list(Direction))
+
+    # Place the goal in a random empty cell inside the grid, biased towards the edges
+    goal_bias = 0.7  # Higher probability of placing the goal near the edges
+    if np.random.rand() < goal_bias:
+        # Place the goal near the edges
+        edge = np.random.choice(['top', 'bottom', 'left', 'right'])
+        grid = empty_state.grid
+        if edge == 'top':
+            x = 1
+            y = np.random.randint(1, grid.shape[1] - 1)
+        elif edge == 'bottom':
+            x = grid.shape[0] - 2
+            y = np.random.randint(1, grid.shape[1] - 1)
+        elif edge == 'left':
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = 1
+        elif edge == 'right':
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = grid.shape[1] - 2
+    else:
+        # Place the goal anywhere in the grid
+        x, y = random_position(empty_state.grid)
+
+    goal_pos = (x, y)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent in a random empty cell inside the grid
+    agent_pos = random_position(empty_state.grid)
+    agent_dir = random_direction()
+
+    # Ensure the agent position is not on the goal
+    while agent_pos == goal_pos:
+        agent_pos = random_position(empty_state.grid)
+
+    return MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation of Changes
+
+1. **Grid Reference**:
+   - In the section where the goal is placed near the edges, I added `grid = empty_state.grid` to ensure that `grid` is properly defined.
+
+2. **Edge Placement**:
+   - The logic for placing the goal near the edges remains the same, but now it correctly references `empty_state.grid`.
+
+This should resolve the `NameError` and ensure that the function runs correctly, matching the observed distribution of initial states.

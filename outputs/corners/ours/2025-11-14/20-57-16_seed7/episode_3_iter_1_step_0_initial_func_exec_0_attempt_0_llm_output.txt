@@ -1,0 +1,48 @@
+Based on the provided samples from the real world, it seems that the goal object (10) and the agent can be placed almost anywhere within the interior of the grid, except for the walls. However, there are some constraints:
+
+1. **Goal Placement**: The goal object is placed in an empty cell within the interior of the grid.
+2. **Agent Placement**: The agent is placed in an empty cell within the interior of the grid, and it can be placed in any cell that does not already contain the goal object.
+3. **Agent Direction**: The agent's direction is chosen randomly from the four possible directions.
+
+To improve the code, we need to ensure that the goal and the agent are placed in valid positions that do not overlap with each other and are within the interior of the grid. Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get a list of all empty positions in the interior of the grid
+    empty_positions = [
+        (x, y)
+        for x in range(1, width - 1)
+        for y in range(1, height - 1)
+        if grid[x, y] == ObjectTypes.empty
+    ]
+
+    # Randomly place the goal object in one of the empty positions
+    goal_pos = np.random.choice(empty_positions)
+    grid[goal_pos] = ObjectTypes.goal
+    empty_positions.remove(goal_pos)
+
+    # Randomly place the agent in one of the remaining empty positions
+    agent_pos = np.random.choice(empty_positions)
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    state = MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+
+    return state
+```
+
+This function ensures that:
+1. The goal and the agent are placed in valid empty positions within the interior of the grid.
+2. The goal and the agent do not overlap with each other.
+3. The agent's direction is chosen randomly from the four possible directions.
+
+This should better model the true distribution of initial states as observed in the real world samples.

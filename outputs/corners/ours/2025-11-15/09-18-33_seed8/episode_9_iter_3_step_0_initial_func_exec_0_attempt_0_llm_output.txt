@@ -1,0 +1,53 @@
+Based on the provided samples, it appears that the distribution of initial states is characterized by the following observations:
+
+1. **Grid Layout**: The grid is a 10x10 grid with walls around the perimeter (grid values of 2).
+2. **Agent Position**: The agent can start at various positions within the grid, but always within the inner 8x8 area (excluding the walls).
+3. **Agent Direction**: The agent's initial direction can be any of the four cardinal directions (0: right, 1: down, 2: left, 3: up).
+4. **Carrying Object**: The agent does not carry any objects initially.
+5. **Goal Position**: A goal object (value 10) is placed at a random position within the grid, but it is typically not within the agent's immediate vicinity.
+
+Given these observations, the `initial_func` function will randomly sample the agent's initial position and direction, ensuring that the agent is placed within the inner 8x8 area. It will also place the goal object at a random position within the grid, excluding the walls.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def random_position_in_inner_area():
+        # Generate random position within the inner 8x8 area
+        return (np.random.randint(1, 9), np.random.randint(1, 9))
+    
+    def place_agent(state: MinigridState):
+        # Place the agent in a random valid position within the inner 8x8 area
+        while True:
+            agent_pos = random_position_in_inner_area()
+            if state.grid[agent_pos] == ObjectTypes.empty:
+                break
+        state.agent_pos = agent_pos
+        state.agent_dir = np.random.choice(list(Direction))
+        state.carrying = None
+        return state
+    
+    def place_goal(state: MinigridState):
+        # Place the goal object in a random valid position
+        while True:
+            goal_pos = random_position_in_inner_area()
+            if state.grid[goal_pos] == ObjectTypes.empty:
+                break
+        state.grid[goal_pos] = ObjectTypes.goal
+        return state
+    
+    initial_state = empty_state.copy()
+    initial_state = place_agent(initial_state)
+    initial_state = place_goal(initial_state)
+    
+    return initial_state
+```
+
+This function ensures that the agent and the goal object are placed randomly within the valid inner area of the grid, adhering to the distribution observed from the provided samples. The agent's direction is also chosen randomly from the four cardinal directions.

@@ -1,0 +1,58 @@
+The error you're encountering is due to the way `np.random.choice` is being used. The `np.random.choice` function expects a 1-dimensional array, but `open_cells` is a list of tuples, which is 2-dimensional. To fix this, you can use Python's built-in `random.choice` function, which works with any iterable, including lists of tuples.
+
+Here's the corrected implementation of the `initial_func` function:
+
+```python
+import random
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The distribution of initial states suggests that:
+    # 1. The agent can start at any open cell (not a wall or goal).
+    # 2. The agent's direction is randomly chosen.
+    # 3. There is a goal object (10) located in one of the cells.
+    
+    # Get the dimensions of the grid
+    width, height = empty_state.width, empty_state.height
+    
+    # Find all open cells (value == 1)
+    open_cells = []
+    for x in range(1, width - 1):
+        for y in range(1, height - 1):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                open_cells.append((x, y))
+    
+    # Randomly select an open cell for the agent to start
+    agent_pos = random.choice(open_cells)
+    
+    # Randomly select a direction for the agent
+    agent_dir = random.choice(list(Direction))
+    
+    # Randomly select a goal position (not the same as the agent's position)
+    goal_pos = random.choice([pos for pos in open_cells if pos != agent_pos])
+    
+    # Create the initial state with the agent and goal placed
+    grid = empty_state.grid.copy()
+    grid[goal_pos] = ObjectTypes.goal
+    
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation:
+1. **Finding Open Cells**: The code iterates through the grid to find all cells that are not walls or goals and adds them to the `open_cells` list.
+2. **Agent Position**: The `random.choice` function is used to randomly select an open cell for the agent's starting position.
+3. **Agent Direction**: The agent's initial direction is chosen randomly from the `Direction` enum.
+4. **Goal Position**: A goal position is randomly selected from the remaining open cells, ensuring it is not the same as the agent's starting position.
+5. **Grid Update**: The selected goal position is updated in the grid, and a new `MinigridState` object is returned with the updated grid, agent position, and direction.
+
+This should resolve the `ValueError: a must be 1-dimensional` issue and correctly initialize the environment state.

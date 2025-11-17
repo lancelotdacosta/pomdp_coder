@@ -1,0 +1,46 @@
+Based on the provided samples, the distribution of initial states can be described as follows:
+
+1. **Grid Layout**:
+   - The grid is a 10x10 grid with walls around the perimeter (value `2`).
+   - There is a goal object (value `10`) located at various positions within the grid.
+
+2. **Agent Position and Direction**:
+   - The agent's initial position (`agent_pos`) is randomly distributed within the grid, but not on the walls or the goal.
+   - The agent's initial direction (`agent_dir`) is uniformly random, with possible values `[0, 1, 2, 3]`.
+
+3. **Carrying**:
+   - The agent is not carrying any object initially (`carrying=None`).
+
+Given this understanding, we can implement the `initial_func` to sample an initial state from this distribution.
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the goal position randomly within the grid, avoiding walls
+    goal_x, goal_y = np.random.randint(1, 9), np.random.randint(1, 9)
+    empty_state.grid[goal_x, goal_y] = ObjectTypes.goal
+
+    # Define the agent's initial position and direction
+    while True:
+        agent_x, agent_y = np.random.randint(1, 9), np.random.randint(1, 9)
+        if empty_state.grid[agent_x, agent_y] == ObjectTypes.empty:
+            break
+    agent_dir = np.random.randint(4)
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(agent_x, agent_y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This function first places a goal object at a random position within the grid, ensuring it is not on the walls. It then selects a random position for the agent, ensuring it is not on the walls or the goal. Finally, it sets a random direction for the agent and returns the initial state.

@@ -1,0 +1,42 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+
+    # Determine if the agent has reached the goal
+    def is_goal_reached(state):
+        goal_positions = state.get_type_indices(ObjectTypes.goal)
+        return state.agent_pos in goal_positions
+
+    # Determine if the agent has picked up an object
+    def is_object_picked_up(state, next_state):
+        return next_state.carrying is not None and state.carrying is None
+
+    # Determine if the agent has dropped an object
+    def is_object_dropped(state, next_state):
+        return next_state.carrying is None and state.carrying is not None
+
+    # Check if the episode is done (reached the goal)
+    done = is_goal_reached(next_state)
+
+    # Compute the reward based on the action and the resulting state
+    reward = 0.0
+
+    if done:
+        reward += 1.0  # Positive reward for reaching the goal
+    elif is_object_picked_up(state, next_state):
+        reward += 0.1  # Small positive reward for picking up an object
+    elif is_object_dropped(state, next_state):
+        reward -= 0.1  # Small negative reward for dropping an object
+    else:
+        reward += -0.01  # Small negative reward for each step to encourage shorter episodes
+
+    return reward, done
+```

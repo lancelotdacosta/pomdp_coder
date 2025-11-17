@@ -1,0 +1,66 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    
+    def turn_left(agent_dir):
+        return (agent_dir - 1) % 4
+
+    def turn_right(agent_dir):
+        return (agent_dir + 1) % 4
+
+    def move_forward(agent_pos, agent_dir):
+        new_pos = np.array(agent_pos) + DIR_TO_VEC[agent_dir]
+        if 0 <= new_pos[0] < state.width and 0 <= new_pos[1] < state.height:
+            if state.grid[tuple(new_pos)] != ObjectTypes.wall:
+                return tuple(new_pos)
+        return agent_pos
+
+    def pick_up(carrying, front_pos):
+        if state.grid[front_pos] in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+            return state.grid[front_pos]
+        return carrying
+
+    def drop(carrying, front_pos):
+        if carrying is not None:
+            return None
+        return carrying
+
+    def toggle(front_pos):
+        if state.grid[front_pos] == ObjectTypes.closed_door:
+            return ObjectTypes.open_door
+        elif state.grid[front_pos] == ObjectTypes.open_door:
+            return ObjectTypes.closed_door
+        return state.grid[front_pos]
+
+    new_agent_pos = state.agent_pos
+    new_agent_dir = state.agent_dir
+    new_carrying = state.carrying
+
+    if action == Actions.left:
+        new_agent_dir = turn_left(state.agent_dir)
+    elif action == Actions.right:
+        new_agent_dir = turn_right(state.agent_dir)
+    elif action == Actions.forward:
+        new_agent_pos = move_forward(state.agent_pos, state.agent_dir)
+    elif action == Actions.pickup:
+        new_carrying = pick_up(state.carrying, state.front_pos)
+    elif action == Actions.drop:
+        new_carrying = drop(state.carrying, state.front_pos)
+    elif action == Actions.toggle:
+        state.grid[state.front_pos] = toggle(state.front_pos)
+    elif action == Actions.done:
+        pass
+
+    return MinigridState(
+        grid=state.grid.copy(),
+        agent_pos=new_agent_pos,
+        agent_dir=new_agent_dir,
+        carrying=new_carrying
+    )
+```

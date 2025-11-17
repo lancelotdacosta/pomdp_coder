@@ -1,0 +1,50 @@
+Based on the provided samples, it appears that the initial states in the environment follow these patterns:
+
+1. **Agent and Goal Positioning**: The agent and the goal can be placed at any valid position within the grid, excluding the walls. They are typically not placed adjacent to each other.
+2. **Direction of the Agent**: The agent's direction is uniformly random.
+3. **Grid Layout**: The grid is mostly empty cells (1) with walls (2) around the perimeter.
+
+Given these observations, we need to ensure that the agent and the goal are placed at valid positions and that they are not too close to each other. Here is an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    def is_valid_position(pos: Tuple[int, int], grid: NDArray[np.int8]) -> bool:
+        """Check if the position is valid (not a wall or already occupied)."""
+        x, y = pos
+        width, height = grid.shape
+        return 1 <= x < width - 1 and 1 <= y < height - 1 and grid[x, y] == ObjectTypes.empty
+
+    # Randomly place the goal object
+    goal_pos = None
+    while goal_pos is None or not is_valid_position(goal_pos, empty_state.grid):
+        goal_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Randomly place the agent
+    agent_pos = None
+    while agent_pos is None or not is_valid_position(agent_pos, empty_state.grid) or \
+          np.linalg.norm(np.array(agent_pos) - np.array(goal_pos)) < 2:
+        agent_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+    empty_state.agent_pos = agent_pos
+
+    # Randomly set the agent's direction
+    empty_state.agent_dir = np.random.choice(list(Direction))
+
+    return empty_state
+```
+
+### Explanation of Improvements:
+1. **Agent and Goal Placement**:
+   - The `goal_pos` and `agent_pos` are placed using a while loop to ensure they are valid positions (not walls and not already occupied).
+   - Additionally, the agent and goal are placed such that they are not too close to each other. Specifically, the distance between them is checked to be at least 2 units using `np.linalg.norm`.
+
+2. **Direction Assignment**:
+   - The agent's direction is chosen uniformly from the `Direction` enum.
+
+This should better match the observed distribution of initial states in the environment.

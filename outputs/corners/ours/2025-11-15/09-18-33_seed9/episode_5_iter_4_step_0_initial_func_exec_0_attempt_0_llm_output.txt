@@ -1,0 +1,52 @@
+To better model the true distribution of initial states, we need to ensure that the placement of the agent and the goal object is more aligned with the real-world samples. Specifically, we observe that:
+
+1. The agent is placed in a valid empty cell, which is usually not too close to the walls.
+2. The goal object is also placed in a valid empty cell, ensuring it does not overlap with the agent.
+
+Given these observations, we can improve the `initial_func` function by ensuring that the agent and goal are placed more centrally within the grid, and that they do not overlap. Additionally, we will ensure that the agent's position and direction are more representative of the real-world samples.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Get the dimensions of the grid
+    width, height = empty_state.width, empty_state.height
+    
+    # Define a central region for placing the agent and goal to avoid the walls
+    min_x, max_x = 1, width - 2
+    min_y, max_y = 1, height - 2
+
+    # Sample a random position for the agent within the central region
+    while True:
+        x, y = np.random.randint(min_x, max_x + 1), np.random.randint(min_y, max_y + 1)
+        if empty_state.grid[x, y] == ObjectTypes.empty:
+            break
+    
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Place the goal object in a random position within the central region, ensuring it doesn't overlap with the agent
+    while True:
+        goal_x, goal_y = np.random.randint(min_x, max_x + 1), np.random.randint(min_y, max_y + 1)
+        if empty_state.grid[goal_x, goal_y] == ObjectTypes.empty and (goal_x, goal_y) != (x, y):
+            empty_state.grid[goal_x, goal_y] = ObjectTypes.goal
+            break
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(x, y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+This improved function ensures that both the agent and the goal are placed within a central region of the grid, avoiding the walls. This should better align with the observed distribution in the real-world samples.

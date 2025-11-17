@@ -1,0 +1,56 @@
+Based on the provided samples, it appears that the initial state distribution has the following characteristics:
+
+1. **Agent Position**: The agent can start at various positions within the grid, but it is generally placed in the open area of the grid (not on walls or goal positions).
+2. **Agent Direction**: The agent's direction is uniformly distributed among the four possible directions (right, down, left, up).
+3. **Goal Position**: The goal (represented by 10) is placed at various positions within the grid, but it is not placed on the walls.
+4. **Carrying**: The agent does not carry any object initially.
+
+Given these observations, we can model the initial state distribution as follows:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def random_position(grid):
+        """Generate a random position that is not a wall and not a goal."""
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def random_direction():
+        """Generate a random direction for the agent."""
+        return np.random.choice(list(Direction))
+
+    # Generate a random position for the agent
+    agent_pos = random_position(empty_state.grid)
+
+    # Generate a random direction for the agent
+    agent_dir = random_direction()
+
+    # Place the goal at a random position (not on walls or where the agent is)
+    goal_pos = random_position(empty_state.grid)
+    while goal_pos == agent_pos:
+        goal_pos = random_position(empty_state.grid)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Return the initial state
+    return MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+This implementation ensures that:
+- The agent's position is chosen from the open cells in the grid.
+- The agent's direction is uniformly random.
+- The goal position is chosen from the open cells in the grid and is not the same as the agent's position.
+- The agent does not carry any object initially.

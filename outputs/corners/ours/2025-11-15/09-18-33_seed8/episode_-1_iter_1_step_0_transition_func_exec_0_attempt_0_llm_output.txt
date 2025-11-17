@@ -1,0 +1,49 @@
+The issue in the provided code is that the `move_forward` function does not handle the case where the agent moves into a cell containing an object other than an empty cell. In the real environment, the agent can move forward into cells containing objects like goals, and the agent's position should update accordingly. The current implementation only allows movement into empty cells, which is why it fails to match the real-world samples.
+
+To improve the code, we need to modify the `move_forward` function to allow the agent to move into any non-wall cell, including cells with goals, keys, balls, etc. Additionally, we should ensure that the agent's position updates correctly when moving into these cells.
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    agent_pos = np.array(state.agent_pos)
+    agent_dir = state.agent_dir
+    grid = state.grid.copy()
+    carrying = state.carrying
+
+    def move_forward(agent_pos, agent_dir, grid):
+        new_pos = agent_pos + DIR_TO_VEC[agent_dir]
+        if 0 <= new_pos[0] < grid.shape[0] and 0 <= new_pos[1] < grid.shape[1]:
+            if grid[new_pos[0], new_pos[1]] != ObjectTypes.wall:
+                agent_pos = new_pos
+        return agent_pos
+
+    def turn_left(agent_dir):
+        return (agent_dir - 1) % 4
+
+    def turn_right(agent_dir):
+        return (agent_dir + 1) % 4
+
+    if action == Actions.left:
+        agent_dir = turn_left(agent_dir)
+    elif action == Actions.right:
+        agent_dir = turn_right(agent_dir)
+    elif action == Actions.forward:
+        agent_pos = move_forward(agent_pos, agent_dir, grid)
+
+    return MinigridState(
+        grid=grid,
+        agent_pos=tuple(agent_pos),
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+```
+
+This updated `move_forward` function allows the agent to move into any cell that is not a wall, which aligns with the real-world samples provided. The agent's position will be updated correctly when moving forward into cells containing objects like goals, keys, or balls. This should bring the generated model closer to the true distribution of next states.

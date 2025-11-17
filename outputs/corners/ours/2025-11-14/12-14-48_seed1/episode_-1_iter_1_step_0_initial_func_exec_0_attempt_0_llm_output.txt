@@ -1,0 +1,67 @@
+To accurately model the distribution of initial states, we need to ensure that both the agent and the goal are placed in valid open cells, and that these placements are done in a way that reflects the true distribution of the environment. Based on the provided samples from the real world, it seems that the agent and the goal can be placed in any open cell, but the agent should not be placed on the same cell as the goal.
+
+Here is an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    
+    # Place the goal in a random open cell
+    open_cells = np.argwhere(grid == ObjectTypes.empty)
+    if open_cells.size == 0:
+        raise ValueError("No open cells available for placing the goal.")
+    
+    goal_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    grid[goal_pos] = ObjectTypes.goal
+    
+    # Select a random open cell for the agent's position, ensuring it is not the same as the goal
+    open_cells = np.argwhere(grid == ObjectTypes.empty)
+    if open_cells.size == 0:
+        raise ValueError("No open cells available for placing the agent.")
+    
+    agent_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    
+    # Ensure the agent is not placed on the goal
+    while agent_pos == goal_pos:
+        open_cells = np.argwhere(grid == ObjectTypes.empty)
+        if open_cells.size == 0:
+            raise ValueError("No open cells available for placing the agent.")
+        
+        agent_pos = tuple(open_cells[np.random.choice(len(open_cells))])
+    
+    # Select a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None  # The agent does not carry any object initially
+    )
+```
+
+### Explanation of the Improved Code
+
+1. **Initial Grid Copy**: We start by making a copy of the `empty_state` grid to avoid modifying the original state.
+
+2. **Place the Goal**:
+   - We find all open cells (cells with `ObjectTypes.empty`) using `np.argwhere`.
+   - We randomly select one of these open cells for the goal position.
+   - We update the grid at the selected position with `ObjectTypes.goal`.
+
+3. **Place the Agent**:
+   - We again find all open cells, excluding the cell where the goal is placed.
+   - We randomly select one of these open cells for the agent's position.
+   - We ensure that the agent is not placed on the same cell as the goal by checking and re-sampling if necessary.
+
+4. **Select a Random Direction for the Agent**: We randomly choose one of the possible directions from the `Direction` enum.
+
+5. **Return the Initial State**: Finally, we return a `MinigridState` object with the updated grid, agent position, agent direction, and no carrying object.
+
+This approach ensures that both the agent and the goal are placed in valid open cells, and the agent is never placed on the same cell as the goal, which aligns with the provided real-world samples.

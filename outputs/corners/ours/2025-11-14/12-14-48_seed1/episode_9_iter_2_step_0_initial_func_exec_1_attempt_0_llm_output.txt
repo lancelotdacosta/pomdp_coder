@@ -1,0 +1,57 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `valid_positions` is a list of tuples. To fix this, you can convert `valid_positions` to a 1-dimensional array of indices and then map the chosen index back to the corresponding position.
+
+Here's the corrected implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def is_valid_position(grid, pos):
+        """Check if the position is not a wall or a goal."""
+        x, y = pos
+        return grid[x][y] == ObjectTypes.empty
+    
+    def random_position(grid):
+        """Return a random valid position in the grid."""
+        valid_positions = [(x, y) for x in range(1, empty_state.width - 1) for y in range(1, empty_state.height - 1) if is_valid_position(grid, (x, y))]
+        if valid_positions:
+            # Convert valid_positions to a 1D array of indices
+            index = np.random.choice(len(valid_positions))
+            return valid_positions[index]
+        else:
+            raise ValueError("No valid positions found in the grid.")
+    
+    def random_direction():
+        """Return a random direction for the agent."""
+        return np.random.randint(4)
+    
+    # Place a goal cell at a random position
+    goal_pos = random_position(empty_state.grid)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Place the agent at a random valid position
+    agent_pos = random_position(empty_state.grid)
+    agent_dir = random_direction()
+    
+    # Ensure the grid is updated to reflect the agent's position
+    empty_state.agent_pos = agent_pos
+    empty_state.agent_dir = agent_dir
+    empty_state.grid[agent_pos] = ObjectTypes.agent
+    
+    return empty_state
+```
+
+### Explanation of Fixes:
+1. **`random_position` Function**:
+   - **Valid Positions**: The list `valid_positions` is generated as before.
+   - **Random Choice**: Instead of directly using `np.random.choice` on `valid_positions`, we convert it to a 1D array of indices and choose an index. This index is then used to select the corresponding valid position from `valid_positions`.
+
+2. **Error Handling**:
+   - If no valid positions are found, a `ValueError` is raised to indicate that there are no valid positions in the grid.
+
+This should resolve the `ValueError: a must be 1-dimensional` issue and ensure that the function works correctly.

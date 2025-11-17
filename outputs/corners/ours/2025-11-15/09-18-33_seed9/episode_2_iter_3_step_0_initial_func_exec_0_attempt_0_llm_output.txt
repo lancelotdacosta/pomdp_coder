@@ -1,0 +1,58 @@
+Based on the provided samples, it seems that the distribution of initial states in the environment has the following characteristics:
+
+1. **Agent Position**: The agent can start at any open position (i.e., positions where the grid value is `ObjectTypes.empty`), but there are some constraints:
+   - The agent often starts near the center of the grid.
+   - The agent's starting position is not fixed and can vary widely within the open areas.
+
+2. **Agent Direction**: The agent's initial direction can be any of the four possible directions (`Direction.facing_right`, `Direction.facing_down`, `Direction.facing_left`, `Direction.facing_up`).
+
+3. **Goal Position**: The goal can appear at any open position, and it is not necessarily placed in a specific area. However, it is always placed in a cell that is not occupied by the agent or any walls.
+
+Given these observations, we can improve the `initial_func` function to better model the true distribution. We will ensure that the agent and goal positions are selected from all possible open positions, and we will handle the case where the agent and goal positions might overlap by reselecting one of them if necessary.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define possible positions for the agent and goal based on the open areas of the grid
+    possible_positions = []
+    for x in range(1, 9):
+        for y in range(1, 9):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                possible_positions.append((x, y))
+    
+    # Randomly select a goal position from the possible positions
+    goal_pos_index = np.random.choice(len(possible_positions))
+    goal_pos = possible_positions[goal_pos_index]
+    
+    # Remove the goal position from the list of possible positions to avoid overlap
+    possible_positions.pop(goal_pos_index)
+    
+    # Randomly select an agent position from the remaining possible positions
+    agent_pos_index = np.random.choice(len(possible_positions))
+    agent_pos = possible_positions[agent_pos_index]
+    
+    # Set a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+This function ensures that the agent and goal positions are selected from all possible open positions in the grid, and it prevents them from overlapping by removing the goal position from the list of possible positions before selecting the agent's position. This should better match the distribution observed in the real world samples.

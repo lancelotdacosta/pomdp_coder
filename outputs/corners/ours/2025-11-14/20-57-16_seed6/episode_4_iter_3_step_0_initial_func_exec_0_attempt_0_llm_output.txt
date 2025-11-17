@@ -1,0 +1,71 @@
+To better understand and model the distribution of initial states, let's analyze the observed samples and the differences from the generated ones.
+
+### Analysis of Observed Samples:
+1. **Agent Position**: The agent can be placed at any position inside the grid, excluding the walls.
+2. **Agent Direction**: The agent can face any direction (0, 1, 2, 3).
+3. **Goal Position**: The goal object (`ObjectTypes.goal`) can also be placed at any position inside the grid, excluding the walls and the agent's position.
+4. **Grid Content**: The grid is primarily filled with `ObjectTypes.empty` (1) and `ObjectTypes.wall` (2). There are no other objects in the samples provided.
+
+### Issues in the Current Implementation:
+1. **Agent and Goal Overlap**: The current implementation ensures that the agent and goal do not overlap, but it does not guarantee that they are placed randomly across the entire grid.
+2. **Randomness**: The randomness in placing the agent and goal might be biased towards certain positions or directions.
+
+### Improved Implementation:
+To address these issues, we need to ensure that:
+1. The agent and goal are placed independently and uniformly at random within the valid grid positions.
+2. The agent's direction is chosen uniformly at random.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Ensure the goal position is not a wall and not the same as the agent's position
+    def get_random_goal_position():
+        while True:
+            x, y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    # Ensure the agent's initial position is not a wall and not the same as the goal position
+    def get_random_agent_position(goal_pos):
+        while True:
+            x, y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+            if grid[x, y] == ObjectTypes.empty and (x, y) != goal_pos:
+                return (x, y)
+
+    # Place the goal object at a random position
+    goal_pos = get_random_goal_position()
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Set the agent's initial position
+    agent_pos = get_random_agent_position(goal_pos)
+
+    # Set the agent's initial direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Improvements:
+1. **Random Goal Position**: The function `get_random_goal_position` ensures that the goal is placed in an empty cell, excluding the walls.
+2. **Random Agent Position**: The function `get_random_agent_position` ensures that the agent is placed in an empty cell, excluding the walls and the goal position.
+3. **Uniform Randomness**: The agent's direction is chosen uniformly at random from all possible directions (0, 1, 2, 3).
+
+This should better reflect the true distribution of initial states as observed in the real world samples.

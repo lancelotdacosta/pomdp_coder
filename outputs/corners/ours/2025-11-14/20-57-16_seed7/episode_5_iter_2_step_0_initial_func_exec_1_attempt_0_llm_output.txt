@@ -1,0 +1,47 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but you're passing it a list of tuples. To fix this, you can use `np.random.choice` to select an index and then use that index to select the corresponding tuple from the list.
+
+Here's the corrected `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    # Define the grid size
+    grid_height, grid_width = empty_state.grid.shape
+
+    # Define possible agent positions and directions
+    possible_agent_positions = [
+        (3, 5), (3, 2), (5, 8), (3, 3), (6, 2)
+    ]
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Define possible goal positions
+    possible_goal_positions = [
+        (1, 8), (9, 1), (1, 1), (9, 8)
+    ]
+
+    # Sample a random agent position and direction
+    agent_pos_idx = np.random.choice(len(possible_agent_positions))
+    agent_pos = possible_agent_positions[agent_pos_idx]
+    agent_dir = np.random.choice(possible_agent_directions)
+
+    # Sample a random goal position
+    goal_pos_idx = np.random.choice(len(possible_goal_positions))
+    goal_pos = possible_goal_positions[goal_pos_idx]
+
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent in the grid
+    empty_state.agent_pos = agent_pos
+    empty_state.agent_dir = agent_dir
+
+    return empty_state
+```
+
+In this corrected version, `np.random.choice` is used to select an index from the list of possible positions, and then that index is used to select the corresponding tuple. This ensures that `np.random.choice` is always working with a 1-dimensional array, which resolves the error you were encountering.

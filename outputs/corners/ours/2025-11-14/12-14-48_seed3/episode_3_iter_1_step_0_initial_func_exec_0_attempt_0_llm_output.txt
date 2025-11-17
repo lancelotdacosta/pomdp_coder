@@ -1,0 +1,61 @@
+To better model the true distribution of initial states, we need to ensure that the agent and goal positions are placed in a way that reflects the real-world samples. From the provided samples, it appears that:
+
+1. The agent and goal positions are placed randomly within the empty cells of the grid.
+2. The agent can be placed anywhere in the grid where there is an empty cell.
+3. The goal can be placed anywhere in the grid where there is an empty cell, including the same position as the agent (though this is less likely).
+
+Given this, we need to update the `initial_func` function to ensure that the agent and goal positions are sampled from the set of all empty cells. Here's the improved code:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def random_pos(grid: NDArray[np.int8]) -> Tuple[int, int]:
+        """Generate a random position within the grid that is not a wall."""
+        while True:
+            x, y = np.random.randint(1, 9), np.random.randint(1, 8)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+    
+    def random_dir() -> int:
+        """Generate a random direction for the agent."""
+        return np.random.choice([0, 1, 2, 3])
+    
+    # Copy the empty state to avoid modifying it
+    state = MinigridState(
+        grid=np.copy(empty_state.grid),
+        agent_pos=None,
+        agent_dir=None,
+        carrying=None
+    )
+    
+    # Get all empty positions in the grid
+    empty_positions = [(x, y) for x in range(1, state.width - 1) for y in range(1, state.height - 1) if state.grid[x, y] == ObjectTypes.empty]
+    
+    # Place the goal object randomly in the grid
+    goal_pos = np.random.choice(empty_positions)
+    state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal position from the list of empty positions
+    empty_positions.remove(goal_pos)
+    
+    # Place the agent randomly in the grid
+    agent_pos = np.random.choice(empty_positions)
+    state.agent_pos = agent_pos
+    
+    # Set a random direction for the agent
+    state.agent_dir = random_dir()
+    
+    return state
+```
+
+This updated function ensures that:
+- The agent and goal positions are sampled from all empty cells.
+- The goal and agent positions are distinct unless the real distribution allows them to be the same (which is less likely and can be adjusted if needed).
+
+This should better reflect the true distribution of initial states in the environment.

@@ -1,0 +1,41 @@
+To better model the true distribution of initial states, we need to observe the patterns in the provided real-world samples and adjust the placement logic accordingly. Here are some key observations:
+
+1. **Agent Position**: The agent is always placed at the same position `(1, 1)` with direction `0` (facing right).
+2. **Goal Position**: The goal can appear in multiple positions within the environment, but it is often in the lower part of the grid.
+3. **Grid Layout**: The grid has walls around the edges, and the internal layout is primarily empty spaces with occasional walls forming rooms.
+
+Given these observations, we can improve the `initial_func` function to place the goal in a more varied set of positions while maintaining the constraints of the agent's initial position and direction.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    def place_goal():
+        # Define possible positions for the goal
+        possible_positions = [
+            (11, 12), (13, 12), (10, 13), (13, 13),
+            (11, 11), (12, 11), (13, 11), (10, 12),
+            (10, 11), (11, 13), (12, 13), (13, 10),
+        ]
+        goal_pos = possible_positions[np.random.choice(len(possible_positions))]
+        empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    def place_agent():
+        # Place the agent at a fixed position
+        empty_state.agent_pos = (1, 1)
+        empty_state.agent_dir = 0
+        empty_state.carrying = None
+
+    place_goal()
+    place_agent()
+
+    return empty_state
+```
+
+This function now places the goal in a more varied set of positions within the lower part of the grid, which should better match the distribution observed in the real-world samples. The agent's initial position and direction remain fixed as before.

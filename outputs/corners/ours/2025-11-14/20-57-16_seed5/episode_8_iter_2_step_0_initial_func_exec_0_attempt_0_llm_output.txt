@@ -1,0 +1,76 @@
+Based on the provided samples, it appears that the initial states have the following characteristics:
+
+1. **Grid Layout**:
+   - The grid is surrounded by walls (ObjectTypes.wall).
+   - The interior of the grid is mostly empty (ObjectTypes.empty).
+
+2. **Goal Object Placement**:
+   - The goal object (ObjectTypes.goal) is placed in one of the empty cells.
+
+3. **Agent Placement**:
+   - The agent can be placed in any empty cell that does not contain the goal object.
+   - The agent can face in any direction (facing_right, facing_down, facing_left, facing_up).
+
+4. **Carrying Object**:
+   - The agent is not carrying any object initially (carrying=None).
+
+The discrepancies between the real-world samples and your model suggest that the agent and goal positions are not being distributed uniformly across all possible empty cells. To improve the model, we need to ensure that both the goal and the agent are placed in a way that reflects the true distribution of initial states.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid layout
+    grid = empty_state.grid.copy()
+
+    # Get all empty cells
+    empty_cells = np.argwhere(grid == ObjectTypes.empty)
+
+    # Place the goal object in one of the empty cells
+    goal_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Remove the goal cell from the list of empty cells
+    empty_cells = np.delete(empty_cells, np.where((empty_cells == goal_pos).all(axis=1)), axis=0)
+
+    # Choose a random position for the agent
+    agent_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+
+    # Choose a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation:
+1. **Grid Layout**:
+   - The grid is copied from the `empty_state` to ensure the walls are already in place.
+
+2. **Empty Cells**:
+   - All empty cells (ObjectTypes.empty) are identified using `np.argwhere`.
+
+3. **Goal Object Placement**:
+   - A random empty cell is chosen for the goal object.
+   - The chosen cell is set to ObjectTypes.goal in the grid.
+   - The cell is removed from the list of empty cells to avoid placing the agent on the goal.
+
+4. **Agent Placement**:
+   - A random empty cell (excluding the goal cell) is chosen for the agent.
+   - A random direction for the agent is chosen from the `Direction` enum.
+
+5. **Initial State Creation**:
+   - The initial state is created with the updated grid, agent position, agent direction, and no carrying object.
+
+This approach ensures that both the goal and the agent are placed uniformly across all possible empty cells, better reflecting the true distribution of initial states.

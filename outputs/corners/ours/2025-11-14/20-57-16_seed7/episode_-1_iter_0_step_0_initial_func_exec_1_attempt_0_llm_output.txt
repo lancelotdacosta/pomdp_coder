@@ -1,0 +1,40 @@
+The error occurs because `np.random.choice` returns a NumPy integer (`numpy.int64`), which does not have a `value` attribute. Instead, you can directly use the integer value returned by `np.random.choice`. Here is the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define possible agent positions and directions
+    possible_agent_positions = [
+        (3, 3), (6, 4), (5, 3), (3, 3), (6, 2)
+    ]
+    possible_agent_directions = list(Direction)
+
+    # Randomly select an agent position and direction
+    agent_pos = possible_agent_positions[np.random.choice(len(possible_agent_positions))]
+    agent_dir = np.random.choice(possible_agent_directions)  # Directly use the integer value
+
+    # Place a goal object in one of the bottom cells
+    bottom_cells = [(8, 8), (9, 1), (8, 6), (8, 7), (8, 9)]
+    goal_pos = np.random.choice(bottom_cells)
+
+    # Create the grid with the goal object and walls
+    grid = empty_state.grid.copy()
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+In this corrected version, `agent_dir` is directly assigned the integer value returned by `np.random.choice(possible_agent_directions)`. This should resolve the `AttributeError` you encountered.

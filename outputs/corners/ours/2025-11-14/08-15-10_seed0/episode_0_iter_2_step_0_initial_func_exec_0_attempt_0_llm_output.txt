@@ -1,0 +1,53 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    # Define the grid size
+    grid_size = empty_state.grid.shape[0]
+
+    # Define the possible positions for the agent and the goal
+    open_cells = []
+    for i in range(1, grid_size - 1):
+        for j in range(1, grid_size - 1):
+            if empty_state.grid[i, j] == ObjectTypes.empty:
+                open_cells.append((i, j))
+
+    # Randomly select a position for the agent
+    agent_pos = np.random.choice(open_cells)
+    open_cells.remove(agent_pos)
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Randomly select a position for the goal
+    if open_cells:
+        goal_pos = np.random.choice(open_cells)
+        empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation of the Distribution of Initial States:
+
+1. **Grid Structure**: The grid is a 10x10 grid with walls around the perimeter (all cells on the edges are walls). The interior of the grid contains either empty cells or a goal object.
+
+2. **Agent Position**: The agent can start in any open cell (i.e., a cell that is not a wall). The position is chosen randomly from the available open cells.
+
+3. **Agent Direction**: The agent's initial direction is randomly chosen from the four possible directions: right (0), down (1), left (2), and up (3).
+
+4. **Goal Object**: A goal object is placed in one of the remaining open cells, if any are available. The goal object's position is also chosen randomly from the remaining open cells.
+
+This distribution ensures that the initial state is varied and does not overfit to the specific samples provided. Each time `initial_func` is called, it will generate a new initial state by randomly placing the agent and the goal within the constraints of the grid.

@@ -1,0 +1,65 @@
+Based on the samples provided from the real world, it seems that the distribution of initial states has the following characteristics:
+
+1. **Agent Position**: The agent can be placed at any valid empty position within the grid, excluding the walls.
+2. **Agent Direction**: The agent's direction is chosen randomly from the four possible directions (right, down, left, up).
+3. **Goal Position**: The goal object is placed randomly in one of the empty positions, excluding the agent's position and the walls.
+
+The current model seems to place the agent and the goal randomly, but there are some discrepancies in the placement of the agent and goal, which might be due to the way the positions are selected. Specifically, the agent and goal should not overlap, and both should be placed in valid empty positions.
+
+To improve the `initial_func`, we need to ensure that:
+- The agent and goal do not occupy the same position.
+- Both the agent and goal are placed in valid empty positions within the grid.
+
+Here is the improved `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def random_pos(grid: NDArray[np.int8]) -> Tuple[int, int]:
+        """Generate a random position within the grid that is not a wall."""
+        while True:
+            x, y = np.random.randint(1, 9), np.random.randint(1, 9)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+    
+    def random_dir() -> int:
+        """Generate a random direction for the agent."""
+        return np.random.choice([0, 1, 2, 3])
+    
+    # Copy the empty state to avoid modifying it
+    state = MinigridState(
+        grid=np.copy(empty_state.grid),
+        agent_pos=None,
+        agent_dir=None,
+        carrying=None
+    )
+    
+    # Get all empty positions in the grid
+    empty_positions = [(x, y) for x in range(1, state.width - 1) for y in range(1, state.height - 1) if state.grid[x, y] == ObjectTypes.empty]
+    
+    # Place the goal object randomly in the grid
+    goal_idx = np.random.choice(len(empty_positions))
+    goal_pos = empty_positions[goal_idx]
+    state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal position from the list of empty positions
+    empty_positions.pop(goal_idx)
+    
+    # Place the agent randomly in the grid, ensuring it is not on the same position as the goal
+    agent_idx = np.random.choice(len(empty_positions))
+    agent_pos = empty_positions[agent_idx]
+    state.agent_pos = agent_pos
+    
+    # Set a random direction for the agent
+    state.agent_dir = random_dir()
+    
+    return state
+```
+
+This improved function ensures that the agent and goal do not overlap and are placed in valid empty positions within the grid. The `random_pos` function has been adjusted to ensure that both the agent and goal are placed within the correct range of the grid.

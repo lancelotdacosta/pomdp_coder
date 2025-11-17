@@ -1,0 +1,79 @@
+The error you're encountering suggests that the `valid_positions` list is empty, which means there are no positions available for the agent to be placed. This can happen if the grid is fully occupied by walls or other objects, or if the logic to determine valid positions is incorrect.
+
+To address this, we need to ensure that there are valid positions available for the agent. Here are a few steps to debug and fix the issue:
+
+1. **Initialize the Grid Correctly**: Ensure that the initial grid has enough empty spaces for the agent.
+2. **Check the Valid Positions Logic**: Ensure that the logic to find valid positions is correct and that it correctly identifies empty cells.
+
+Here is the updated `initial_func` function with additional checks and debugging information:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the goal position (fixed in all samples)
+    goal_pos = (8, 8)
+
+    # Place the goal object in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Ensure there are valid positions for the agent
+    valid_positions = [
+        (x, y)
+        for x in range(1, empty_state.width - 1)
+        for y in range(1, empty_state.height - 1)
+        if empty_state.grid[x, y] == ObjectTypes.empty
+    ]
+
+    if not valid_positions:
+        raise ValueError("No valid positions found for the agent. The grid might be fully occupied.")
+
+    # Randomly select a valid position for the agent
+    agent_pos = valid_positions[np.random.choice(len(valid_positions))]
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice([0, 1, 2, 3])
+
+    # Create the initial state with the agent's position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),  # Ensure a copy to avoid modifying the original grid
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Changes:
+1. **Check for Valid Positions**: Added a check to ensure that the `valid_positions` list is not empty before attempting to choose a position for the agent. If no valid positions are found, a `ValueError` is raised with a descriptive message.
+2. **Ensure Grid Initialization**: Ensure that the initial grid has enough empty spaces for the agent. This can be done by initializing the grid with empty cells in the inner part of the grid.
+
+### Example Usage:
+To test the function, you can initialize an empty state with a grid that has enough empty spaces and then generate initial states:
+
+```python
+# Initialize an empty state with walls and empty inner cells
+empty_state = MinigridState(
+    grid=np.full((10, 10), ObjectTypes.wall, dtype=np.int8),
+    agent_pos=(0, 0),
+    agent_dir=0,
+    carrying=None
+)
+
+# Set the inner part of the grid to empty
+for x in range(1, empty_state.width - 1):
+    for y in range(1, empty_state.height - 1):
+        empty_state.grid[x, y] = ObjectTypes.empty
+
+# Generate a few initial states
+for _ in range(5):
+    initial_state = initial_func(empty_state)
+    print(f"agent_pos={initial_state.agent_pos}, agent_dir={initial_state.agent_dir}, grid=\n{initial_state.grid}")
+```
+
+This should ensure that the `valid_positions` list is not empty and that the agent can be placed correctly within the grid.

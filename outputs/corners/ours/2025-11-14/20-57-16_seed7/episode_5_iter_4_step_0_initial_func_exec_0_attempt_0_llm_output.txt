@@ -1,0 +1,51 @@
+Based on the samples provided, it seems that the distribution of initial states involves:
+
+1. **Agent Position**: The agent can start at various positions within the grid, primarily near the walls or in the middle of the grid. The positions are not strictly limited to a few fixed points.
+2. **Agent Direction**: The agent can face in any direction (right, down, left, up) with equal probability.
+3. **Goal Position**: The goal can be placed in various positions within the grid, primarily near the walls.
+
+To better model this distribution, we need to ensure that the agent and goal positions are more varied and not restricted to a few specific points. We can do this by sampling from a broader range of possible positions within the grid, while ensuring that the agent and goal do not overlap.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    # Define the grid size
+    grid_height, grid_width = empty_state.grid.shape
+
+    # Define possible agent and goal positions
+    possible_positions = [
+        (x, y)
+        for x in range(1, grid_width - 1)
+        for y in range(1, grid_height - 1)
+        if empty_state.grid[x, y] == ObjectTypes.empty
+    ]
+
+    # Sample a random agent position and direction
+    agent_pos = np.random.choice(len(possible_positions))
+    agent_pos = possible_positions[agent_pos]
+    agent_dir = np.random.choice(list(Direction))
+
+    # Ensure the goal is placed in a different position than the agent
+    possible_goal_positions = [pos for pos in possible_positions if pos != agent_pos]
+    goal_pos_idx = np.random.choice(len(possible_goal_positions))
+    goal_pos = possible_goal_positions[goal_pos_idx]
+
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent in the grid
+    empty_state.agent_pos = agent_pos
+    empty_state.agent_dir = agent_dir
+
+    return empty_state
+```
+
+This function ensures that both the agent and goal can be placed in any open (non-wall) position within the grid, and they do not overlap. This should better match the observed distribution of initial states.

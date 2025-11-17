@@ -1,0 +1,53 @@
+Based on the provided samples, it appears that the agent can start at various positions within the grid, and its direction can vary. The grid itself is mostly empty except for the walls. Here's how I interpret the distribution:
+
+1. **Agent Position**: The agent can start at different locations within the grid, but always within the accessible area (i.e., not on the walls).
+2. **Agent Direction**: The agent can start facing any of the four directions (right, down, left, up).
+3. **Carrying**: The agent does not carry any object initially.
+4. **Grid**: The grid is pre-filled with walls around the edges, and the rest of the cells are empty.
+
+To model this distribution, we can randomly select a starting position and direction for the agent, ensuring that the position is not on the walls.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+import numpy as np
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid dimensions
+    width, height = empty_state.width, empty_state.height
+
+    # Ensure the agent starts in a valid position (not on the walls)
+    def get_valid_position():
+        while True:
+            x = np.random.randint(1, width - 1)
+            y = np.random.randint(1, height - 1)
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    # Get a valid starting position for the agent
+    agent_pos = get_valid_position()
+
+    # Randomly select the agent's direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # The agent is not carrying any object initially
+    carrying = None
+
+    # Create the initial state with the chosen parameters
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return state
+```
+
+This function ensures that the agent starts at a random valid position within the grid and faces a random direction. The grid is pre-filled with walls, and the rest of the cells are empty, as specified by the `empty_state`.

@@ -1,0 +1,39 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but you are passing it a list of tuples. To fix this, you can use a different method to select a random position from the list of possible positions.
+
+Here's the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Possible starting positions for the agent
+    possible_positions = [(2, 3), (3, 3), (5, 3), (6, 2), (6, 4)]
+
+    # Randomly select a starting position for the agent
+    agent_pos = possible_positions[np.random.choice(len(possible_positions))]
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # The agent is not carrying any object initially
+    carrying = None
+
+    # Set the goal object at a fixed position (9, 8)
+    empty_state.grid[9, 8] = ObjectTypes.goal
+
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return state
+```
+
+In this corrected version, `np.random.choice` is used to select an index from the list of possible positions, and then the corresponding position is chosen using that index. This avoids the error caused by passing a list of tuples directly to `np.random.choice`.

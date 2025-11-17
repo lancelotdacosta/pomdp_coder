@@ -1,0 +1,60 @@
+The persistent error indicates that the agent's starting position (1, 1) is not an empty cell in the provided `empty_state`. This suggests that there might be a problem with how the `empty_state` is being generated or provided.
+
+To address this, let's add a check to ensure that the `empty_state` is correctly set up before we attempt to place the agent and the goal. If the agent's starting position is not an empty cell, we will raise an error early to indicate the issue.
+
+Here's the updated `initial_func` function with additional checks:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The agent always starts at (1, 1) facing right (direction 0) and without carrying any object
+    agent_pos = (1, 1)
+    agent_dir = 0
+    carrying = None
+
+    # Create a copy of the grid to avoid modifying the empty_state directly
+    grid = empty_state.grid.copy()
+
+    # Ensure the agent's starting position is an empty cell in the provided empty_state
+    if empty_state.grid[agent_pos] != ObjectTypes.empty:
+        raise ValueError("Agent's starting position is not an empty cell in the provided empty_state")
+
+    # Place the goal in a random valid position
+    possible_goal_positions = [
+        (x, y) for x in range(1, grid.shape[0] - 1) for y in range(1, grid.shape[1] - 1)
+        if grid[x, y] == ObjectTypes.empty
+    ]
+    
+    if possible_goal_positions:
+        # Convert the list of tuples to a 1-dimensional array of indices
+        possible_goal_indices = np.arange(len(possible_goal_positions))
+        # Choose a random index
+        chosen_index = np.random.choice(possible_goal_indices)
+        # Use the index to get the corresponding goal position
+        goal_pos = possible_goal_positions[chosen_index]
+        grid[goal_pos] = ObjectTypes.goal
+
+    # Ensure the agent's starting position is an empty cell
+    if grid[agent_pos] != ObjectTypes.empty:
+        raise ValueError("Agent's starting position is not an empty cell")
+
+    grid[agent_pos] = ObjectTypes.agent
+
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=carrying)
+```
+
+### Explanation:
+1. **Initial Checks**: Before proceeding with placing the goal and the agent, we check if the agent's starting position (1, 1) is an empty cell in the provided `empty_state`. If it is not, we raise a `ValueError` early to indicate the issue.
+2. **Generate Possible Goal Positions**: The list comprehension generates a list of tuples representing the possible positions for the goal.
+3. **Convert to 1-Dimensional Array**: `possible_goal_indices` is created as a 1-dimensional array of indices corresponding to the possible goal positions.
+4. **Choose a Random Index**: `np.random.choice` is used to select a random index from `possible_goal_indices`.
+5. **Select the Goal Position**: The selected index is used to get the corresponding tuple from `possible_goal_positions`.
+6. **Place the Goal**: The goal is placed at the selected position in the grid.
+7. **Ensure Agent's Starting Position**: Before placing the agent, we check if the agent's starting position (1, 1) is an empty cell. If it is not, we raise a `ValueError`. This will help identify and fix any issues with the initial grid setup.
+
+By adding this early check, we can ensure that the `empty_state` provided to the function is correctly set up, preventing the error from occurring later in the process.

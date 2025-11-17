@@ -1,0 +1,91 @@
+To better model the true distribution of initial states, we need to ensure that the agent and the goal are placed in a way that matches the observed distribution. The observed samples suggest that:
+
+1. The goal is placed in one of the open cells (cells with value `ObjectTypes.empty`).
+2. The agent is also placed in an open cell, but it should not be on the same cell as the goal.
+3. The agent can face any of the four directions (right, down, left, up) with equal probability.
+
+The current implementation already places the goal and the agent in random open cells, but it has a flaw: it does not ensure that the agent is not placed on the goal after the goal has been placed. Additionally, the agent's position and direction are generated independently, which might lead to some bias in the distribution.
+
+Let's improve the `initial_func` function to better match the observed distribution:
+
+```python
+from __future__ import annotations
+
+import numpy as np
+from numpy.typing import NDArray
+from dataclasses import dataclass
+from enum import IntEnum
+
+
+@dataclass
+class MinigridState:
+    grid: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int]
+
+    @property
+    def front_pos(self) -> Tuple[int, int]:
+        """Get the position of the cell that is right in front of the agent."""
+        return (
+            np.array(self.agent_pos) + np.array(DIR_TO_VEC[self.agent_dir])
+        ).tolist()
+
+    @property
+    def width(self) -> int:
+        return self.grid.shape[0]
+
+    @property
+    def height(self) -> int:
+        return self.grid.shape[1]
+
+    def get_type_indices(self, type: int) -> List[Tuple[int, int]]:
+        idxs = np.where(self.grid == type)  # Returns (row_indices, col_indices)
+        return list(zip(idxs[0], idxs[1]))
+
+
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    def random_agent_position(grid, exclude_positions):
+        """Randomly place the agent in an open cell, excluding certain positions."""
+        open_cells = np.where(grid == ObjectTypes.empty)
+        open_cells = list(zip(open_cells[0], open_cells[1]))
+        available_cells = [pos for pos in open_cells if pos not in exclude_positions]
+        agent_pos = available_cells[np.random.choice(len(available_cells))]
+        return agent_pos
+
+    def random_agent_direction():
+        """Randomly choose the agent's direction."""
+        return np.random.choice(list(Direction))
+
+    # Place the goal object in a random open cell
+    open_cells = np.where(empty_state.grid == ObjectTypes.empty)
+    open_cells = list(zip(open_cells[0], open_cells[1]))
+    goal_pos = open_cells[np.random.choice(len(open_cells))]
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent in a random open cell, ensuring it is not placed on the goal
+    agent_pos = random_agent_position(empty_state.grid, [goal_pos])
+    agent_dir = random_agent_direction()
+
+    return MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation:
+
+1. **Goal Placement**: The goal is placed in a random open cell (a cell with value `ObjectTypes.empty`).
+2. **Agent Placement**: The agent is placed in a random open cell, but it must not be on the same cell as the goal. This is ensured by the `random_agent_position` function, which takes a list of positions to exclude.
+3. **Agent Direction**: The agent's direction is chosen randomly from the four possible directions.
+
+This improved implementation ensures that the agent and the goal are placed in a way that matches the observed distribution more closely.

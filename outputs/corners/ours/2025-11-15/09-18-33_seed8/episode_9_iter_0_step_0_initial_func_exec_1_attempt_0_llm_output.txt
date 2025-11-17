@@ -1,0 +1,43 @@
+The error you're encountering is due to the `np.random.choice` function expecting a 1-dimensional array, but you are providing it with a list of tuples. To fix this, you can use `random.choice` from the Python `random` module, which can handle lists of tuples directly.
+
+Here's the corrected version of the `initial_func` function:
+
+```python
+import random
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The goal is to model the distribution of initial states based on the provided samples.
+    # The samples suggest that the agent can start at different positions and facing different directions,
+    # but always in an empty grid except for the walls and a goal object.
+
+    # Possible initial positions for the agent
+    possible_agent_positions = [(3, 3), (6, 4), (5, 3), (3, 4), (4, 4)]
+
+    # Possible initial directions for the agent
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Choose a random position and direction for the agent
+    agent_pos = random.choice(possible_agent_positions)
+    agent_dir = random.choice(possible_agent_directions)
+
+    # Place the goal object at a fixed position
+    empty_state.grid[8, 8] = ObjectTypes.goal
+
+    # Create the initial state with the chosen agent position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This should resolve the `ValueError: a must be 1-dimensional` issue by using `random.choice` instead of `np.random.choice`. The `random.choice` function is suitable for selecting elements from a list of tuples.

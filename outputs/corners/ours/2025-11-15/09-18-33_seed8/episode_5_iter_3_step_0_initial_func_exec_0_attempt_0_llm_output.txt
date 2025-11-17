@@ -1,0 +1,51 @@
+Based on the provided samples from the real world, it seems that the goal is often placed in a valid empty position, and the agent is also placed in a valid empty position, but not necessarily on the same row or column as the goal. The direction of the agent appears to be random.
+
+To improve the model, we need to ensure that the agent and the goal are placed in valid positions without overlapping each other. Additionally, we should ensure that the agent's position and the goal's position are more varied in terms of their relative positions.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Get the dimensions of the grid
+    width, height = empty_state.width, empty_state.height
+    
+    # Ensure the goal is placed in a valid position
+    while True:
+        goal_x, goal_y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+        if empty_state.grid[goal_x, goal_y] == ObjectTypes.empty:
+            empty_state.grid[goal_x, goal_y] = ObjectTypes.goal
+            break
+    
+    # Ensure the agent is placed in a valid position and not on the goal
+    while True:
+        agent_x, agent_y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+        if empty_state.grid[agent_x, agent_y] == ObjectTypes.empty:
+            break
+    
+    # Set the agent's position and direction
+    agent_dir = np.random.choice([0, 1, 2, 3])
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(agent_x, agent_y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+This function ensures that:
+1. The goal is placed in a valid empty position.
+2. The agent is placed in a valid empty position that is not the same as the goal's position.
+3. The agent's direction is randomly chosen.
+
+By ensuring these constraints, the function should generate initial states that are more consistent with the distribution observed in the real world samples.

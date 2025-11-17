@@ -1,0 +1,58 @@
+Based on the provided samples from the real world, it seems that the distribution of initial states has the following characteristics:
+
+1. **Agent Position**: The agent can start at any non-wall, non-goal position within the grid.
+2. **Agent Direction**: The agent's initial direction is randomly chosen.
+3. **Goal Position**: The goal is always placed at a non-wall, non-agent position within the grid.
+
+The current implementation of `initial_func` is generally correct but might be generating positions for the agent and goal that are less diverse or more concentrated in certain areas compared to the real-world samples. To better match the true distribution, we need to ensure that the positions are uniformly distributed across the grid while avoiding wall and goal overlap.
+
+Here is an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def random_position(grid):
+        """Generate a random position that is not a wall and not a goal."""
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def random_direction():
+        """Generate a random direction for the agent."""
+        return np.random.choice(list(Direction))
+
+    # Generate a random position for the goal
+    goal_pos = random_position(empty_state.grid)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Generate a random position for the agent that is not the same as the goal position
+    agent_pos = random_position(empty_state.grid)
+    while agent_pos == goal_pos:
+        agent_pos = random_position(empty_state.grid)
+
+    # Generate a random direction for the agent
+    agent_dir = random_direction()
+
+    # Return the initial state
+    return MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation of Improvements:
+1. **Goal Position**: The goal position is generated first to ensure it is placed before the agent position, reducing the chance of overlap.
+2. **Agent Position**: The agent position is generated after the goal position to avoid overlapping with the goal. The check `while agent_pos == goal_pos` ensures that the agent and goal are not in the same position.
+3. **Uniform Distribution**: The `random_position` function ensures that both the agent and goal are placed uniformly across the non-wall, non-goal positions in the grid.
+
+This should better match the distribution observed in the real-world samples.

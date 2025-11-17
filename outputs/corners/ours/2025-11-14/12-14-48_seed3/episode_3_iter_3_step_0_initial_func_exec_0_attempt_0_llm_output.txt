@@ -1,0 +1,88 @@
+Based on the real-world samples provided, it appears that the distribution of initial states is such that:
+
+1. The agent can start at various positions within the grid, but these positions are typically near the center of the grid.
+2. The goal object can be placed at various positions within the grid, but it is often placed closer to the edge or corners of the grid.
+3. The agent's direction is uniformly random.
+4. The grid dimensions and wall placement are consistent across all samples.
+
+To better model this distribution, we need to adjust the `initial_func` to ensure that the agent and goal positions are more likely to be in the center and edges/corners, respectively. We can achieve this by introducing a bias in the random selection of positions for the agent and the goal.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def biased_pos(grid: NDArray[np.int8], bias_center: bool = False, bias_edge: bool = False) -> Tuple[int, int]:
+        """Generate a position with a bias towards the center or edge of the grid."""
+        if bias_center:
+            x, y = np.random.randint(3, 7), np.random.randint(3, 7)
+        elif bias_edge:
+            # Bias towards the edges and corners
+            choices = [
+                (x, y) for x in [1, 2, 8, 9] for y in range(1, 9)
+                if grid[x, y] == ObjectTypes.empty
+            ] + [
+                (x, y) for x in range(1, 9) for y in [1, 2, 8, 9]
+                if grid[x, y] == ObjectTypes.empty
+            ]
+            x, y = choices[np.random.choice(len(choices))]
+        else:
+            # Uniform distribution
+            x, y = np.random.randint(1, 9), np.random.randint(1, 9)
+        
+        return (x, y)
+    
+    def random_dir() -> int:
+        """Generate a random direction for the agent."""
+        return np.random.choice([0, 1, 2, 3])
+    
+    # Copy the empty state to avoid modifying it
+    state = MinigridState(
+        grid=np.copy(empty_state.grid),
+        agent_pos=None,
+        agent_dir=None,
+        carrying=None
+    )
+    
+    # Get all empty positions in the grid
+    empty_positions = [(x, y) for x in range(1, state.width - 1) for y in range(1, state.height - 1) if state.grid[x, y] == ObjectTypes.empty]
+    
+    # Place the goal object with a bias towards the edges and corners
+    goal_pos = biased_pos(state.grid, bias_edge=True)
+    state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal position from the list of empty positions
+    empty_positions.remove(goal_pos)
+    
+    # Place the agent with a bias towards the center
+    agent_pos = biased_pos(state.grid, bias_center=True)
+    state.agent_pos = agent_pos
+    
+    # Set a random direction for the agent
+    state.agent_dir = random_dir()
+    
+    return state
+```
+
+### Explanation:
+1. **Biased Position Generation**:
+   - The `biased_pos` function is introduced to generate positions with a bias towards either the center or the edges/corners of the grid.
+   - When `bias_center` is `True`, it generates positions within the central region (3 to 7 in both dimensions).
+   - When `bias_edge` is `True`, it generates positions on the edges or corners of the grid (1, 2, 8, 9 in both dimensions).
+
+2. **Goal Position**:
+   - The goal object is placed with a bias towards the edges and corners using `biased_pos(state.grid, bias_edge=True)`.
+
+3. **Agent Position**:
+   - The agent is placed with a bias towards the center using `biased_pos(state.grid, bias_center=True)`.
+
+4. **Random Direction**:
+   - The agent's direction is still uniformly random.
+
+This approach should better reflect the observed distribution of initial states in the real world.

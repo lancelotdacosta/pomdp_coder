@@ -1,0 +1,65 @@
+Based on the provided samples from the real world and the generated model, it appears that the distribution of initial states has a few key characteristics:
+
+1. **Agent Position**: The agent can be placed in any empty cell within the interior of the grid.
+2. **Agent Direction**: The agent's initial direction is uniformly random.
+3. **Goal Position**: The goal object can be placed in multiple locations, not just the bottom-right corner. It can be placed in any empty cell except the agent's position.
+
+To improve the code to better model the true distribution, we need to ensure that the goal object can be placed in any valid empty cell and not just a fixed position. Additionally, we should ensure that the agent's position and the goal's position do not overlap.
+
+Here is the improved `initial_func` function:
+
+```python
+import numpy as np
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Constants for the grid dimensions
+    width = empty_state.width
+    height = empty_state.height
+    
+    # Find all empty cells where the agent can be placed
+    empty_cells = [(x, y) for x in range(1, width - 1) for y in range(1, height - 1) if empty_state.grid[x, y] == ObjectTypes.empty]
+    
+    # Ensure there are empty cells available
+    if not empty_cells:
+        raise ValueError("No empty cells available for the agent's initial position.")
+    
+    # Randomly select an index and get the corresponding empty cell for the agent's initial position
+    agent_pos_index = np.random.choice(len(empty_cells))
+    agent_pos = empty_cells[agent_pos_index]
+    
+    # Randomly select an initial direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Find all empty cells where the goal can be placed, excluding the agent's position
+    remaining_empty_cells = [cell for cell in empty_cells if cell != agent_pos]
+    
+    # Ensure there are remaining empty cells available for the goal
+    if not remaining_empty_cells:
+        raise ValueError("No remaining empty cells available for the goal's initial position.")
+    
+    # Randomly select an index and get the corresponding empty cell for the goal's initial position
+    goal_pos_index = np.random.choice(len(remaining_empty_cells))
+    goal_pos = remaining_empty_cells[goal_pos_index]
+    
+    # Place the goal object in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+This code ensures that the goal can be placed in any valid empty cell, and it avoids overlapping with the agent's initial position. The agent's initial position and direction are still chosen randomly from the available empty cells. This should better match the distribution observed in the real world samples.
