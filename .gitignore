@@ -3,6 +3,7 @@
 
 **.egg-info
 outputs/2025*
+*.gif
 
 .env
 main.log
