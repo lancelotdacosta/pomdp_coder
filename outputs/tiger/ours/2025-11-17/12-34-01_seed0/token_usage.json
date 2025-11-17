@@ -1,0 +1,30 @@
+{
+  "0": {
+    "input_tokens": 766,
+    "output_tokens": 317
+  },
+  "1": {
+    "input_tokens": 855,
+    "output_tokens": 505
+  },
+  "2": {
+    "input_tokens": 2049,
+    "output_tokens": 618
+  },
+  "3": {
+    "input_tokens": 898,
+    "output_tokens": 919
+  },
+  "4": {
+    "input_tokens": 1975,
+    "output_tokens": 731
+  },
+  "5": {
+    "input_tokens": 664,
+    "output_tokens": 499
+  },
+  "6": {
+    "input_tokens": 1320,
+    "output_tokens": 511
+  }
+}

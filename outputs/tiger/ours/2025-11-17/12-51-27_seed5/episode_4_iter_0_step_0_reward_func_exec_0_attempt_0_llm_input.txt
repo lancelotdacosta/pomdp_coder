@@ -1,0 +1,122 @@
+#define system
+You are a robot exploring its environment. 
+
+Environment Description: 
+Goal Description: 
+
+Your goal is to model the the reward conditioned on state, action, next state transition. 
+You need to implement the python code to model the world, as seen in the provided experiences. 
+Please follow the template to implement the code. 
+The code needs to be directly runnable (state, action, next_state) and return (reward, done). 
+
+
+Below are a few samples from the environment distribution. These are only samples from a larger distribution that your should model.
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 0.0
+Output bool: False
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 0.0
+Output bool: False
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 0
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 1.0
+Output bool: True
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 0.0
+Output bool: False
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 0.0
+Output bool: False
+
+
+
+
+Here is the template for the reward_func function. Please implement
+the reward function following the template. The code needs to be directly
+runnable.
+
+‘‘‘
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    raise NotImplementedError
+‘‘‘
+
+Explain what you believe is the the reward conditioned on state, action, next state transition in english.
+Additionally, please implement code to model the logic of the world. Please implement the 
+code following the template. Only output the definition for ‘ reward_func ‘. 
+You must implement the ‘ reward_func ‘ function.
+Create any helper function inside the scope of ‘ reward_func ‘. 
+Do not create any helper function outside the scope of ‘ reward_func ‘.
+Do not output examples usage. 
+Do not create any new classes.
+Do not rewrite existing classes. 
+Do not import any new modules from anywhere.
+Do not overfit to the specific samples.
+Put the ‘ reward_func ‘ function in a python code block.

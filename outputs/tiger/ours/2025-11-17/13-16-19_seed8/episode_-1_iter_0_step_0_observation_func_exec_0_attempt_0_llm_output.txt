@@ -1,0 +1,97 @@
+Based on the provided samples, it appears that the observations are probabilistic and depend on the state (tiger location) and the action taken by the agent. Specifically:
+
+- When the tiger is located on the left (TigerState(tiger_location=LEFT)):
+  - If the action is `LISTEN` (action=2), the agent is more likely to hear the tiger on the left (TigerObservation(obs=0)).
+  - If the action is not `LISTEN`, the observation can be either `NONE` (TigerObservation(obs=2)) or `HEAR_RIGHT` (TigerObservation(obs=1)), but this is less likely.
+
+- When the tiger is located on the right (TigerState(tiger_location=RIGHT)):
+  - If the action is `LISTEN` (action=2), the agent is more likely to hear the tiger on the right (TigerObservation(obs=1)).
+  - If the action is not `LISTEN`, the observation can be either `NONE` (TigerObservation(obs=2)) or `HEAR_LEFT` (TigerObservation(obs=0)), but this is less likely.
+
+The distribution of observations can be modeled as follows:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action == TigerActions.LISTEN:
+        if state.tiger_location == TigerState(tiger_location=LEFT):
+            # More likely to hear the tiger on the left when listening
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.NONE], [0.8, 0.2])[0]
+        else:
+            # More likely to hear the tiger on the right when listening
+            obs = random.choices([TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.8, 0.2])[0]
+    else:
+        if state.tiger_location == TigerState(tiger_location=LEFT):
+            # Less likely to hear the tiger on the left when not listening
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.1, 0.1, 0.8])[0]
+        else:
+            # Less likely to hear the tiger on the right when not listening
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.1, 0.1, 0.8])[0]
+
+    return TigerObservation(obs=obs.value)
+```
+
+This implementation models the observation distribution based on the provided samples. The `random.choices` function is used to sample from the conditional probabilities defined for each state and action combination.

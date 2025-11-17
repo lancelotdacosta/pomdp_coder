@@ -1,0 +1,73 @@
+The error you're encountering is due to the fact that the `enum` module is not imported in the provided code. To fix this, we need to import the `enum` module at the beginning of the script.
+
+Here is the corrected version of the `observation_func` function with the necessary import:
+
+```python
+from __future__ import annotations
+
+import random
+import enum
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+
+def observation_func(state: TigerState, action: int, empty_obs: TigerObservation) -> TigerObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action == TigerActions.LISTEN:
+        if state.tiger_location == 0:  # Tiger is on the left
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.NONE], [0.8, 0.2])[0]
+        else:  # Tiger is on the right
+            obs = random.choices([TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.8, 0.2])[0]
+    else:
+        if state.tiger_location == 0:  # Tiger is on the left
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.1, 0.1, 0.8])[0]
+        else:  # Tiger is on the right
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.1, 0.1, 0.8])[0]
+
+    return TigerObservation(obs=obs.value)
+```
+
+This should resolve the `NameError` and allow the `observation_func` to be executed correctly. The `enum` module is now imported, ensuring that the `TigerObservationEnum` and `TigerActions` classes can be defined without any issues.

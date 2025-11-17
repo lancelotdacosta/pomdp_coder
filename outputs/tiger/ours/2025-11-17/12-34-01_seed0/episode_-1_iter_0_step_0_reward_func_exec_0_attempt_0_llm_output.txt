@@ -1,0 +1,43 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done based on the state, action, and next state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == LEFT:
+            reward = -1.0  # Opening left door when tiger is behind it
+        else:
+            reward = 1.0  # Opening left door when tiger is behind right door
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == RIGHT:
+            reward = -1.0  # Opening right door when tiger is behind it
+        else:
+            reward = 1.0  # Opening right door when tiger is behind left door
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # No reward for listening
+        done = False  # Episode continues after listening
+
+    return reward, done
+```
+
+### Explanation
+- **Opening the Left Door (Action 0)**:
+  - If the tiger is behind the left door, the agent receives a reward of -1.0 and the episode ends.
+  - If the tiger is behind the right door, the agent receives a reward of 1.0 and the episode ends.
+- **Opening the Right Door (Action 1)**:
+  - If the tiger is behind the right door, the agent receives a reward of -1.0 and the episode ends.
+  - If the tiger is behind the left door, the agent receives a reward of 1.0 and the episode ends.
+- **Listening (Action 2)**:
+  - The agent receives no reward (0.0) for listening.
+  - The episode continues after listening.
+
+This logic ensures that the agent is penalized for making a wrong decision (opening the door with the tiger) and rewarded for making the correct decision (opening the door without the tiger). Listening does not affect the state or end the episode but provides information to the agent.

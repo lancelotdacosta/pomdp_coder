@@ -1,0 +1,39 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done status based on the action and state transition
+    if action == TigerActions.LISTEN:
+        # Listening gives no immediate reward and does not end the episode
+        reward = 0.0
+        done = False
+    elif action == TigerActions.OPEN_LEFT:
+        # Opening the left door
+        if state.tiger_location == TigerState(tiger_location=0).tiger_location:
+            # Tiger was behind the left door, negative reward
+            reward = -1.0
+        else:
+            # Tiger was behind the right door, positive reward
+            reward = 1.0
+        done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        # Opening the right door
+        if state.tiger_location == TigerState(tiger_location=1).tiger_location:
+            # Tiger was behind the right door, negative reward
+            reward = -1.0
+        else:
+            # Tiger was behind the left door, positive reward
+            reward = 1.0
+        done = True
+    else:
+        raise ValueError("Invalid action")
+
+    return reward, done
+```

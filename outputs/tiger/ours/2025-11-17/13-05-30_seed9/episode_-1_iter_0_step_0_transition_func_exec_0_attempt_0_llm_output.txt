@@ -1,0 +1,25 @@
+Based on the provided samples, it appears that the environment's state transitions are as follows:
+
+1. If the action is `LISTEN` (action 2), the state does not change regardless of the current state.
+2. If the action is `OPEN_LEFT` (action 0) or `OPEN_RIGHT` (action 1), the state remains the same.
+
+Given this understanding, the transition function can be implemented as follows:
+
+```python
+def transition_func(state: TigerState, action: int) -> TigerState:
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    if action == TigerActions.LISTEN:
+        # Listening does not change the state
+        return state
+    else:
+        # Opening a door does not change the state
+        return state
+```
+
+This implementation ensures that the state remains unchanged for all actions, as observed from the provided samples.

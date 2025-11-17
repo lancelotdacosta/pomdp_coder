@@ -1,0 +1,50 @@
+Based on the provided samples, it seems that the reward function in the real world might have some additional conditions or probabilistic behaviors that are not fully captured by the current implementation. Specifically, it appears that there might be cases where the agent does not receive a penalty when opening the door with the tiger behind it.
+
+Here is an improved version of the `reward_func` function that accounts for this possibility:
+
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+    
+    if action == TigerActions.LISTEN:
+        # Listening does not change the state and provides no immediate reward.
+        pass
+    elif action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            # Opening left door when the tiger is behind it results in a penalty.
+            # However, there might be a small probability of not receiving a penalty.
+            if random.random() < 0.9:  # 90% chance of receiving the penalty
+                reward = -1.0
+            else:
+                reward = 0.0
+        else:
+            # Opening left door when the tiger is not behind it results in a reward.
+            reward = 1.0
+        done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            # Opening right door when the tiger is behind it results in a penalty.
+            # However, there might be a small probability of not receiving a penalty.
+            if random.random() < 0.9:  # 90% chance of receiving the penalty
+                reward = -1.0
+            else:
+                reward = 0.0
+        else:
+            # Opening right door when the tiger is not behind it results in a reward.
+            reward = 1.0
+        done = True
+    
+    return reward, done
+```
+
+In this improved version, there is a 10% chance that the agent will not receive a penalty when opening the door with the tiger behind it. This adjustment aims to better match the observed distribution from the real world.

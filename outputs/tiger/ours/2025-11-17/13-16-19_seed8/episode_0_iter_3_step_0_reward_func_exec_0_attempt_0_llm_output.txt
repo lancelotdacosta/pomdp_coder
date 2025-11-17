@@ -1,0 +1,75 @@
+Certainly! Based on the provided samples, it seems that there is a small probability (10%) of not receiving the penalty even when opening the door where the tiger is located. Additionally, there is a possibility of receiving a reward or no reward when the tiger is not behind the door.
+
+Here's an improved version of the `reward_func` function to better model the true distribution:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+# Assuming the necessary classes and enums are already defined as in the provided code
+
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+    
+    if action == TigerActions.LISTEN:
+        # Listening does not change the state and provides no immediate reward.
+        pass
+    elif action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            # Opening left door when the tiger is behind it results in a penalty.
+            # However, there might be a small probability of not receiving a penalty.
+            if random.random() < 0.9:  # 90% chance of receiving the penalty
+                reward = -1.0
+            else:
+                reward = 0.0
+        else:
+            # Opening left door when the tiger is not behind it results in a reward.
+            if random.random() < 0.9:  # 90% chance of receiving the reward
+                reward = 1.0
+            else:
+                reward = 0.0
+        done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            # Opening right door when the tiger is behind it results in a penalty.
+            # However, there might be a small probability of not receiving a penalty.
+            if random.random() < 0.9:  # 90% chance of receiving the penalty
+                reward = -1.0
+            else:
+                reward = 0.0
+        else:
+            # Opening right door when the tiger is not behind it results in a reward.
+            if random.random() < 0.9:  # 90% chance of receiving the reward
+                reward = 1.0
+            else:
+                reward = 0.0
+        done = True
+    
+    return reward, done
+```
+
+### Explanation
+- **Listening Action**: This action does not change the state and provides no immediate reward. The reward remains `0.0` and `done` remains `False`.
+- **Opening Left Door**:
+  - If the tiger is behind the left door (`state.tiger_location == 0`), there is a 90% chance of receiving a penalty (`-1.0`) and a 10% chance of receiving no penalty (`0.0`).
+  - If the tiger is not behind the left door (`state.tiger_location == 1`), there is a 90% chance of receiving a reward (`1.0`) and a 10% chance of receiving no reward (`0.0`).
+- **Opening Right Door**:
+  - If the tiger is behind the right door (`state.tiger_location == 1`), there is a 90% chance of receiving a penalty (`-1.0`) and a 10% chance of receiving no penalty (`0.0`).
+  - If the tiger is not behind the right door (`state.tiger_location == 0`), there is a 90% chance of receiving a reward (`1.0`) and a 10% chance of receiving no reward (`0.0`).
+
+This updated function should better reflect the true distribution observed in the real world.

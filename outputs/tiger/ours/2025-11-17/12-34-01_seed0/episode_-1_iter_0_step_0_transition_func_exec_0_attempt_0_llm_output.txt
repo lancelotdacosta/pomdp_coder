@@ -1,0 +1,27 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    # The tiger's location does not change based on the agent's actions.
+    # However, listening can provide information about the tiger's location.
+    
+    if action == TigerActions.LISTEN:
+        # Listening action does not change the state.
+        return state
+    else:
+        # OPEN_LEFT or OPEN_RIGHT actions do not change the state either.
+        return state
+```
+
+### Explanation:
+The transition function models the dynamics of the environment. In the Tiger problem, the underlying state (i.e., the location of the tiger) does not change based on the agent's actions. The agent can perform three actions: `OPEN_LEFT`, `OPEN_RIGHT`, and `LISTEN`. 
+
+- **`OPEN_LEFT` and `OPEN_RIGHT`**: These actions involve the agent opening one of the doors. Opening a door does not affect the tiger's location; it only reveals whether the tiger is behind the chosen door.
+- **`LISTEN`**: This action allows the agent to gather information about the tiger's location by listening for the tiger's roar. Listening does not change the tiger's location.
+
+Therefore, the transition function simply returns the current state unchanged for all actions, as the tiger's location remains the same regardless of the agent's actions.

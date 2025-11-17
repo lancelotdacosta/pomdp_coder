@@ -1,0 +1,70 @@
+Certainly! Let's analyze the current model and the real-world samples to understand the discrepancies and then improve the `observation_func` accordingly.
+
+### Observation Distribution Analysis:
+
+1. **State: Tiger on the Left (tiger_location=0)**
+   - **Action: Listen (TigerActions.LISTEN)**
+     - High probability of hearing the tiger on the left (HEAR_LEFT).
+     - Low probability of hearing nothing (NONE).
+     - Very low probability of hearing the tiger on the right (HEAR_RIGHT).
+   - **Action: Not Listen (TigerActions.OPEN_LEFT, TigerActions.OPEN_RIGHT)**
+     - Low probability of hearing the tiger on the left (HEAR_LEFT).
+     - Low probability of hearing the tiger on the right (HEAR_RIGHT).
+     - High probability of hearing nothing (NONE).
+
+2. **State: Tiger on the Right (tiger_location=1)**
+   - **Action: Listen (TigerActions.LISTEN)**
+     - High probability of hearing the tiger on the right (HEAR_RIGHT).
+     - Low probability of hearing nothing (NONE).
+     - Very low probability of hearing the tiger on the left (HEAR_LEFT).
+   - **Action: Not Listen (TigerActions.OPEN_LEFT, TigerActions.OPEN_RIGHT)**
+     - Low probability of hearing the tiger on the left (HEAR_LEFT).
+     - Low probability of hearing the tiger on the right (HEAR_RIGHT).
+     - High probability of hearing nothing (NONE).
+
+### Real-World Samples:
+- When the tiger is on the left and the agent is not listening, the real-world samples show that it is possible to hear the tiger on the right.
+- When the tiger is on the right and the agent is not listening, the real-world samples show that it is possible to hear the tiger on the left.
+
+### Improved `observation_func`:
+
+To better model the true distribution, we need to adjust the probabilities for the non-listening actions to account for the rare but possible cases where the agent might hear the tiger on the opposite side.
+
+```python
+def observation_func(state: TigerState, action: int, empty_obs: TigerObservation) -> TigerObservation:
+    """
+    Generates an observation based on the current state and action.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action == TigerActions.LISTEN:
+        if state.tiger_location == 0:  # Tiger is on the left
+            # More likely to hear the tiger on the left when listening
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.NONE], [0.8, 0.2])[0]
+        else:  # Tiger is on the right
+            # More likely to hear the tiger on the right when listening
+            obs = random.choices([TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.8, 0.2])[0]
+    else:
+        if state.tiger_location == 0:  # Tiger is on the left
+            # Less likely to hear the tiger on the left when not listening
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.1, 0.05, 0.85])[0]
+        else:  # Tiger is on the right
+            # Less likely to hear the tiger on the right when not listening
+            obs = random.choices([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE], [0.05, 0.1, 0.85])[0]
+
+    return TigerObservation(obs=obs.value)
+```
+
+### Explanation of Changes:
+- **Listening Actions (TigerActions.LISTEN):**
+  - The probabilities remain the same as in the original code because the real-world samples do not contradict the model for listening actions.
+- **Non-Listening Actions (TigerActions.OPEN_LEFT, TigerActions.OPEN_RIGHT):**
+  - The probability of hearing the tiger on the opposite side is slightly increased to account for the rare but possible cases observed in the real world.
+  - The probability of hearing nothing is adjusted to ensure the total probability sums to 1.
+
+This adjustment should bring the generated observations closer to the true distribution observed in the real world.

@@ -1,0 +1,20 @@
+Based on the provided samples, it appears that the environment state (tiger location) remains unchanged regardless of the action taken. The action `LISTEN` (action 2) does not change the tiger's location, and the actions `OPEN_LEFT` (action 0) and `OPEN_RIGHT` (action 1) also do not change the tiger's location.
+
+Given this understanding, the transition function should simply return the current state without any changes.
+
+Here is the implementation of the `transition_func` function:
+
+```python
+def transition_func(state: TigerState, action: int) -> TigerState:
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    # The tiger's location does not change regardless of the action taken
+    return state
+```
+
+This function models the logic that the tiger's location remains fixed regardless of the actions performed by the agent.

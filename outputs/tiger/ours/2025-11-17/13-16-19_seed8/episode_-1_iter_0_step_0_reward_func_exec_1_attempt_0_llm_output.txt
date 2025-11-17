@@ -1,0 +1,56 @@
+The error you're encountering is due to the fact that the constants `LEFT` and `RIGHT` are not defined in the scope where the `reward_func` function is being executed. To fix this, we need to ensure that these constants are properly defined within the function or passed as arguments.
+
+Here's the revised `reward_func` function with the necessary constants defined:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the constants for LEFT and RIGHT
+    LEFT = 0
+    RIGHT = 1
+
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+
+    # Check if the action is to open a door
+    if action == TigerActions.OPEN_LEFT:
+        # If the tiger is behind the left door, the agent gets a negative reward
+        if state.tiger_location == LEFT:
+            reward = -1.0
+            done = True
+        else:
+            reward = 1.0
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        # If the tiger is behind the right door, the agent gets a negative reward
+        if state.tiger_location == RIGHT:
+            reward = -1.0
+            done = True
+        else:
+            reward = 1.0
+            done = True
+    elif action == TigerActions.LISTEN:
+        # Listening does not change the state or the reward
+        reward = 0.0
+        done = False
+
+    return reward, done
+```
+
+### Explanation:
+- **Constants Definition**: The constants `LEFT` and `RIGHT` are defined within the `reward_func` function to avoid the `NameError`.
+- **Reward Calculation**:
+  - If the action is `OPEN_LEFT`, the agent receives a reward of -1.0 if the tiger is behind the left door, and 1.0 if the tiger is behind the right door.
+  - If the action is `OPEN_RIGHT`, the agent receives a reward of -1.0 if the tiger is behind the right door, and 1.0 if the tiger is behind the left door.
+  - If the action is `LISTEN`, the agent receives a reward of 0.0 and the episode continues.
+
+This should resolve the `NameError` and ensure that the function works as expected.

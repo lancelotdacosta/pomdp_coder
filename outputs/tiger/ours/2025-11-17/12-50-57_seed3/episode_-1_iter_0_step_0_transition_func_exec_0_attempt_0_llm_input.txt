@@ -1,0 +1,110 @@
+#define system
+You are a robot exploring its environment. 
+
+Environment Description: 
+Goal Description: 
+
+Your goal is to model the the distribution of next states conditioned on actions and previous states. 
+You need to implement the python code to model the world, as seen in the provided experiences. 
+Please follow the template to implement the code. 
+The code needs to be directly runnable (state, action) and return a sample (next_state). 
+
+
+Below are a few samples from the environment distribution. These are only samples from a larger distribution that your should model.
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Output TigerState: TigerState(tiger_location=RIGHT)
+
+
+Input TigerState: TigerState(tiger_location=LEFT)
+Input int: 2
+Output TigerState: TigerState(tiger_location=LEFT)
+
+
+Input TigerState: TigerState(tiger_location=LEFT)
+Input int: 2
+Output TigerState: TigerState(tiger_location=LEFT)
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Output TigerState: TigerState(tiger_location=RIGHT)
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 0
+Output TigerState: TigerState(tiger_location=RIGHT)
+
+
+
+
+Here is the template for the transition_func function. Please implement
+the reward function following the template. The code needs to be directly
+runnable.
+
+‘‘‘
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def transition_func(state, action):
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    raise NotImplementedError
+‘‘‘
+
+Explain what you believe is the the distribution of next states conditioned on actions and previous states in english.
+Additionally, please implement code to model the logic of the world. Please implement the 
+code following the template. Only output the definition for ‘ transition_func ‘. 
+You must implement the ‘ transition_func ‘ function.
+Create any helper function inside the scope of ‘ transition_func ‘. 
+Do not create any helper function outside the scope of ‘ transition_func ‘.
+Do not output examples usage. 
+Do not create any new classes.
+Do not rewrite existing classes. 
+Do not import any new modules from anywhere.
+Do not overfit to the specific samples.
+Put the ‘ transition_func ‘ function in a python code block.

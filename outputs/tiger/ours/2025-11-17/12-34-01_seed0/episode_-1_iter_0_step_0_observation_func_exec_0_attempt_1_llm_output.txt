@@ -1,0 +1,91 @@
+The error you're encountering is due to an incorrect syntax in the `TigerObservationEnum` class definition. In Python, when defining enum values, you should not use commas to separate the values and their names. Instead, each value should be defined on a separate line.
+
+Here is the corrected version of the code:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int  # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def observation_func(state: TigerState, action: int, empty_obs: TigerObservation) -> TigerObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action != TigerActions.LISTEN.value:
+        return TigerObservation(obs=TigerObservationEnum.NONE.value)
+    
+    if state.tiger_location == 1:  # Tiger is on the right
+        obs = 1 if random.random() < 0.8 else 0
+    else:  # Tiger is on the left
+        obs = 0 if random.random() < 0.8 else 1
+    
+    return TigerObservation(obs=obs)
+```
+
+### Explanation of the Changes
+
+1. **Corrected `TigerObservationEnum` Definition**:
+   - Each enum value is defined on a separate line without commas.
+
+2. **Ensured Correct Syntax**:
+   - The rest of the code remains unchanged, ensuring that the observations are generated based on the tiger's location and the action taken.
+
+This should resolve the `SyntaxError` you encountered and allow the code to compile and run correctly.

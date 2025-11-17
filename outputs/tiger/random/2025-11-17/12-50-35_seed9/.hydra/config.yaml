@@ -1,0 +1,20 @@
+max_steps: 40
+num_episodes: 10
+seed: 9
+gamma: 0.98
+save_log: false
+replay_path: None
+actions:
+- 0
+- 1
+- 2
+env:
+  _target_: uncertain_worms.environments.tiger.tiger_env.TigerEnv
+  fully_obs: false
+agent:
+  _target_: uncertain_worms.policies.random_policy.RandomPolicy
+  fully_obs: true
+  actions:
+  - 0
+  - 1
+  - 2

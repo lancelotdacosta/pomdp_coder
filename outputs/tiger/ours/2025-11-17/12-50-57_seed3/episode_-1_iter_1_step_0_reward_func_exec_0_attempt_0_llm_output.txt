@@ -1,0 +1,51 @@
+Based on the provided samples, it seems that the reward is not solely dependent on the current state and the action, but also on the next state. Specifically, there are instances where opening the door (either left or right) results in a smaller positive reward of 1.0 instead of 10.0, even when the tiger is behind the opposite door.
+
+To model this, we need to adjust the reward function to account for the next state. Here's the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the state transition
+    if action == TigerActions.LISTEN:
+        # Listening action gives no immediate reward and does not end the episode
+        reward = 0.0
+        done = False
+    elif action == TigerActions.OPEN_LEFT:
+        # If the agent opens the left door and the tiger is behind it, the reward is -100
+        if state.tiger_location == 0:
+            reward = -100
+            done = True
+        # If the tiger is behind the right door, the reward is +10 or +1.0 based on next_state
+        else:
+            if next_state.tiger_location == 0:
+                reward = 1.0
+            else:
+                reward = 10.0
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        # If the agent opens the right door and the tiger is behind it, the reward is -100
+        if state.tiger_location == 1:
+            reward = -100
+            done = True
+        # If the tiger is behind the left door, the reward is +10 or +1.0 based on next_state
+        else:
+            if next_state.tiger_location == 1:
+                reward = 1.0
+            else:
+                reward = 10.0
+            done = True
+    else:
+        raise ValueError(f"Invalid action: {action}")
+
+    return reward, done
+```
+
+This function now accounts for the possibility of a smaller positive reward (1.0) when the next state indicates a change in the tiger's location, which aligns with the observed samples from the real world.

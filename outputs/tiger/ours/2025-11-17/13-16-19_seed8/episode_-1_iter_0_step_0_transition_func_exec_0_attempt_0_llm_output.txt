@@ -1,0 +1,20 @@
+Based on the provided samples, it seems that the environment is relatively stable when the tiger's location is concerned. Specifically, the actions `OPEN_LEFT` and `OPEN_RIGHT` do not change the tiger's location, while the `LISTEN` action also keeps the tiger's location unchanged. This suggests that the tiger's location is a static property of the environment.
+
+However, in a more complete model of the Tiger problem, the `LISTEN` action would typically provide an observation (which is not relevant for the state transition but would be part of the observation model). For the purposes of the state transition function, the tiger's location remains the same regardless of the action taken.
+
+Here is the implementation of the `transition_func`:
+
+```python
+def transition_func(state: TigerState, action: int) -> TigerState:
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    # The tiger's location does not change with any action
+    return TigerState(tiger_location=state.tiger_location)
+```
+
+This function models the environment where the tiger's location remains constant regardless of the action taken by the agent. This aligns with the provided samples and the typical behavior of the Tiger problem.

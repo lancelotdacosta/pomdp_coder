@@ -1,0 +1,49 @@
+Certainly! Let's analyze the discrepancy between the real-world samples and the model's output.
+
+### Explanation of the Reward Function
+In the Tiger problem, the reward is conditioned on the state, action, and next state as follows:
+- **Opening the Door with the Tiger**: If the agent opens the door where the tiger is located, it receives a large negative reward (-100.0) and the episode terminates.
+- **Opening the Safe Door**: If the agent opens the door where there is no tiger, it receives a positive reward (10.0) and the episode terminates.
+- **Listening**: If the agent listens, it receives no immediate reward (0.0) and the episode does not terminate.
+
+The discrepancy in the provided samples suggests that there might be an additional factor affecting the reward that we need to account for. Specifically, the real-world samples show a reward of 1.0 in cases where the model predicts 10.0. This could indicate a small positive reward for a correct action, but with a lower magnitude than expected.
+
+### Improved Reward Function
+To better model the true distribution, we can introduce a small positive reward (1.0) for correctly opening the safe door, which aligns with the real-world samples provided.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define constants for tiger locations
+    LEFT = 0
+    RIGHT = 1
+    
+    # Define the reward based on the action and the state transition
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == LEFT:
+            return -100.0, True  # Tiger was behind the left door, negative reward
+        else:
+            return 1.0, True  # Tiger was behind the right door, small positive reward
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == RIGHT:
+            return -100.0, True  # Tiger was behind the right door, negative reward
+        else:
+            return 1.0, True  # Tiger was behind the left door, small positive reward
+    elif action == TigerActions.LISTEN:
+        return 0.0, False  # Listening does not terminate the episode and gives no immediate reward
+    
+    # Default case (should not happen if actions are correctly defined)
+    return 0.0, False
+```
+
+This updated function should better match the real-world samples provided. The key change is reducing the positive reward for correctly opening the safe door from 10.0 to 1.0.

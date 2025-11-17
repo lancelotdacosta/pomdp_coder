@@ -1,0 +1,65 @@
+Based on the provided samples, it appears that the observation distribution conditioned on the state has some inherent noise or uncertainty, especially when the agent listens. Specifically:
+
+- When the tiger is on the left (tiger_location = 0) and the agent listens (action = 2), the agent can hear the tiger correctly (HEAR_LEFT), hear nothing (NONE), or incorrectly hear the tiger on the right (HEAR_RIGHT).
+- When the tiger is on the right (tiger_location = 1) and the agent listens (action = 2), the agent can hear the tiger correctly (HEAR_RIGHT), hear nothing (NONE), or incorrectly hear the tiger on the left (HEAR_LEFT).
+
+To better model this distribution, we need to adjust the probabilities of each observation based on the state. Here's an improved version of the `observation_func` function:
+
+```python
+def observation_func(state: TigerState, action: int, empty_obs: TigerObservation) -> TigerObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action == TigerActions.LISTEN:
+        # Define probabilities for each observation based on the state
+        if state.tiger_location == 0:  # LEFT
+            obs = random.choices(
+                [TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE],
+                weights=[0.8, 0.1, 0.1]
+            )[0]
+        elif state.tiger_location == 1:  # RIGHT
+            obs = random.choices(
+                [TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.NONE],
+                weights=[0.8, 0.1, 0.1]
+            )[0]
+    else:
+        # When opening a door, the agent does not hear anything
+        obs = TigerObservationEnum.NONE
+
+    return TigerObservation(obs=obs.value)
+```
+
+### Explanation of the Distribution:
+- **When the tiger is on the left (tiger_location = 0) and the agent listens:**
+  - The agent has an 80% chance of correctly hearing the tiger on the left (HEAR_LEFT).
+  - The agent has a 10% chance of incorrectly hearing the tiger on the right (HEAR_RIGHT).
+  - The agent has a 10% chance of hearing nothing (NONE).
+
+- **When the tiger is on the right (tiger_location = 1) and the agent listens:**
+  - The agent has an 80% chance of correctly hearing the tiger on the right (HEAR_RIGHT).
+  - The agent has a 10% chance of incorrectly hearing the tiger on the left (HEAR_LEFT).
+  - The agent has a 10% chance of hearing nothing (NONE).
+
+- **When the agent opens a door (action = OPEN_LEFT or action = OPEN_RIGHT):**
+  - The agent always hears nothing (NONE).
+
+This distribution should better match the observed real-world behavior and account for the inherent uncertainty in the observations.

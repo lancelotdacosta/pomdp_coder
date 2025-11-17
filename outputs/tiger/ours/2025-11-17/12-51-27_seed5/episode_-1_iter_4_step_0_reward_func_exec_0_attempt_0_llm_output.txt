@@ -1,0 +1,54 @@
+Based on the provided observations, it seems that the reward model has a small probability of providing a different reward than the expected one. Specifically, when opening the door with the tiger, there is a small chance of getting a less severe negative reward, and when opening the door without the tiger, there is a small chance of getting a smaller positive reward.
+
+Let's improve the `reward_func` to better match the observed distribution:
+
+1. When the agent opens the door with the tiger, there is a 95% chance of receiving -100.0 and a 5% chance of receiving -1.0.
+2. When the agent opens the door without the tiger, there is a 95% chance of receiving 10.0 and a 5% chance of receiving 1.0.
+3. The `LISTEN` action should always result in a reward of 0.0 and no termination.
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the state-action-next_state transition
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            # Opening the door with the tiger results in a large negative reward
+            if random.random() < 0.95:  # 95% chance of -100.0
+                return -100.0, True
+            else:  # 5% chance of -1.0
+                return -1.0, True
+        else:
+            if random.random() < 0.95:  # 95% chance of 10.0
+                return 10.0, True
+            else:  # 5% chance of 1.0
+                return 1.0, True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            # Opening the door with the tiger results in a large negative reward
+            if random.random() < 0.95:  # 95% chance of -100.0
+                return -100.0, True
+            else:  # 5% chance of -1.0
+                return -1.0, True
+        else:
+            if random.random() < 0.95:  # 95% chance of 10.0
+                return 10.0, True
+            else:  # 5% chance of 1.0
+                return 1.0, True
+    elif action == TigerActions.LISTEN:
+        return 0.0, False  # Listening does not change the state and provides no immediate reward
+
+    # Default case (should not happen in a well-defined environment)
+    return 0.0, False
+```
+
+This function should now more accurately reflect the true distribution of rewards based on the provided observations. The probabilities for the rewards are correctly set to match the given scenarios.

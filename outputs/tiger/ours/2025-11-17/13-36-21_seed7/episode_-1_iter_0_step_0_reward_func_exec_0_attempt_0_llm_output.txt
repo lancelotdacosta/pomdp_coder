@@ -1,0 +1,50 @@
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Define the reward and done variables
+    reward = 0.0
+    done = False
+    
+    # Determine the reward based on the action and state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == LEFT:
+            reward = -1.0  # Opening the door with the tiger behind it results in a negative reward
+        else:
+            reward = 1.0  # Opening the door without the tiger behind it results in a positive reward
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == RIGHT:
+            reward = -1.0  # Opening the door with the tiger behind it results in a negative reward
+        else:
+            reward = 1.0  # Opening the door without the tiger behind it results in a positive reward
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # Listening does not provide any immediate reward
+        done = False  # Episode continues after listening
+    
+    return reward, done
+```
+
+### Explanation
+
+The reward function is designed based on the following logic:
+
+1. **Opening the Door**:
+   - If the agent opens the door where the tiger is located (action `OPEN_LEFT` or `OPEN_RIGHT`), the reward is `-1.0` because the agent encounters the tiger.
+   - If the agent opens the door where the tiger is not located, the reward is `1.0` because the agent successfully avoids the tiger.
+   - The episode ends (`done = True`) after the agent opens a door.
+
+2. **Listening**:
+   - Listening (`LISTEN`) does not provide any immediate reward (`reward = 0.0`).
+   - The episode continues (`done = False`) after listening.
+
+This logic ensures that the agent is rewarded for making the correct decision (opening the safe door) and penalized for making the wrong decision (opening the door with the tiger). The episode ends when the agent opens a door, as there is no point in continuing the game after that.

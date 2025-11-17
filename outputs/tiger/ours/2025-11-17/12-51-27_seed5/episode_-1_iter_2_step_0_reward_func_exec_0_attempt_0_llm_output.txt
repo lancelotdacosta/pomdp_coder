@@ -1,0 +1,80 @@
+Certainly! Let's analyze the issue and improve the `reward_func` function.
+
+### Analysis
+
+From the provided samples, it seems that the real world has a different reward distribution for certain state-action transitions compared to your initial model. Specifically:
+
+1. When the tiger is behind the left door (`TigerState(tiger_location=0)`), opening the right door (`TigerActions.OPEN_RIGHT`) should result in a reward of 1.0 with a high probability.
+2. Similarly, when the tiger is behind the right door (`TigerState(tiger_location=1)`), opening the left door (`TigerActions.OPEN_LEFT`) should also result in a reward of 1.0 with a high probability.
+
+### Improved Reward Function
+
+To better model the true distribution, we need to adjust the reward function to account for these cases. We will introduce a small probability of a different reward to match the real-world samples more closely.
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the state-action-next_state transition
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            # Opening the door with the tiger results in a large negative reward
+            if random.random() < 0.95:  # 95% chance of -100.0
+                return -100.0, True
+            else:  # 5% chance of -1.0
+                return -1.0, True
+        else:
+            if random.random() < 0.95:  # 95% chance of 10.0
+                return 10.0, True
+            else:  # 5% chance of 1.0
+                return 1.0, True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            # Opening the door with the tiger results in a large negative reward
+            if random.random() < 0.95:  # 95% chance of -100.0
+                return -100.0, True
+            else:  # 5% chance of -1.0
+                return -1.0, True
+        else:
+            if random.random() < 0.95:  # 95% chance of 10.0
+                return 10.0, True
+            else:  # 5% chance of 1.0
+                return 1.0, True
+    elif action == TigerActions.LISTEN:
+        return 0.0, False  # Listening does not change the state and provides no immediate reward
+
+    # Default case (should not happen in a well-defined environment)
+    return 0.0, False
+```
+
+### Explanation
+
+- **Opening the Left Door (`TigerActions.OPEN_LEFT`)**:
+  - If the tiger is behind the left door (`state.tiger_location == 0`):
+    - There is a 95% chance of receiving a large negative reward (-100.0).
+    - There is a 5% chance of receiving a small negative reward (-1.0).
+  - If the tiger is behind the right door (`state.tiger_location == 1`):
+    - There is a 95% chance of receiving a positive reward (10.0).
+    - There is a 5% chance of receiving a small positive reward (1.0).
+
+- **Opening the Right Door (`TigerActions.OPEN_RIGHT`)**:
+  - If the tiger is behind the right door (`state.tiger_location == 1`):
+    - There is a 95% chance of receiving a large negative reward (-100.0).
+    - There is a 5% chance of receiving a small negative reward (-1.0).
+  - If the tiger is behind the left door (`state.tiger_location == 0`):
+    - There is a 95% chance of receiving a positive reward (10.0).
+    - There is a 5% chance of receiving a small positive reward (1.0).
+
+- **Listening (`TigerActions.LISTEN`)**:
+  - Listening does not change the state and provides no immediate reward (0.0).
+
+This improved function should better match the real-world distribution of rewards.

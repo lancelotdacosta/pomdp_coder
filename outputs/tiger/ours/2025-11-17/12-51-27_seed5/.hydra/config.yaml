@@ -1,0 +1,59 @@
+max_steps: 40
+num_episodes: 10
+seed: 5
+gamma: 0.98
+save_log: false
+replay_path: None
+actions:
+- 0
+- 1
+- 2
+env:
+  _target_: uncertain_worms.environments.tiger.tiger_env.TigerEnv
+  fully_obs: false
+agent:
+  _target_: uncertain_worms.policies.partially_obs_planning_agent.LLMPartiallyObsPlanningAgent
+  max_attempts: 250000
+  num_particles: 3000
+  num_model_attempts: 5
+  num_online_model_attempts: 5
+  num_initial_model_samples: 1000
+  fully_obs: false
+  env_code_path: environments/tiger
+  actions:
+  - 0
+  - 1
+  - 2
+  learn_transition: true
+  learn_initial: true
+  learn_reward: true
+  learn_observation: true
+  use_online: true
+  use_offline: true
+  dataset_path: environments/tiger/trajectory_data/tiger_data.pkl
+  env_description: ''
+  empty_state:
+    _target_: uncertain_worms.environments.tiger.tiger_env.tiger_empty_state_gen
+  empty_observation:
+    _target_: uncertain_worms.environments.tiger.tiger_env.tiger_empty_observation_gen
+  planner:
+    _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
+    max_expansions: 50
+    num_rollouts: 10
+    entropy_coeff: 0.0
+    lambda_coeff: 0.01
+    continue_search_on_goal: true
+    actions:
+    - 0
+    - 1
+    - 2
+    empty_observation:
+      _target_: uncertain_worms.environments.tiger.tiger_env.tiger_empty_observation_gen
+    initial_model:
+      _target_: uncertain_worms.structs.empty_initial_model_gen
+    transition_model:
+      _target_: uncertain_worms.structs.empty_transition_model_gen
+    reward_model:
+      _target_: uncertain_worms.structs.empty_reward_model_gen
+    observation_model:
+      _target_: uncertain_worms.structs.empty_observation_model_gen

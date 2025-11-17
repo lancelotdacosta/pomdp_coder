@@ -1,0 +1,136 @@
+#define system
+You are a robot exploring its environment. 
+
+
+
+Your goal is to model the reward conditioned on state, action, next state transition of the world in python. 
+
+You have tried it before and came up with one partially correct solution, but it is not perfect. 
+
+The observed distribution disagrees with the generated model in several cases.
+You need to improve your code to come closer to the true distribution.
+
+Environment Description: 
+Goal Description: 
+
+Here is a solution you came up with before. 
+
+```
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+
+
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+    
+    if action == TigerActions.LISTEN:
+        # Listening does not change the state and provides no immediate reward.
+        pass
+    elif action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            # Opening left door when the tiger is behind it results in a penalty.
+            reward = -1.0
+        else:
+            # Opening left door when the tiger is not behind it results in a reward.
+            reward = 1.0
+        done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            # Opening right door when the tiger is behind it results in a penalty.
+            reward = -1.0
+        else:
+            # Opening right door when the tiger is not behind it results in a reward.
+            reward = 1.0
+        done = True
+    
+    # Introduce a small probability of the environment providing a different reward
+    if random.random() < 0.05:  # 5% chance
+        reward = 0.0  # The environment occasionally provides a zero reward
+    
+    return reward, done
+
+```
+
+
+Here are some samples from the real world that were impossible under your model
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 1
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 0.0
+Output bool: True
+
+
+
+And here are some samples from your code under the same conditions
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 1
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: -1.0
+Output bool: True
+
+
+
+
+
+Explain what you believe is the reward conditioned on state, action, next state transition in english, then improve your code to better model the true distribution.
+
+Please implement the code for the following the template. 
+You must implement the ‘ reward_func ‘ function. 
+
+The code needs to be directly runnable with (state, action, next_state) and return (reward, done). 
+
+Do not output examples. 
+Do not create any new classes. 
+Do not rewrite existing classes.
+Do not import any new modules from anywhere.
+Do not list out specific indices that overfit to the examples, but include ranges.
+Put the ‘ reward_func ‘ function in a python code block.

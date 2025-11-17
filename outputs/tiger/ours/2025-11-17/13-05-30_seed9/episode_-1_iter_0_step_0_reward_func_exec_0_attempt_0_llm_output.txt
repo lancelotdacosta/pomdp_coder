@@ -1,0 +1,37 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the state transition
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == LEFT:
+            return -100.0, True  # Tiger was behind the left door, negative reward
+        else:
+            return 10.0, True  # Tiger was behind the right door, positive reward
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == RIGHT:
+            return -100.0, True  # Tiger was behind the right door, negative reward
+        else:
+            return 10.0, True  # Tiger was behind the left door, positive reward
+    elif action == TigerActions.LISTEN:
+        return 0.0, False  # Listening does not terminate the episode and gives no immediate reward
+    
+    # Default case (should not happen if actions are correctly defined)
+    return 0.0, False
+```
+
+### Explanation
+The reward function is designed based on the classic Tiger problem:
+
+- **Opening the Door with the Tiger**: If the agent chooses to open the door behind which the tiger is located, the episode ends with a large negative reward (-100.0).
+- **Opening the Door without the Tiger**: If the agent chooses to open the door behind which the tiger is not located, the episode ends with a positive reward (10.0).
+- **Listening**: If the agent chooses to listen, no immediate reward is given, and the episode continues.
+
+The `reward_func` function takes the current state (`state`), the action taken (`action`), and the next state (`next_state`) as inputs and returns the reward and a boolean indicating whether the episode is done. The function handles the three possible actions: opening the left door, opening the right door, and listening.

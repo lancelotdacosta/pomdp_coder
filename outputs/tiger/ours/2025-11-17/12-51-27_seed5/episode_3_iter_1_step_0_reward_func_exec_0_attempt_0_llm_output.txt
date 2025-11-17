@@ -1,0 +1,67 @@
+Based on the samples provided, it seems that the reward function is slightly more complex than initially modeled. Specifically, there are cases where the reward is 1.0 for certain actions, which suggests that there might be an additional condition or a probabilistic element that affects the reward.
+
+### Explanation of the Reward Function
+
+- **Listening Action (LISTEN)**: No immediate reward or penalty, and the episode continues.
+- **Opening the Left Door (OPEN_LEFT)**:
+  - If the tiger is behind the left door, the reward is -100.0.
+  - If the tiger is behind the right door, the reward is 10.0.
+  - However, there are cases where the reward is 1.0, even when the tiger is behind the right door. This suggests a small probability of a different reward.
+- **Opening the Right Door (OPEN_RIGHT)**:
+  - If the tiger is behind the right door, the reward is -100.0.
+  - If the tiger is behind the left door, the reward is 10.0.
+  - Similarly, there are cases where the reward is 1.0, even when the tiger is behind the left door. This suggests a small probability of a different reward.
+
+### Improved Reward Function
+
+To account for the observed samples, we can introduce a small probability for the reward to be 1.0 instead of 10.0 or -100.0. We will use a simple probabilistic check to determine if the reward should be 1.0.
+
+```python
+import random
+
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the actions and the state transitions
+    if action == TigerActions.LISTEN:
+        # Listening does not provide any immediate reward or penalty
+        reward = 0.0
+        done = False
+    elif action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:  # Tiger is behind the left door
+            # Opening the left door when the tiger is behind it results in a large penalty
+            reward = -100.0
+            done = True
+        else:
+            # Opening the left door when the tiger is behind the right door results in a large reward
+            if random.random() < 0.9:  # 90% chance of 10.0 reward, 10% chance of 1.0 reward
+                reward = 10.0
+            else:
+                reward = 1.0
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:  # Tiger is behind the right door
+            # Opening the right door when the tiger is behind it results in a large penalty
+            reward = -100.0
+            done = True
+        else:
+            # Opening the right door when the tiger is behind the left door results in a large reward
+            if random.random() < 0.9:  # 90% chance of 10.0 reward, 10% chance of 1.0 reward
+                reward = 10.0
+            else:
+                reward = 1.0
+            done = True
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return reward, done
+```
+
+This updated reward function introduces a small probability (10%) for the reward to be 1.0 instead of the expected 10.0 or -100.0, which aligns with the observed samples from the real world.

@@ -1,0 +1,88 @@
+Certainly! Based on the provided samples, it seems that the observation distribution is conditioned on the tiger's location and the action taken by the agent. Specifically:
+
+- If the tiger is behind the right door (`tiger_location = 1`), the agent is more likely to hear the tiger on the right (`obs = 1`).
+- If the tiger is behind the left door (`tiger_location = 0`), the agent is more likely to hear the tiger on the left (`obs = 0`).
+- The `LISTEN` action (action = 2) is the only action that affects the observation. Other actions (`OPEN_LEFT`, `OPEN_RIGHT`) do not provide new observations.
+
+Here is the implementation of the `observation_func` function based on the above understanding:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action != TigerActions.LISTEN:
+        return TigerObservation(obs=TigerObservationEnum.NONE)
+
+    # Define the probabilities for each observation given the tiger's location
+    if state.tiger_location == 0:  # Tiger is on the left
+        obs_probs = [0.85, 0.1, 0.05]
+    else:  # Tiger is on the right
+        obs_probs = [0.1, 0.85, 0.05]
+
+    # Sample an observation based on the probabilities
+    obs = random.choices(list(TigerObservationEnum), weights=obs_probs)[0]
+
+    return TigerObservation(obs=obs)
+```
+
+This implementation ensures that the agent receives an observation that is most likely to correspond to the true location of the tiger when it listens, while other actions do not provide new information. The probabilities are set to reflect a high likelihood of hearing the correct side and a small chance of hearing the wrong side or none at all.

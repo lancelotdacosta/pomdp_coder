@@ -1,0 +1,99 @@
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def observation_func(state: TigerState, action: int, empty_obs: TigerObservation) -> TigerObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action != TigerActions.LISTEN:
+        return empty_obs
+
+    # Probability of hearing the correct side when the tiger is on a specific side
+    correct_hear_prob = 0.85
+    incorrect_hear_prob = 1 - correct_hear_prob
+
+    if state.tiger_location == TigerState.LEFT:
+        if random.random() < correct_hear_prob:
+            return TigerObservation(obs=TigerObservationEnum.HEAR_LEFT)
+        else:
+            return TigerObservation(obs=TigerObservationEnum.HEAR_RIGHT)
+    else:  # state.tiger_location == TigerState.RIGHT
+        if random.random() < correct_hear_prob:
+            return TigerObservation(obs=TigerObservationEnum.HEAR_RIGHT)
+        else:
+            return TigerObservation(obs=TigerObservationEnum.HEAR_LEFT)
+```
+
+### Explanation of the Distribution of Observations Conditioned on a State
+
+The agent can take three actions: `OPEN_LEFT`, `OPEN_RIGHT`, and `LISTEN`. The observation function is only relevant when the agent chooses to `LISTEN`.
+
+When the agent listens, it will hear the tiger's growl from the correct side (left or right) with a high probability (0.85). There is a small probability (0.15) that the agent will hear the tiger from the incorrect side.
+
+- If the tiger is on the left (`TigerState.LEFT`):
+  - With a probability of 0.85, the agent will hear the tiger from the left.
+  - With a probability of 0.15, the agent will hear the tiger from the right.
+
+- If the tiger is on the right (`TigerState.RIGHT`):
+  - With a probability of 0.85, the agent will hear the tiger from the right.
+  - With a probability of 0.15, the agent will hear the tiger from the left.
+
+This distribution models the uncertainty in the agent's perception, which is a common scenario in partially observable environments.
