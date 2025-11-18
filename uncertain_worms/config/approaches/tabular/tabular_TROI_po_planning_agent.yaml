@@ -9,7 +9,7 @@ gamma: 0.98
 save_log: false
 replay_path: None
 env_name: &env_name "CornerGoalRandom-Empty-10x10-v0"
-actions: &actions [0, 1, 2, 3, 4, 5]
+env_name: &env_name "MiniGrid-Empty-5x5-v0"
 
 env:
   _target_: uncertain_worms.environments.minigrid.minigrid_env.MinigridEnvironment
