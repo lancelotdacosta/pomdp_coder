@@ -8,7 +8,6 @@ seed: 0
 gamma: 0.98
 save_log: false
 replay_path: None
-env_name: &env_name "CornerGoalRandom-Empty-10x10-v0"
 env_name: &env_name "MiniGrid-Empty-5x5-v0"
 
 env:
