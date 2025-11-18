@@ -20,7 +20,7 @@ env:
 agent:
   _target_: uncertain_worms.policies.partially_obs_planning_agent.PartiallyObsPlanningAgent
   num_particles: 100
-  max_attempts: 10000
+  # max_attempts: 10000
   fully_obs: false
   actions: *actions
   
