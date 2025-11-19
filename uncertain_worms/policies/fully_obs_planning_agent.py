@@ -425,6 +425,7 @@ class LLM_TR_FullyObsPlanningAgent(FullyObsPlanningAgent[StateType, ActType, Obs
             replay_path=self.replay_path,
             step_num=self.step_num,
             api=self.code_api,
+            use_openrouter=self.use_openrouter,
         )
 
         if code_str is not None:
@@ -455,6 +456,7 @@ class LLM_TR_FullyObsPlanningAgent(FullyObsPlanningAgent[StateType, ActType, Obs
             replay_path=self.replay_path,
             step_num=self.step_num,
             api=self.code_api,
+            use_openrouter=self.use_openrouter,
         )
 
         if code_str is not None:
