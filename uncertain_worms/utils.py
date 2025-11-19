@@ -84,21 +84,21 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 
 # ENGINE = "gpt-3.5-turbo-0125"
 # ENGINE = "openai/gpt-4-turbo"
-# ENGINE = "openai/gpt-4o"
+ENGINE_openrouter = "openai/gpt-4o"
 # ENGINE = "openai/o1"
 # ENGINE = "codellama:34b-instruct-q5_K_M"
 # ENGINE = "deepseek-r1-large"
 # ENGINE = "qwen-32k"
 # ENGINE = "llama33-largecontext"
-ENGINE_ollama = "qwen25-largecontext"
-ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
+# ENGINE_ollama = "qwen25-largecontext"
+# ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
 
 # Add Ollama client:
-ollama_client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama",
-    http_client=httpx.Client(),
-)
+# ollama_client = OpenAI(
+#     base_url="http://localhost:11434/v1",
+#     api_key="ollama",
+#     http_client=httpx.Client(),
+# )
 
 
 def parse_code(input_text: str) -> str | None:
@@ -127,7 +127,7 @@ def discounted_reward(rewards: List[float], gamma: float) -> float:
     return rewards[0]  # Total discounted return for the episode
 
 
-def query_llm(message: List[Dict[str, str]], max_retries: int = 5, use_openrouter: bool = False) -> Tuple[str, float]:
+def query_llm(message: List[Dict[str, str]], max_retries: int = 5, use_openrouter: bool = True) -> Tuple[str, float]:
     """Query local Ollama or OpenRouter based on configuration"""
     retry_count = 0
     backoff_factor = 60 if use_openrouter else 2
@@ -171,12 +171,13 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5, use_openroute
                 # else:
                 #     input_tokens = output_tokens = 0
             else:
+                print("NO OLLAMA!")
                 # Use OpenAI client with Ollama
-                response = ollama_client.chat.completions.create(
-                    model=ENGINE_ollama,
-                    messages=message
-                )
-                content = response.choices[0].message.content
+                # response = ollama_client.chat.completions.create(
+                #     model=ENGINE_ollama,
+                #     messages=message
+                # )
+                # content = response.choices[0].message.content
                 # input_tokens = response.usage.prompt_tokens
                 # output_tokens = response.usage.completion_tokens
             
