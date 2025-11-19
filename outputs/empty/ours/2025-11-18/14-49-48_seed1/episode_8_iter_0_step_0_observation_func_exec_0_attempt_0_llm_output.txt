@@ -1,0 +1,26 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    # Define the field of view size (3x3 grid in front of the agent)
+    view_size = 3
+
+    # Get the field of view based on the agent's position and direction
+    fov = state.get_field_of_view(view_size)
+
+    # Create the observation object
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    return obs
+```

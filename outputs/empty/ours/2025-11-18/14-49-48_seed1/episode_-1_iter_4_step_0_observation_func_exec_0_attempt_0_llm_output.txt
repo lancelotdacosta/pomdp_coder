@@ -1,0 +1,65 @@
+To better understand the distribution of observations conditioned on a state, let's break down what should happen:
+
+1. **Agent Movement**:
+   - When the agent moves forward (`Actions.forward`), it should only move if the next cell is not a wall.
+   - When the agent turns left or right (`Actions.left`, `Actions.right`), it should update its direction accordingly.
+
+2. **Field of View (FOV)**:
+   - The FOV should be a 3x3 grid centered around the agent's position and aligned with the agent's direction.
+   - The FOV should correctly handle the edges of the grid by padding with walls where necessary.
+   - The FOV should also correctly rotate based on the agent's direction.
+
+3. **Agent Representation**:
+   - The agent should be represented in the FOV at the center of the grid, even after actions are taken.
+
+Given these points, let's improve the `observation_func` function to better model the true distribution:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    # Update the agent's position and direction based on the action
+    if action == Actions.forward:
+        new_pos = tuple(np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir])
+        if 0 <= new_pos[0] < state.width and 0 <= new_pos[1] < state.height and state.grid[new_pos] != ObjectTypes.wall:
+            state.agent_pos = new_pos
+    elif action == Actions.left:
+        state.agent_dir = (state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        state.agent_dir = (state.agent_dir + 1) % 4
+
+    # Get the field of view based on the updated state
+    fov = state.get_field_of_view(3)
+
+    # Create the observation
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    return obs
+```
+
+The key improvements are:
+
+1. **Agent Movement**:
+   - The agent's position is updated correctly when moving forward, and it only moves if the next cell is not a wall.
+   - The agent's direction is updated correctly when turning left or right.
+
+2. **Field of View (FOV)**:
+   - The `get_field_of_view` method is used to get the 3x3 grid centered around the agent's position and aligned with the agent's direction.
+   - The FOV is correctly padded with walls where necessary to handle the edges of the grid.
+   - The FOV is correctly rotated based on the agent's direction.
+
+3. **Agent Representation**:
+   - The agent is represented in the FOV at the center of the grid, even after actions are taken.
+
+This should better align with the true distribution of observations conditioned on a state.

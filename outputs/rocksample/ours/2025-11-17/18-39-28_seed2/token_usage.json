@@ -1,0 +1,130 @@
+{
+  "0": {
+    "input_tokens": 1190,
+    "output_tokens": 595
+  },
+  "1": {
+    "input_tokens": 1760,
+    "output_tokens": 572
+  },
+  "2": {
+    "input_tokens": 1760,
+    "output_tokens": 930
+  },
+  "3": {
+    "input_tokens": 1760,
+    "output_tokens": 1298
+  },
+  "4": {
+    "input_tokens": 1760,
+    "output_tokens": 923
+  },
+  "5": {
+    "input_tokens": 1280,
+    "output_tokens": 289
+  },
+  "6": {
+    "input_tokens": 1278,
+    "output_tokens": 265
+  },
+  "7": {
+    "input_tokens": 1869,
+    "output_tokens": 767
+  },
+  "8": {
+    "input_tokens": 1942,
+    "output_tokens": 811
+  },
+  "9": {
+    "input_tokens": 1867,
+    "output_tokens": 747
+  },
+  "10": {
+    "input_tokens": 1296,
+    "output_tokens": 447
+  },
+  "11": {
+    "input_tokens": 1383,
+    "output_tokens": 840
+  },
+  "12": {
+    "input_tokens": 1044,
+    "output_tokens": 424
+  },
+  "13": {
+    "input_tokens": 1279,
+    "output_tokens": 383
+  },
+  "14": {
+    "input_tokens": 1279,
+    "output_tokens": 368
+  },
+  "15": {
+    "input_tokens": 1946,
+    "output_tokens": 728
+  },
+  "16": {
+    "input_tokens": 1945,
+    "output_tokens": 737
+  },
+  "17": {
+    "input_tokens": 1961,
+    "output_tokens": 920
+  },
+  "18": {
+    "input_tokens": 1296,
+    "output_tokens": 1157
+  },
+  "19": {
+    "input_tokens": 1044,
+    "output_tokens": 415
+  },
+  "20": {
+    "input_tokens": 1193,
+    "output_tokens": 384
+  },
+  "21": {
+    "input_tokens": 1044,
+    "output_tokens": 856
+  },
+  "22": {
+    "input_tokens": 1279,
+    "output_tokens": 402
+  },
+  "23": {
+    "input_tokens": 1980,
+    "output_tokens": 923
+  },
+  "24": {
+    "input_tokens": 2039,
+    "output_tokens": 873
+  },
+  "25": {
+    "input_tokens": 2036,
+    "output_tokens": 893
+  },
+  "26": {
+    "input_tokens": 2036,
+    "output_tokens": 929
+  },
+  "27": {
+    "input_tokens": 1278,
+    "output_tokens": 298
+  },
+  "28": {
+    "input_tokens": 1877,
+    "output_tokens": 734
+  },
+  "29": {
+    "input_tokens": 1960,
+    "output_tokens": 771
+  },
+  "30": {
+    "input_tokens": 1876,
+    "output_tokens": 761
+  },
+  "31": {
+    "input_tokens": 1878,
+    "output_tokens": 790
+  }
+}

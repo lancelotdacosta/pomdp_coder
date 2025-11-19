@@ -1,0 +1,46 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current state's position
+    obs = copy.deepcopy(empty_obs)
+    obs.x = state.x
+    obs.y = state.y
+
+    # Determine the rock index if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    # Handle different actions
+    if action in CHECK_ACTIONS:
+        # If the action is a check action, determine the rock index
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if rock_idx < len(state.rocks):
+            # Simulate a noisy reading (70% chance of correct reading)
+            is_good = random.random() < 0.7 and state.rocks[rock_idx] or not state.rocks[rock_idx]
+            obs.rock_idx = rock_idx
+            obs.is_good = is_good
+    else:
+        # For all other actions, the rock index and is_good fields are None
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+```

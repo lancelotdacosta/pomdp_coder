@@ -1,0 +1,75 @@
+Certainly! Let's first explain the reward conditioned on state, action, and next state transition in English.
+
+### Reward Conditioning Explanation:
+1. **Sampling a Rock**:
+   - If the agent performs the `SAMPLE` action and is at a rock position:
+     - If the rock is good (`True`), the agent gets a positive reward of `10.0`.
+     - If the rock is bad (`False`), the agent gets a negative reward of `-10.0`.
+   - If the agent performs the `SAMPLE` action but is not at a rock position, the agent gets a negative reward of `-10.0`.
+
+2. **Exiting the Environment**:
+   - If the agent performs the `EXIT` action and is not at a rock position, the agent gets no reward (`0.0`) and the episode ends (`done = True`).
+   - If the agent performs the `EXIT` action while being at a rock position, the agent gets a negative reward of `-10.0` and the episode does not end (`done = False`).
+
+3. **Checking a Rock**:
+   - If the agent performs a `CHECK_ROCK_X` action and is at a rock position, the agent gets no reward (`0.0`).
+   - If the agent performs a `CHECK_ROCK_X` action but is not at a rock position, the agent gets a small negative reward of `-1.0`.
+
+4. **Other Actions (Move Actions)**:
+   - For all other actions (i.e., move actions), the agent gets no reward (`0.0`).
+
+### Improved Code:
+Here is the improved `reward_func` function based on the above explanation:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the action is a sample action
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                # Sampling a good rock gives a positive reward
+                return 10.0, False
+            else:
+                # Sampling a bad rock gives a negative reward
+                return -10.0, False
+        else:
+            # Sampling without being at a rock gives a negative reward
+            return -10.0, False
+    
+    # Check if the action is an exit action
+    if action == RockSampleActions.EXIT:
+        if state.at_rock() is None:
+            # Exiting from a position that is not a rock gives no reward
+            return 0.0, True
+        else:
+            # Exiting from a rock position should not be allowed
+            return -10.0, False
+    
+    # Check if the action is a check action
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # Checking a rock gives no reward
+            return 0.0, False
+        else:
+            # Checking without being at a rock gives a negative reward
+            return -1.0, False
+    
+    # For all other actions (move actions), no reward is given
+    return 0.0, False
+```
+
+This improved function should better align with the observed distribution from the real world. The key changes include:
+- Handling the `EXIT` action more accurately to ensure the episode ends only when the agent is not at a rock position.
+- Ensuring that the `CHECK_ROCK_X` actions give a small negative reward when the agent is not at a rock position.

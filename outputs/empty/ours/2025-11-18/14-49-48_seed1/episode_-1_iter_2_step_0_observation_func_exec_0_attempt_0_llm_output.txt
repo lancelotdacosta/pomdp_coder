@@ -1,0 +1,82 @@
+Certainly! Let's start with an explanation of the distribution of observations conditioned on a state.
+
+### Explanation:
+In the MiniGrid environment, the agent's observation is a partial view of the grid based on its current position and direction. The observation is a 3x3 grid centered in front of the agent. The distribution of observations conditioned on a state depends on:
+1. **Agent Position**: The agent's current position on the grid.
+2. **Agent Direction**: The direction the agent is facing.
+3. **Grid Content**: The objects in the grid cells within the agent's field of view.
+
+The distribution is deterministic given the state and action, as the environment is fully observable and the agent's view is determined by its position and direction.
+
+### Implementation of `observation_func`:
+Here is the implementation of the `observation_func` function:
+
+```python
+# type: ignore
+from __future__ import annotations
+
+import numpy as np
+from numpy.typing import NDArray
+
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    
+    # Get the field of view in front of the agent
+    def get_field_of_view(grid: NDArray[np.int8], pos: Tuple[int, int], dir: int, view_size: int = 3) -> NDArray[np.int8]:
+        # Get the extents of the square set of tiles visible to the agent
+        if dir == Direction.facing_right:
+            topX = pos[0]
+            topY = pos[1] - view_size // 2
+        elif dir == Direction.facing_down:
+            topX = pos[0] - view_size // 2
+            topY = pos[1]
+        elif dir == Direction.facing_left:
+            topX = pos[0] - view_size + 1
+            topY = pos[1] - view_size // 2
+        elif dir == Direction.facing_up:
+            topX = pos[0] - view_size // 2
+            topY = pos[1] - view_size + 1
+        else:
+            raise ValueError("Invalid agent direction")
+        
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, grid.shape[0])
+        gy1 = min(topY + view_size, grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = grid[gx0:gx1, gy0:gy1]
+
+        for _ in range(dir + 1):
+            # Rotate left
+            fov = np.rot90(fov.T, k=1).T
+
+        return fov
+    
+    # Get the field of view based on the current state
+    fov = get_field_of_view(state.grid, state.agent_pos, state.agent_dir)
+    
+    # Fill the empty observation with the field of view and other state information
+    empty_obs.image = fov
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+    
+    return empty_obs
+```
+
+This function `observation_func` takes a `MinigridState`, an `action`, and an `empty_obs` and returns a `MinigridObservation`. The key part is the `get_field_of_view` helper function, which calculates the 3x3 grid centered in front of the agent based on its position and direction. This function is then used to populate the observation with the appropriate field of view and other state information.

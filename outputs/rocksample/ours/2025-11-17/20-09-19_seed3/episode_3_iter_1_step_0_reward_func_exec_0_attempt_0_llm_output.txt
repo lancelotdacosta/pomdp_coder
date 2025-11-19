@@ -1,0 +1,68 @@
+Based on the provided samples and the discrepancies between the real world and the model, it seems that the reward function needs to account for the following conditions:
+
+1. **Exit Action**: The agent receives a reward of 10.0 if it exits the environment when at least one rock has been sampled and marked as bad. If no rocks have been sampled, the reward is 0.0.
+
+2. **Sample Action**: The agent receives a reward of 10.0 if it samples a rock and the rock is good. If the rock is bad or there is no rock at the current position, the reward is -1.0.
+
+3. **Check Rock Actions**: The agent should receive a reward of -1.0 if it tries to check a rock that is not at its current position. Otherwise, the reward is 0.0.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the resulting state
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent samples a rock, check if it was good
+            if state.rocks[rock_idx] == True:
+                return 10.0, False
+            else:
+                return -1.0, False
+        else:
+            # No rock at this position
+            return -1.0, False
+    
+    elif action == RockSampleActions.EXIT:
+        # If the agent exits, the episode is done
+        # Check if any rock has been sampled and marked as bad
+        if any(next_state.rocks) and all(not r for r in next_state.rocks):
+            return 10.0, True
+        else:
+            return 0.0, True
+
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is None or action != RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            # No rock at this position or checking wrong rock
+            return -1.0, False
+        else:
+            # Checking the correct rock
+            return 0.0, False
+
+    else:
+        # For all other actions (move), the reward is usually 0
+        return 0.0, False
+```
+
+### Explanation of Improvements:
+
+1. **Exit Action**:
+   - The condition `if any(next_state.rocks) and all(not r for r in next_state.rocks):` checks if at least one rock has been sampled and marked as bad before exiting. This ensures that the agent only receives a reward of 10.0 when it has successfully sampled at least one good rock.
+
+2. **Sample Action**:
+   - The reward is based on whether the rock at the current position is good. If the rock is good, the reward is 10.0; otherwise, it is -1.0. This aligns with the provided samples where sampling a bad rock or no rock results in a negative reward.
+
+3. **Check Rock Actions**:
+   - The function checks if the agent is at the correct rock position and if the action corresponds to the rock index. If not, the reward is -1.0. Otherwise, the reward is 0.0. This ensures that the agent only receives a reward of 0.0 when it correctly checks the rock at its current position.
+
+These changes should better model the true distribution of rewards based on the provided samples.

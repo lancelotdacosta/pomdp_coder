@@ -1,0 +1,67 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and your current model. The key issues seem to lie in the boundary conditions and the behavior of the `SAMPLE` action.
+
+### Analysis of the Issues:
+1. **Boundary Conditions**: The movement actions (`MOVE_NORTH`, `MOVE_SOUTH`, `MOVE_EAST`, `MOVE_WEST`) should respect the grid boundaries. However, it seems that the current implementation is sometimes moving beyond the boundaries.
+2. **SAMPLE Action**: The `SAMPLE` action should only toggle the state of a rock if the agent is at the rock's position. It seems that the current implementation toggles the rock's state regardless of the agent's position.
+
+### Corrected Distribution:
+- **Movement Actions** (`MOVE_NORTH`, `MOVE_SOUTH`, `MOVE_EAST`, `MOVE_WEST`):
+  - The agent should move in the specified direction unless it would move outside the grid boundaries.
+- **SAMPLE Action**:
+  - The agent should only toggle the state of a rock if it is at the rock's position.
+- **CHECK Actions**:
+  - These actions are sensor readings and should not change the state of the environment.
+
+### Improved Code:
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    # Define the action effects
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(y - 1, 0)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(y + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(x + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(x - 1, 0)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = not rocks[rock_idx]  # Toggle the rock's state
+            rocks = tuple(rocks)
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (x, y) == ROCK_POSITIONS[rock_idx]:
+            # Noisy sensor reading (for simplicity, no noise added here)
+            pass
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```
+
+### Explanation:
+1. **Movement Actions**:
+   - `MOVE_NORTH`: Moves the agent north, but ensures it doesn't go below the grid boundary (`y = max(y - 1, 0)`).
+   - `MOVE_SOUTH`: Moves the agent south, but ensures it doesn't go above the grid boundary (`y = min(y + 1, GRID_SIZE - 1)`).
+   - `MOVE_EAST`: Moves the agent east, but ensures it doesn't go beyond the right boundary (`x = min(x + 1, GRID_SIZE - 1)`).
+   - `MOVE_WEST`: Moves the agent west, but ensures it doesn't go beyond the left boundary (`x = max(x - 1, 0)`).
+
+2. **SAMPLE Action**:
+   - The agent checks if it is at a rock's position using `state.at_rock()`. If it is, the rock's state is toggled.
+
+3. **CHECK Actions**:
+   - These actions are placeholders for sensor readings and do not change the state of the environment.
+
+This should better align with the observed real-world samples and correctly model the distribution of next states conditioned on actions and previous states.

@@ -1,0 +1,63 @@
+To improve the `transition_func` function to better model the true distribution of next states conditioned on actions and previous states, we need to address the discrepancies between the real-world samples and the generated model. Specifically, the issues arise when the agent attempts to move north or take a sample action.
+
+### Explanation of the True Distribution:
+1. **Move Actions**:
+   - When the agent moves north (`MOVE_NORTH`), it should move up one cell unless it is already at the top of the grid (y = 0).
+   - When the agent moves south (`MOVE_SOUTH`), it should move down one cell unless it is already at the bottom of the grid (y = GRID_SIZE - 1).
+   - When the agent moves east (`MOVE_EAST`), it should move right one cell unless it is already at the rightmost column (x = GRID_SIZE - 1).
+   - When the agent moves west (`MOVE_WEST`), it should move left one cell unless it is already at the leftmost column (x = 0).
+
+2. **Sample Action**:
+   - The `SAMPLE` action should change the state of the rock if the agent is at a rock's position. For simplicity, we will assume that the sample action always changes the rock's state from good to bad or vice versa.
+
+3. **Check Actions**:
+   - The `CHECK_ROCK_0` and `CHECK_ROCK_1` actions should not change the state of the rocks but should provide an observation (not modeled in the transition function).
+
+### Improved Code:
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    # Define the action effects
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(y - 1, 0)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(y + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(x + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(x - 1, 0)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = not rocks[rock_idx]  # Toggle the rock's state
+            rocks = tuple(rocks)
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (x, y) == ROCK_POSITIONS[rock_idx]:
+            # Noisy sensor reading (for simplicity, no noise added here)
+            pass
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```
+
+### Explanation of Changes:
+1. **Move Actions**:
+   - The move actions are already correctly implemented to ensure the agent does not move out of bounds.
+
+2. **Sample Action**:
+   - If the agent is at a rock's position (`state.at_rock()`), the rock's state is toggled (good to bad or bad to good).
+
+3. **Check Actions**:
+   - The check actions do not change the state but are included for completeness. In the real environment, they would provide an observation, but this is not part of the transition function.
+
+This improved `transition_func` should now better match the true distribution of next states based on the provided real-world samples.

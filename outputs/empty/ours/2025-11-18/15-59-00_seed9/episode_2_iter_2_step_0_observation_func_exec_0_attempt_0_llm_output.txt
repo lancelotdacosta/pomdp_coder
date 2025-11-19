@@ -1,0 +1,98 @@
+Certainly! Let's first explain the distribution of observations conditioned on a state in English, then we'll improve the code to better model the true distribution.
+
+### Explanation of the Observation Distribution
+
+1. **Field of View (FoV)**:
+   - The agent has a fixed field of view (FoV) of size 3x3 centered around the agent.
+   - The FoV is aligned with the agent's direction, meaning it rotates to match the agent's perspective.
+   - The FoV should only show the region of the grid that is currently visible to the agent based on its position and direction.
+   - If the agent is facing a wall or an obstacle, the FoV should not show what is beyond the wall.
+
+2. **Agent Position and Direction**:
+   - The agent's position and direction are part of the observation.
+   - The agent's position in the FoV should always be at the center (1, 1) of the 3x3 grid.
+   - The agent's direction should be reflected in the FoV by rotating the grid accordingly.
+
+3. **Carrying Object**:
+   - If the agent is carrying an object, this information is also part of the observation.
+
+### Improved Code
+
+The main issues in the original code were:
+- The FoV was not correctly aligned with the agent's perspective.
+- The agent's position in the FoV was not always centered.
+- The FoV did not handle walls and out-of-bounds correctly.
+
+Here is the improved `observation_func`:
+
+```python
+import numpy as np
+
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    view_size = 3  # The size of the agent's field of view
+
+    # Get the extents of the square set of tiles visible to the agent
+    if state.agent_dir == 0:  # Facing right
+        topX, topY = state.agent_pos[0] - view_size // 2, state.agent_pos[1] - view_size // 2
+    elif state.agent_dir == 1:  # Facing down
+        topX, topY = state.agent_pos[0] - view_size // 2, state.agent_pos[1] - view_size // 2
+    elif state.agent_dir == 2:  # Facing left
+        topX, topY = state.agent_pos[0] - view_size // 2 + 1, state.agent_pos[1] - view_size // 2
+    elif state.agent_dir == 3:  # Facing up
+        topX, topY = state.agent_pos[0] - view_size // 2, state.agent_pos[1] - view_size // 2 + 1
+
+    fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=state.grid.dtype)
+
+    # Compute the overlapping region in the grid.
+    gx0 = max(topX, 0)
+    gy0 = max(topY, 0)
+    gx1 = min(topX + view_size, state.grid.shape[0])
+    gy1 = min(topY + view_size, state.grid.shape[1])
+
+    # Determine where the overlapping region goes in the padded array.
+    px0 = max(0, -topX)
+    py0 = max(0, -topY)
+
+    # Copy the overlapping slice.
+    fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = state.grid[gx0:gx1, gy0:gy1]
+
+    # Rotate the field of view to align with the agent's perspective
+    for _ in range(state.agent_dir):
+        fov = np.rot90(fov, k=1)
+
+    # Create the observation object
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    return obs
+```
+
+### Explanation of Improvements
+
+1. **Field of View Alignment**:
+   - The `topX` and `topY` calculations are adjusted to correctly align the FoV with the agent's direction.
+   - The `fov` array is initialized with walls to handle out-of-bounds regions.
+
+2. **Overlap Region Calculation**:
+   - The overlapping region in the grid is computed to ensure only valid grid cells are copied to the FoV.
+   - The `px0` and `py0` variables determine the position in the padded array where the overlapping slice should be placed.
+
+3. **Rotation**:
+   - The FoV is rotated to match the agent's perspective based on its direction.
+
+4. **Agent Position**:
+   - The agent's position in the FoV is always centered at (1, 1).
+
+This should better model the true distribution of observations conditioned on a state.

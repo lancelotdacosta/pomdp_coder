@@ -1,0 +1,39 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Reward for sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and state.rocks[rock_idx]:
+            return 10.0, False
+        else:
+            return 0.0, False
+
+    # Reward for checking a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = CHECK_ACTIONS.index(action)
+        if state.rocks[rock_idx] != next_state.rocks[rock_idx]:
+            return -1.0, False
+        else:
+            return 0.0, False
+
+    # No reward for movement actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+
+    # No reward for exit action
+    if action == RockSampleActions.EXIT:
+        return 0.0, True
+
+    # Default case (should not happen)
+    return 0.0, False
+```

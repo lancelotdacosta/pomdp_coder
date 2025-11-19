@@ -1,0 +1,56 @@
+Based on the discrepancies between the real-world samples and the generated model, it appears that the agent can sometimes move beyond the boundaries of the grid or remain in the same position when it should move. This suggests that the boundary conditions for movement actions are not being handled correctly.
+
+To better model the true distribution, we need to ensure that the agent can move within the grid's boundaries (0 to `GRID_SIZE - 1`) and does not get stuck when it should move. Here is the improved `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(0, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE - 1, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE - 1, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(0, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if rock_idx == 0 and action == RockSampleActions.CHECK_ROCK_0:
+                pass  # Checking the rock at the current position
+            elif rock_idx == 1 and action == RockSampleActions.CHECK_ROCK_1:
+                pass  # Checking the rock at the current position
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **Boundary Conditions for Movement Actions**:
+   - For `MOVE_NORTH`, use `max(0, y - 1)` to ensure the agent does not move above the top boundary (y = 0).
+   - For `MOVE_SOUTH`, use `min(GRID_SIZE - 1, y + 1)` to ensure the agent does not move below the bottom boundary (y = `GRID_SIZE - 1`).
+   - For `MOVE_EAST`, use `min(GRID_SIZE - 1, x + 1)` to ensure the agent does not move beyond the right boundary (x = `GRID_SIZE - 1`).
+   - For `MOVE_WEST`, use `max(0, x - 1)` to ensure the agent does not move beyond the left boundary (x = 0).
+
+2. **Other Actions**:
+   - The `SAMPLE` action and `EXIT` action remain unchanged.
+   - The `CHECK_ROCK_0` and `CHECK_ROCK_1` actions also remain unchanged as they are already correctly handling the rock inspection.
+
+By ensuring that the agent's movement is constrained within the grid boundaries, the improved `transition_func` should better model the true distribution of next states conditioned on actions and previous states.

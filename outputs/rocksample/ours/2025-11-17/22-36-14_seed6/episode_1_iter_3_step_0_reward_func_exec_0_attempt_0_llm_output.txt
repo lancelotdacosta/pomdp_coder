@@ -1,0 +1,56 @@
+Based on the provided examples, it appears that the reward function should consider the position of the agent relative to the exit points and the rocks. The exit action should only provide a reward if the agent is at one of the specified exit positions. Here are the key points:
+
+1. **Exit Action Reward**: The agent should receive a reward of 10.0 when it performs the exit action at specific exit positions. The reward is 0.0 if the agent is not at an exit position.
+2. **Exit Condition**: The episode should end (done = True) when the exit action is performed, regardless of the agent's position.
+3. **Sample Action Reward**: The agent should receive a positive reward for sampling a good rock and a negative reward for sampling a bad rock.
+4. **Check Rock Action Reward**: The agent should receive a small negative reward for checking a rock.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Initialize reward and done flag
+    reward = 0.0
+    done = False
+
+    # Define exit positions
+    EXIT_POSITIONS = [(0, 0), (4, 3), (0, 4)]
+
+    # Check if the action is an exit action
+    if action == RockSampleActions.EXIT:
+        done = True
+        if (state.x, state.y) in EXIT_POSITIONS:
+            reward = 10.0  # Reward for exiting at a valid position
+        return reward, done
+
+    # Check if the action is a sample action
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Positive reward for sampling a good rock
+            else:
+                reward = -10.0  # Negative reward for sampling a bad rock
+        return reward, done
+
+    # Check if the action is a check rock action
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            reward = -1.0  # Small negative reward for checking a rock
+        return reward, done
+
+    # For other actions (move), no immediate reward is given
+    return reward, done
+```
+
+This function now correctly models the reward based on the agent's position and the specific exit positions. The exit action will only provide a reward of 10.0 if the agent is at one of the specified exit positions, and the episode will always end when the exit action is performed.

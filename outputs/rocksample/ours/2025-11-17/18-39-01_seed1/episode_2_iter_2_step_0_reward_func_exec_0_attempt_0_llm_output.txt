@@ -1,0 +1,40 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Reward for sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and state.rocks[rock_idx]:
+            return 10.0, False  # Positive reward for sampling a good rock
+        elif rock_idx is not None and not state.rocks[rock_idx]:
+            return -10.0, False  # Negative reward for sampling a bad rock
+        else:
+            return -1.0, False  # Penalty for trying to sample where there is no rock
+    
+    # Reward for exiting the grid
+    if action == RockSampleActions.EXIT:
+        if (next_state.x == 0 and next_state.y == 0):
+            return 10.0, True  # Positive reward for successfully exiting
+        else:
+            return -1.0, False  # Penalty for trying to exit from an incorrect position
+    
+    # Reward for moving actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False  # No reward for movement actions
+    
+    # Reward for checking a rock
+    if action in CHECK_ACTIONS:
+        return 0.0, False  # No reward for checking actions
+    
+    # Default case
+    return 0.0, False
+```

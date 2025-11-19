@@ -1,0 +1,72 @@
+Certainly! Let's first explain the reward conditioned on state, action, next state transition in English:
+
+1. **Goal Reached**: If the agent is on the goal square (`ObjectTypes.goal`) in the next state, the reward is 1 and the episode is done.
+2. **Key Pickup**: If the agent performs the `pickup` action (`Actions.pickup`) and successfully picks up a key (i.e., the agent was not carrying anything before and now is carrying a key), the reward is 0.1.
+3. **Door Unlocking**: If the agent performs the `toggle` action (`Actions.toggle`) and successfully unlocks a locked door while carrying a key (i.e., the front cell of the agent changes from `ObjectTypes.locked_door` to `ObjectTypes.open_door`), the reward is 0.1.
+4. **Other Actions**: For all other actions or transitions, the reward is 0 and the episode is not done.
+
+Now, let's improve the `reward_func` function to better model the true distribution:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    def is_goal_reached(state):
+        # Check if the agent is on the goal square
+        return state.grid[state.agent_pos] == ObjectTypes.goal
+
+    def is_agent_carrying_key(state):
+        # Check if the agent is carrying a key
+        return state.carrying == ObjectTypes.key
+
+    def is_agent_in_front_of_locked_door(state):
+        # Check if the agent is in front of a locked door
+        front_pos = state.front_pos
+        return 0 <= front_pos[0] < state.grid.shape[0] and \
+               0 <= front_pos[1] < state.grid.shape[1] and \
+               state.grid[front_pos] == ObjectTypes.locked_door
+
+    def is_door_unlocked(state, next_state):
+        # Check if the door in front of the agent has been unlocked
+        front_pos = state.front_pos
+        return 0 <= front_pos[0] < state.grid.shape[0] and \
+               0 <= front_pos[1] < state.grid.shape[1] and \
+               state.grid[front_pos] == ObjectTypes.locked_door and \
+               next_state.grid[front_pos] == ObjectTypes.open_door
+
+    reward = 0
+    done = False
+
+    # Check if the goal is reached
+    if is_goal_reached(next_state):
+        reward = 1
+        done = True
+    else:
+        # Check if the agent picked up the key
+        if action == Actions.pickup and next_state.carrying == ObjectTypes.key and state.carrying is None:
+            reward = 0.1
+
+        # Check if the agent toggled (unlocked) a locked door while carrying a key
+        if action == Actions.toggle and is_agent_carrying_key(state) and is_door_unlocked(state, next_state):
+            reward = 0.1
+
+    return reward, done
+```
+
+### Explanation of Improvements:
+
+1. **Key Pickup**: The condition for picking up a key is now explicitly checked by ensuring the agent was not carrying anything before (`state.carrying is None`) and is carrying a key after (`next_state.carrying == ObjectTypes.key`).
+
+2. **Door Unlocking**: The condition for unlocking a door is checked by ensuring the agent is carrying a key (`is_agent_carrying_key(state)`), the front cell in the current state is a locked door (`state.grid[front_pos] == ObjectTypes.locked_door`), and the front cell in the next state is an open door (`next_state.grid[front_pos] == ObjectTypes.open_door`).
+
+3. **Goal Reached**: The condition for reaching the goal is simply checking if the agent's position in the next state is on the goal square.
+
+These improvements should make the reward function more aligned with the true distribution of the environment.

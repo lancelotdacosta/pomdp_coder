@@ -1,0 +1,40 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(1, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(1, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and rock_idx == action - RockSampleActions.CHECK_ROCK_0:
+            # Perform a noisy check on the rock
+            if random.random() < 0.9:  # 90% chance of correct reading
+                is_good = rocks[rock_idx]
+            else:
+                is_good = not rocks[rock_idx]
+            # Check actions do not change the state, but they return an observation
+            return RockSampleState(x, y, rocks)
+    
+    return RockSampleState(x, y, rocks)
+```

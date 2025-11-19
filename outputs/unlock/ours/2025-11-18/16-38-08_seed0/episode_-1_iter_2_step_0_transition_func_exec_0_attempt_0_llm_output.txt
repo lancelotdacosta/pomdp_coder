@@ -1,0 +1,120 @@
+Certainly! Let's analyze the discrepancies and improve the `transition_func` to better model the true distribution of next states.
+
+### Analysis
+
+1. **First Example:**
+   - **Input State:** Agent at (4, 3), facing right (0), carrying key (7), grid with a locked door (6) at (5, 3).
+   - **Action:** Toggle (5).
+   - **Expected Output:** The locked door should become an open door (4), and the agent should still be carrying the key.
+   - **Current Output:** The locked door becomes an open door (4), but the agent drops the key.
+
+2. **Second Example:**
+   - **Input State:** Agent at (7, 3), facing right (0), carrying key (7), grid with an open door (4) at (8, 3).
+   - **Action:** Move forward (2).
+   - **Expected Output:** The agent moves to (8, 3), still facing right (0), and still carrying the key.
+   - **Current Output:** The agent does not move.
+
+### Improvements
+
+1. **First Example:**
+   - The `toggle` function should not drop the key when unlocking a door. The key should only be dropped if the agent explicitly drops it.
+
+2. **Second Example:**
+   - The `move_agent` function should correctly handle moving through open doors and other passable tiles.
+
+### Updated Code
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    grid = state.grid.copy()
+    agent_pos = np.array(state.agent_pos)
+    agent_dir = state.agent_dir
+    carrying = state.carrying
+
+    def move_agent():
+        nonlocal agent_pos
+        next_pos = agent_pos + DIR_TO_VEC[agent_dir]
+        if 0 <= next_pos[0] < state.width and 0 <= next_pos[1] < state.height:
+            if grid[tuple(next_pos)] in [ObjectTypes.empty, ObjectTypes.open_door, ObjectTypes.goal]:
+                agent_pos = next_pos
+
+    def turn_left():
+        nonlocal agent_dir
+        agent_dir = (agent_dir - 1) % 4
+
+    def turn_right():
+        nonlocal agent_dir
+        agent_dir = (agent_dir + 1) % 4
+
+    def toggle():
+        nonlocal carrying, grid
+        front_pos = np.array(agent_pos) + DIR_TO_VEC[agent_dir]
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            obj_type = grid[tuple(front_pos)]
+            if obj_type == ObjectTypes.closed_door:
+                grid[tuple(front_pos)] = ObjectTypes.open_door
+            elif obj_type == ObjectTypes.open_door:
+                grid[tuple(front_pos)] = ObjectTypes.closed_door
+            elif obj_type == ObjectTypes.locked_door and carrying == ObjectTypes.key:
+                grid[tuple(front_pos)] = ObjectTypes.open_door
+
+    def pickup():
+        nonlocal carrying, grid
+        front_pos = np.array(agent_pos) + DIR_TO_VEC[agent_dir]
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            obj_type = grid[tuple(front_pos)]
+            if (obj_type in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]) and carrying is None:
+                carrying = obj_type
+                grid[tuple(front_pos)] = ObjectTypes.empty
+
+    def drop():
+        nonlocal carrying, grid
+        front_pos = np.array(agent_pos) + DIR_TO_VEC[agent_dir]
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            if grid[tuple(front_pos)] == ObjectTypes.empty and carrying is not None:
+                grid[tuple(front_pos)] = carrying
+                carrying = None
+
+    # Apply the action
+    if action == Actions.left:
+        turn_left()
+    elif action == Actions.right:
+        turn_right()
+    elif action == Actions.forward:
+        move_agent()
+    elif action == Actions.pickup:
+        pickup()
+    elif action == Actions.drop:
+        drop()
+    elif action == Actions.toggle:
+        toggle()
+    elif action == Actions.done:
+        pass  # No change in the environment
+
+    # Create the new state
+    new_state = MinigridState(
+        grid=grid,
+        agent_pos=tuple(agent_pos),
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return new_state
+```
+
+### Explanation
+
+1. **Move Agent:**
+   - The `move_agent` function now allows the agent to move through open doors and goal squares, not just empty tiles.
+
+2. **Toggle Function:**
+   - The `toggle` function no longer drops the key when unlocking a door. It only changes the state of the door.
+
+These changes should align the model more closely with the true distribution of next states in the environment.

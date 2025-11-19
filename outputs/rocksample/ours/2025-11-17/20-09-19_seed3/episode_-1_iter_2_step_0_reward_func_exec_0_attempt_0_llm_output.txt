@@ -1,0 +1,58 @@
+Certainly! Let's analyze the problem and then improve the `reward_func` function to better model the true distribution.
+
+### Analysis
+
+1. **Exit Action (ACTION 5)**:
+   - The provided samples show that the agent receives a reward of 10.0 and the episode ends (`done = True`) when the exit action is taken at positions (4, 3) and (4, 1).
+   - This suggests that the exit condition is met even if the agent is not at the bottom-right corner (4, 4), but rather at any position along the rightmost column (x = 4).
+
+2. **Other Actions**:
+   - The existing logic for sampling actions, checking rock actions, and other movement actions seems to be correct.
+
+### Improved `reward_func` Function
+
+We need to modify the exit condition to reflect the new understanding that the agent can exit from any position along the rightmost column (x = 4).
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent is at a rock and attempts to sample it
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and state.rocks[rock_idx] == True:
+            return 10.0, False  # Sampling a good rock gives a reward of 10.0
+        else:
+            return -10.0, False  # Sampling a bad rock or no rock gives a penalty of -10.0
+
+    # Check if the agent has reached the exit
+    if action == RockSampleActions.EXIT:
+        if next_state.x == GRID_SIZE - 1:  # Agent can exit from any position along the rightmost column
+            return 10.0, True  # Exiting the grid ends the episode with a reward of 10.0
+        else:
+            return 0.0, False  # Attempting to exit but not at the exit column gives no penalty
+
+    # Penalty for checking rock actions
+    if action in CHECK_ACTIONS:
+        return -1.0, False  # Checking a rock gives a small penalty
+
+    # For all other actions (move), there is no immediate reward
+    return 0.0, False
+```
+
+### Explanation
+
+1. **Exit Action**:
+   - The condition `if next_state.x == GRID_SIZE - 1` checks if the agent is in the rightmost column. If this condition is met, the agent receives a reward of 10.0 and the episode ends (`done = True`).
+
+2. **Other Actions**:
+   - The logic for sampling rocks, checking rocks, and other movement actions remains unchanged.
+
+This should align the model's behavior more closely with the observed distribution from the real world.

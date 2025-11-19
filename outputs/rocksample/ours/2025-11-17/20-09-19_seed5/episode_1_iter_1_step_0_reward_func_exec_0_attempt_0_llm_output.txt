@@ -1,0 +1,53 @@
+Based on the provided samples, it seems that the reward function should handle the following cases:
+
+1. **Exiting the Environment**:
+   - When the agent performs the `EXIT` action, the episode ends (`done=True`), and the agent receives a large positive reward (`10.0`).
+
+2. **Sampling a Rock**:
+   - When the agent samples a rock (`SAMPLE` action) at a rock's position, the reward is based on the quality of the rock:
+     - If the rock is good, the agent receives a positive reward (`10.0`).
+     - If the rock is bad, the agent receives a negative reward (`-1.0`).
+
+3. **Checking a Rock**:
+   - When the agent checks a rock (e.g., `CHECK_ROCK_0` or `CHECK_ROCK_1`), there is no immediate reward, but the agent can still be in a valid state.
+
+4. **Other Actions**:
+   - For any other actions (e.g., moving, checking a rock), the reward is `0.0` and the episode does not end.
+
+Here is the improved `reward_func` function that better models the true distribution:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the current state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+    
+    # Check if the action is to sample a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent is at a rock and samples it, get a reward based on the rock's quality
+            if next_state.rocks[rock_idx]:
+                reward = 10.0  # Good rock
+            else:
+                reward = -1.0  # Bad rock
+    
+    # Check if the action is to exit the environment
+    if action == RockSampleActions.EXIT:
+        reward = 10.0  # Large positive reward for exiting
+        done = True  # Episode ends when the agent exits
+    
+    return reward, done
+```
+
+This function now correctly handles the cases where the agent exits the environment or samples a rock, providing the appropriate rewards and done flags based on the provided samples.

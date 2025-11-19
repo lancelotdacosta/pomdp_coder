@@ -1,0 +1,70 @@
+Certainly! Let's analyze the discrepancies between the observed samples and the generated samples from the model. The primary issues seem to be related to the boundary conditions of the grid and the sampling of the rocks.
+
+### Explanation of the Distribution
+
+1. **Movement Actions**:
+   - **North**: The agent should move up by one cell, but it should not go beyond the top boundary (y=1).
+   - **South**: The agent should move down by one cell, but it should not go beyond the bottom boundary (y=GRID_SIZE).
+   - **East**: The agent should move right by one cell, but it should not go beyond the right boundary (x=GRID_SIZE).
+   - **West**: The agent should move left by one cell, but it should not go beyond the left boundary (x=1).
+
+2. **Sample Action**:
+   - If the agent is at a rock position, the rock's state should be toggled (i.e., GOOD to BAD or BAD to GOOD).
+
+3. **Check Actions**:
+   - These actions do not change the state of the environment.
+
+4. **Exit Action**:
+   - This action does not change the state of the environment.
+
+### Corrected `transition_func`
+
+Here is the corrected `transition_func` function that addresses the boundary conditions and the sampling of the rocks:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # Sample the rock and change its state
+            new_state.rocks = (*new_state.rocks[:rock_idx], not new_state.rocks[rock_idx], *new_state.rocks[rock_idx+1:])
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state for exit action
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (new_state.x, new_state.y) in ROCK_POSITIONS:
+            # Update the observation but not the state
+            pass  # No change in state for check actions
+
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **Boundary Conditions**:
+   - For `MOVE_NORTH`, the agent's y-coordinate is set to `max(1, new_state.y - 1)` to ensure it does not go below 1.
+   - For `MOVE_SOUTH`, the agent's y-coordinate is set to `min(GRID_SIZE, new_state.y + 1)` to ensure it does not go above `GRID_SIZE`.
+   - For `MOVE_EAST`, the agent's x-coordinate is set to `min(GRID_SIZE, new_state.x + 1)` to ensure it does not go beyond `GRID_SIZE`.
+   - For `MOVE_WEST`, the agent's x-coordinate is set to `max(1, new_state.x - 1)` to ensure it does not go below 1.
+
+2. **Sampling Rocks**:
+   - The rock's state is toggled only if the agent is at a rock position. This is handled by checking if `rock_idx` is not `None`.
+
+These changes should ensure that the model more closely matches the observed distribution of next states conditioned on actions and previous states.

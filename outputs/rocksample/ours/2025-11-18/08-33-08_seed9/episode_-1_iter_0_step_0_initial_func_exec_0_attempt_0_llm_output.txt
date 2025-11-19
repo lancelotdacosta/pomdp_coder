@@ -1,0 +1,41 @@
+To model the distribution of initial states, we need to consider the provided samples and infer a probabilistic distribution that can generate these initial states. 
+
+From the samples:
+- The agent's starting position (x, y) varies across the grid: (1, 2), (0, 4), (2, 1), (0, 0).
+- The state of the rocks is also varied: [G, B], [B, B], [B, G].
+
+We can assume:
+- The agent's starting position is uniformly distributed across the grid.
+- The state of each rock is independently good (G) or bad (B) with equal probability.
+
+Let's implement the `initial_func` function to sample from this distribution:
+
+```python
+def initial_func(empty_state: RockSampleState):
+    """
+    Input:
+        empty_state (RockSampleState): An empty state with only the walls filled into the grid
+    Returns:
+        state (RockSampleState): the initial state of the environment
+    """
+    # Define the possible starting positions for the agent
+    possible_positions = [
+        (0, 0), (0, 4), (1, 2), (2, 1)
+    ]
+    
+    # Randomly select a starting position for the agent
+    x, y = random.choice(possible_positions)
+    
+    # Define the possible states for each rock (G or B)
+    rock_states = [True, False]  # True for G, False for B
+    
+    # Randomly select the state for each rock
+    rocks = tuple(random.choice(rock_states) for _ in range(NUM_ROCKS))
+    
+    # Create and return the initial state
+    return RockSampleState(x=x, y=y, rocks=rocks)
+```
+
+This function will generate an initial state by:
+1. Randomly selecting a starting position for the agent from the provided samples.
+2. Randomly assigning a state (good or bad) to each rock, with each state having an equal probability.

@@ -1,0 +1,61 @@
+Based on the provided samples, it appears that the `EXIT` action should only provide a reward of 10.0 and terminate the episode if the agent is at a specific position (likely a designated exit location). Additionally, the `CHECK_ROCK_X` actions should only provide a reward of -1.0 if the agent is not at the corresponding rock position.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        # Exit action should only provide a reward if the agent is at the exit position (0, 0)
+        if (state.x, state.y) == (0, 0):
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent is sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:  # Good rock
+                return 10.0, False
+            else:  # Bad rock
+                return -10.0, False
+        else:
+            return -1.0, False  # Sampling but not at a rock
+
+    # Check if the agent is checking a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (state.x, state.y) == ROCK_POSITIONS[rock_idx]:
+            return 0.0, False
+        else:
+            return -1.0, False  # Checking but not at a rock
+
+    # Default reward for moving actions
+    return 0.0, False
+```
+
+### Explanation:
+1. **EXIT Action**:
+   - The `EXIT` action should only provide a reward of 10.0 and terminate the episode if the agent is at the position (0, 0). This position is assumed to be the designated exit location.
+   - If the agent is not at (0, 0), the `EXIT` action provides no reward and does not terminate the episode.
+
+2. **SAMPLE Action**:
+   - If the agent is at a rock position (determined by `state.at_rock()`), the `SAMPLE` action provides a reward of 10.0 for a good rock and -10.0 for a bad rock.
+   - If the agent is not at a rock position, the `SAMPLE` action results in a penalty of -1.0.
+
+3. **CHECK_ROCK_X Actions**:
+   - The `CHECK_ROCK_X` actions (where X is 0 or 1) should provide a reward of 0.0 if the agent is at the corresponding rock position.
+   - If the agent is not at the corresponding rock position, the `CHECK_ROCK_X` action results in a penalty of -1.0.
+
+This revised `reward_func` function should better match the observed distribution from the real world.

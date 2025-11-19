@@ -1,0 +1,79 @@
+The error you're encountering indicates that the `current_state` variable is not defined in the scope where the `transition_func` is being called. This can happen if the `transition_func` is being executed in a different context or if the necessary variables are not being passed correctly.
+
+To address this, we need to ensure that the `current_state` and `action` variables are properly defined and passed to the `transition_func`. Here’s a revised version of the `transition_func` with some additional context to help you understand how it should be used:
+
+1. Ensure that `current_state` and `action` are defined before calling `transition_func`.
+2. Handle the observation separately if a `CHECK_ROCK` action is performed.
+
+Here's the updated `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(0, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE - 1, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE - 1, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(0, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock (mark it as BAD)
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (x, y) == ROCK_POSITIONS[rock_idx]:
+            is_good = rocks[rock_idx]
+            # Simulate noisy sensor reading
+            if random.random() < 0.1:  # 10% chance of incorrect reading
+                is_good = not is_good
+            # Return the observation but not as the next state
+            return RockSampleObservation(x, y, rock_idx, is_good)
+        else:
+            return RockSampleObservation(x, y, None, None)
+
+    new_state = RockSampleState(x, y, rocks)
+    return new_state
+```
+
+To ensure that `current_state` and `action` are defined and passed correctly, you can use a function like this in your main code:
+
+```python
+# Example usage of transition_func
+if __name__ == "__main__":
+    # Define the initial state
+    current_state = RockSampleState(x=3, y=3, rocks=(True, False))
+
+    # Define the action
+    action = RockSampleActions.MOVE_EAST
+
+    # Call the transition function
+    next_state_or_obs = transition_func(current_state, action)
+
+    if isinstance(next_state_or_obs, RockSampleObservation):
+        print(f"Observation: {next_state_or_obs}")
+    else:
+        print(f"New State: {next_state_or_obs}")
+```
+
+In this example:
+- `current_state` is defined as an instance of `RockSampleState`.
+- `action` is defined as an instance of `RockSampleActions`.
+- The `transition_func` is called with `current_state` and `action`.
+- The result is checked to see if it is a `RockSampleObservation` or a `RockSampleState`.
+
+This should ensure that the `transition_func` is called correctly and that the necessary variables are defined. If you are using this in a larger context, make sure to pass `current_state` and `action` appropriately from your planning or environment code.

@@ -1,0 +1,93 @@
+To better model the true distribution of next states conditioned on actions and previous states, let's first understand the observed discrepancies:
+
+1. **Move North**: The robot should move north unless it is already at the top border of the grid.
+   - Example: `(x=1, y=1) + MOVE_NORTH => (x=1, y=0)`, but the real world shows `(x=1, y=2)`.
+   - This suggests that the robot might not always move as expected due to some kind of noise or boundary condition.
+
+2. **Move South**: The robot should move south unless it is already at the bottom border of the grid.
+   - Example: `(x=1, y=4) + MOVE_SOUTH => (x=1, y=3)`, but the real world shows `(x=1, y=5)`.
+   - This suggests that the robot might not always move as expected due to some kind of noise or boundary condition.
+
+3. **Move East**: The robot should move east unless it is already at the right border of the grid.
+   - Example: `(x=4, y=3) + MOVE_EAST => (x=4, y=2)`, but the real world shows `(x=4, y=4)`.
+   - This suggests that the robot might not always move as expected due to some kind of noise or boundary condition.
+
+4. **Move West**: The robot should move west unless it is already at the left border of the grid.
+   - Example: `(x=0, y=4) + MOVE_WEST => (x=0, y=3)`, but the real world shows `(x=0, y=4)`.
+   - This suggests that the robot might not always move as expected due to some kind of noise or boundary condition.
+
+To incorporate these observations, we can add a small probability of the robot staying in place or moving in a different direction when an action is taken. This will better reflect the real-world behavior.
+
+Here is the improved `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    def move_north(state):
+        if random.random() < 0.9:  # 90% chance of moving north
+            return RockSampleState(x=state.x, y=max(0, state.y - 1), rocks=state.rocks)
+        else:  # 10% chance of staying in place
+            return state
+
+    def move_south(state):
+        if random.random() < 0.9:  # 90% chance of moving south
+            return RockSampleState(x=state.x, y=min(GRID_SIZE - 1, state.y + 1), rocks=state.rocks)
+        else:  # 10% chance of staying in place
+            return state
+
+    def move_east(state):
+        if random.random() < 0.9:  # 90% chance of moving east
+            return RockSampleState(x=min(GRID_SIZE - 1, state.x + 1), y=state.y, rocks=state.rocks)
+        else:  # 10% chance of staying in place
+            return state
+
+    def move_west(state):
+        if random.random() < 0.9:  # 90% chance of moving west
+            return RockSampleState(x=max(0, state.x - 1), y=state.y, rocks=state.rocks)
+        else:  # 10% chance of staying in place
+            return state
+
+    def sample_rock(state):
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            new_rocks = list(state.rocks)
+            new_rocks[rock_idx] = True  # Sample the rock (assume it always turns good)
+            return RockSampleState(x=state.x, y=state.y, rocks=tuple(new_rocks))
+        else:
+            return state
+
+    def exit(state):
+        return state  # No change when exiting
+
+    def check_rock(state, rock_idx):
+        if state.at_rock() == rock_idx:
+            return RockSampleState(x=state.x, y=state.y, rocks=state.rocks)
+        else:
+            return state
+
+    if action == RockSampleActions.MOVE_NORTH:
+        return move_north(state)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        return move_south(state)
+    elif action == RockSampleActions.MOVE_EAST:
+        return move_east(state)
+    elif action == RockSampleActions.MOVE_WEST:
+        return move_west(state)
+    elif action == RockSampleActions.SAMPLE:
+        return sample_rock(state)
+    elif action == RockSampleActions.EXIT:
+        return exit(state)
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        return check_rock(state, rock_idx)
+    else:
+        raise ValueError(f"Unknown action: {action}")
+```
+
+This updated function introduces a 10% chance that the robot will stay in place when attempting to move. This should better model the observed discrepancies and align more closely with the true distribution of next states.

@@ -1,0 +1,67 @@
+The reward function should capture the following criteria based on the environment's dynamics:
+
+1. **Reaching the Goal**: If the agent reaches the goal square, it should receive a reward of 1.0 and the episode should be marked as done.
+2. **Picking Up a Key**: If the agent picks up a key, it should receive a reward of 0.5 and the episode should continue.
+3. **Unlocking a Door**: If the agent successfully unlocks a door (by toggling a locked door to an open door), it should receive a reward of 0.5 and the episode should continue.
+4. **Movement Penalties**: If the agent moves to a new position:
+   - If the new position is a wall or an obstacle, it should receive a penalty of -1.0.
+   - If the new position is not a wall and the agent is not carrying an object, it should receive a small penalty of -0.1.
+   - If the new position is not a wall and the agent is carrying an object, it should receive no penalty.
+5. **No Change in State**: If there is no change in state (i.e., the agent performs an action that does not change its position or the environment), the reward should be 0.0.
+
+Let's improve the `reward_func` to better model these criteria:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent has reached the goal
+    goal_pos = next_state.get_type_indices(ObjectTypes.goal)
+    if next_state.agent_pos in goal_pos:
+        return 1.0, True
+
+    # Check if the agent has picked up a key
+    if state.carrying is None and next_state.carrying == ObjectTypes.key:
+        return 0.5, False
+
+    # Check if the agent has unlocked a door
+    if action == Actions.toggle:
+        front_pos = state.front_pos
+        if state.grid[front_pos] == ObjectTypes.locked_door and next_state.grid[front_pos] == ObjectTypes.open_door:
+            return 0.5, False
+
+    # Check if the agent has moved to a new position
+    if state.agent_pos != next_state.agent_pos:
+        # Ensure the new position is not a wall or an obstacle
+        new_pos = next_state.agent_pos
+        if next_state.grid[new_pos] == ObjectTypes.wall:
+            return -1.0, False  # Penalize for running into walls
+        else:
+            # If the agent is carrying an object, do not penalize movement
+            if next_state.carrying is not None:
+                return 0.0, False
+            else:
+                return -0.1, False  # Small penalty for movement
+
+    # Default reward for other actions or no change in state
+    return 0.0, False
+```
+
+### Explanation of Improvements:
+1. **Reaching the Goal**: The check for reaching the goal remains the same.
+2. **Picking Up a Key**: The check for picking up a key remains the same.
+3. **Unlocking a Door**: The check for unlocking a door remains the same.
+4. **Movement Penalties**:
+   - The penalty for moving into a wall is applied correctly.
+   - The small penalty for movement when not carrying an object is applied correctly.
+   - No penalty for movement when carrying an object is applied correctly.
+5. **No Change in State**: The default reward of 0.0 for no change in state remains the same.
+
+This should better align with the observed distribution from the real world.

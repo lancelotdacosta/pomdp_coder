@@ -1,0 +1,35 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    # Define the action effects
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(y - 1, 0)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(y + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(x + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(x - 1, 0)
+    elif action == RockSampleActions.SAMPLE:
+        # Sample action: does not change state in this simplified model
+        pass
+    elif action == RockSampleActions.EXIT:
+        # Exit action: does not change state in this simplified model
+        pass
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (x, y) == ROCK_POSITIONS[rock_idx]:
+            # Noisy sensor reading (for simplicity, no noise added here)
+            pass
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```

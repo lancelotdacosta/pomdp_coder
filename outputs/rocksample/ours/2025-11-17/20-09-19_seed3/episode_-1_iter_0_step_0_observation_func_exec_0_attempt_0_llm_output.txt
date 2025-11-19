@@ -1,0 +1,64 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0  # Convert action to rock index
+        rock_pos = ROCK_POSITIONS[rock_idx]
+
+        if (state.x, state.y) == rock_pos:
+            # The agent is at the rock's position
+            rock_is_good = state.rocks[rock_idx]
+            # Simulate a noisy reading with a certain probability
+            if random.random() < 0.9:  # 90% chance of correct reading
+                obs.rock_idx = rock_idx
+                obs.is_good = rock_is_good
+            else:
+                obs.rock_idx = rock_idx
+                obs.is_good = not rock_is_good
+        else:
+            # The agent is not at the rock's position
+            obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+    else:
+        # For all other actions, return an empty observation
+        obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    return obs
+```
+
+### Explanation of the Observation Distribution
+
+The observation distribution conditioned on a state in the RockSample environment can be described as follows:
+
+1. **Non-Check Actions**: For actions that are not rock-checking actions (e.g., moving, sampling, exiting), the observation will always be an empty observation containing only the agent's current position `(x, y)` and `None` for the rock index and reading.
+
+2. **Check Actions**:
+   - If the agent performs a check action (e.g., `CHECK_ROCK_0` or `CHECK_ROCK_1`), and the agent is at the position of the rock being checked:
+     - The observation will include the rock index and a noisy reading.
+     - The reading is correct with a 90% probability and incorrect with a 10% probability.
+   - If the agent performs a check action but is not at the position of the rock being checked:
+     - The observation will be an empty observation containing only the agent's current position `(x, y)` and `None` for the rock index and reading.
+
+This distribution ensures that the agent receives meaningful observations when it is in the correct position to check a rock, while providing no additional information for other actions or positions.

@@ -1,0 +1,67 @@
+The issue in the provided `transition_func` is that it does not handle the movement of the agent when the `forward` action is taken, especially when the target cell is a goal or some other specific object type. The agent should be able to move into such cells if they are not obstructed by walls or other agents.
+
+To improve the model, we need to ensure that the agent can move into the front cell if it is a goal or any other non-blocking object. Here's the updated `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    new_state = MinigridState(
+        grid=state.grid.copy(),
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    def move_forward():
+        front_pos = new_state.front_pos
+        if 0 <= front_pos[0] < new_state.width and 0 <= front_pos[1] < new_state.height:
+            front_obj = new_state.grid[front_pos]
+            # Allow moving into empty, goal, or open door cells
+            if front_obj in [ObjectTypes.empty, ObjectTypes.goal, ObjectTypes.open_door]:
+                new_state.agent_pos = front_pos
+
+    if action == Actions.left:
+        new_state.agent_dir = (new_state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        new_state.agent_dir = (new_state.agent_dir + 1) % 4
+    elif action == Actions.forward:
+        move_forward()
+    elif action == Actions.pickup:
+        front_pos = new_state.front_pos
+        if 0 <= front_pos[0] < new_state.width and 0 <= front_pos[1] < new_state.height:
+            front_obj = new_state.grid[front_pos]
+            if front_obj != ObjectTypes.empty and new_state.carrying is None:
+                new_state.carrying = front_obj
+                new_state.grid[front_pos] = ObjectTypes.empty
+    elif action == Actions.drop:
+        front_pos = new_state.front_pos
+        if 0 <= front_pos[0] < new_state.width and 0 <= front_pos[1] < new_state.height:
+            front_obj = new_state.grid[front_pos]
+            if front_obj == ObjectTypes.empty and new_state.carrying is not None:
+                new_state.grid[front_pos] = new_state.carrying
+                new_state.carrying = None
+    elif action == Actions.toggle:
+        front_pos = new_state.front_pos
+        if 0 <= front_pos[0] < new_state.width and 0 <= front_pos[1] < new_state.height:
+            front_obj = new_state.grid[front_pos]
+            if front_obj == ObjectTypes.closed_door:
+                new_state.grid[front_pos] = ObjectTypes.open_door
+            elif front_obj == ObjectTypes.open_door:
+                new_state.grid[front_pos] = ObjectTypes.closed_door
+    elif action == Actions.done:
+        pass
+
+    return new_state
+```
+
+### Explanation of Changes:
+1. **Move Forward Logic**: The `move_forward` function now checks if the front cell is empty, a goal, or an open door before moving the agent. This allows the agent to move into these cells.
+2. **Agent Movement**: The agent can now move forward into cells that are not walls or other blocking objects.
+
+This should better model the true distribution of next states conditioned on actions and previous states.

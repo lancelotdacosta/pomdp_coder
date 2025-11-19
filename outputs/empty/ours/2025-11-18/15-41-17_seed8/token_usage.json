@@ -1,0 +1,34 @@
+{
+  "0": {
+    "input_tokens": 2999,
+    "output_tokens": 700
+  },
+  "1": {
+    "input_tokens": 3059,
+    "output_tokens": 166
+  },
+  "2": {
+    "input_tokens": 2694,
+    "output_tokens": 1487
+  },
+  "3": {
+    "input_tokens": 2694,
+    "output_tokens": 438
+  },
+  "4": {
+    "input_tokens": 2694,
+    "output_tokens": 795
+  },
+  "5": {
+    "input_tokens": 3295,
+    "output_tokens": 1895
+  },
+  "6": {
+    "input_tokens": 4455,
+    "output_tokens": 1356
+  },
+  "7": {
+    "input_tokens": 2223,
+    "output_tokens": 375
+  }
+}

@@ -1,0 +1,47 @@
+Certainly! The distribution of observations conditioned on a state in the RockSample environment can be described as follows:
+
+1. **Movement Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST)**: These actions do not provide any additional information about the rocks. The observation will only contain the current position (x, y) of the agent and `None` for `rock_idx` and `is_good`.
+
+2. **Exit Action (EXIT)**: This action also does not provide any additional information about the rocks. The observation will only contain the current position (x, y) of the agent and `None` for `rock_idx` and `is_good`.
+
+3. **Sample Action (SAMPLE)**: If the agent is at a rock's position, this action samples the rock. However, the provided samples suggest that the `SAMPLE` action does not produce an observation with `rock_idx` or `is_good` set. Instead, it returns `NULL` for these fields.
+
+4. **Check Rock Actions (CHECK_ROCK_0, CHECK_ROCK_1)**: These actions provide a noisy reading of the rock's quality (good or bad). The observation will contain the current position (x, y), the index of the rock being checked (`rock_idx`), and a noisy reading (`is_good`).
+
+Given this understanding, here is the implementation of the `observation_func` function:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0  # Convert action to rock index
+        if state.at_rock() == rock_idx:
+            # If the agent is at the rock's position, provide a noisy reading
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.85:  # Assume 85% accuracy for the sensor
+                obs.is_good = is_good
+            else:
+                obs.is_good = not is_good
+            obs.rock_idx = rock_idx
+
+    return obs
+```
+
+### Explanation of the Code:
+- **Movement and Exit Actions**: For these actions, the observation only contains the current position (x, y) and `None` for `rock_idx` and `is_good`.
+- **Sample Action**: The provided samples suggest that the `SAMPLE` action does not produce a meaningful observation, so it is handled similarly to movement and exit actions.
+- **Check Rock Actions**: If the agent is at the position of the rock being checked (`state.at_rock() == rock_idx`), a noisy reading is generated. The sensor has an 85% chance of providing the correct reading.
+
+This implementation ensures that the observations are consistent with the provided samples and the described distribution.

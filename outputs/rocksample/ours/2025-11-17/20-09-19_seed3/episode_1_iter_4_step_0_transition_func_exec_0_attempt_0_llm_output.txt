@@ -1,0 +1,48 @@
+Based on the observed behavior and the provided samples, it seems that the grid boundaries are not correctly handled in the `transition_func`. Specifically, the grid is likely to have boundaries at x=0 and y=0, and the maximum x and y values should be `GRID_SIZE - 1` instead of `GRID_SIZE`.
+
+Additionally, the `rocks` attribute in the `RockSampleState` is a tuple of booleans (`True` for good rocks and `False` for bad rocks), but the transition function is incorrectly treating them as strings ('G' and 'B'). This needs to be corrected.
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(0, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(0, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample action changes the rock's state from 'True' to 'False'
+            new_state.rocks = tuple(False if i == rock_idx and r else r for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # Exit action does not change the state
+    elif action in CHECK_ACTIONS:
+        pass  # Sensor check actions do not change the state
+    
+    return new_state
+```
+
+### Explanation of the Changes:
+1. **Grid Boundaries**:
+   - The `max(0, new_state.y - 1)` ensures that the y-coordinate does not go below 0.
+   - The `min(GRID_SIZE - 1, new_state.y + 1)` ensures that the y-coordinate does not exceed `GRID_SIZE - 1`.
+   - Similarly, for x-coordinates, `max(0, new_state.x - 1)` and `min(GRID_SIZE - 1, new_state.x + 1)` are used to ensure the x-coordinate stays within bounds.
+
+2. **Rock States**:
+   - The `rocks` attribute is a tuple of booleans, so the transition function now correctly changes the rock state from `True` (good) to `False` (bad) when the sample action is taken at a rock's position.
+
+These changes should better match the observed behavior and improve the accuracy of the model.

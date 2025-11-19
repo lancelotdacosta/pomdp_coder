@@ -1,0 +1,68 @@
+Certainly! Let's improve the `reward_func` function based on the observed discrepancies between the real world samples and the generated model.
+
+### Explanation
+
+1. **Exit Action**:
+   - The exit action should only provide a reward if the agent is not at a rock position. If the agent is at a rock position and tries to exit, it should still be penalized.
+
+2. **Sample Action**:
+   - The sample action should only provide a positive or negative reward if the agent is at a rock position. If the agent is not at a rock position and tries to sample, it should be penalized.
+
+3. **Check Actions**:
+   - The check actions (CHECK_ROCK_0, CHECK_ROCK_1) should only provide a penalty if the agent is not at the corresponding rock position. If the agent is at the correct rock position, there should be no penalty.
+
+4. **Other Actions**:
+   - For other actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST), there should be no reward unless specified otherwise.
+
+### Improved `reward_func` Function
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    # Check if the agent has taken the exit action
+    if action == RockSampleActions.EXIT:
+        if state.at_rock() is None:
+            done = True
+        else:
+            reward = -10.0  # Penalty for trying to exit while at a rock position
+        return reward, done
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Reward for sampling a good rock
+            else:
+                reward = -10.0  # Penalty for sampling a bad rock
+        else:
+            reward = -10.0  # Penalty for trying to sample when not at a rock
+
+    # Check if the agent has performed a check action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (state.x, state.y) != ROCK_POSITIONS[rock_idx]:
+            reward = -1.0  # Penalty for checking a rock from an incorrect position
+
+    # No other actions provide rewards in the given samples
+    return reward, done
+```
+
+This improved function should better match the real world samples provided. The key changes are:
+
+- Adding a penalty for trying to exit while at a rock position.
+- Ensuring that the sample action only provides a reward or penalty when the agent is at a rock position.
+- Ensuring that the check actions only provide a penalty if the agent is not at the corresponding rock position.

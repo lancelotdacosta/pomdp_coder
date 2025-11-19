@@ -1,0 +1,125 @@
+It seems that the `decode` method is still not handling the tuple correctly. The issue is likely in how the `transition_model` in your policy code is calling the `decode` method. Let's ensure that the `decode` method and the `transition_model` are correctly handling the tuple returned by `transition_func`.
+
+### Updated `transition_func`
+
+Ensure that the `transition_func` always returns a tuple `(new_state, observation)`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+        observation (RockSampleObservation): the observation after the action
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(0, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE - 1, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE - 1, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(0, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock (mark it as BAD)
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (x, y) == ROCK_POSITIONS[rock_idx]:
+            is_good = rocks[rock_idx]
+            # Simulate noisy sensor reading
+            if random.random() < 0.1:  # 10% chance of incorrect reading
+                is_good = not is_good
+            return RockSampleState(x, y, rocks), RockSampleObservation(x, y, rock_idx, is_good)
+        else:
+            return RockSampleState(x, y, rocks), RockSampleObservation(x, y, None, None)
+
+    new_state = RockSampleState(x, y, rocks)
+    return new_state, RockSampleObservation(x, y, None, None)
+```
+
+### Updated `decode` Method
+
+Ensure that the `decode` method correctly handles the tuple:
+
+```python
+class RockSampleEnvironment:
+    def decode(self, obj):
+        if isinstance(obj, RockSampleState):
+            return RockSampleState(x=obj.x, y=obj.y, rocks=obj.rocks)
+        elif isinstance(obj, tuple) and len(obj) == 2:
+            state, observation = obj
+            return RockSampleState(x=state.x, y=state.y, rocks=state.rocks), observation
+        else:
+            raise ValueError("Unsupported object type for decoding")
+```
+
+### Ensure Correct Handling in `transition_model`
+
+In your policy code, ensure that the `transition_model` method correctly handles the tuple returned by `transition_func`:
+
+```python
+class BasePolicy:
+    def transition_model(self, state, action):
+        next_obj = transition_func(state, action)
+        if isinstance(next_obj, tuple) and len(next_obj) == 2:
+            new_state, observation = next_obj
+        else:
+            new_state = next_obj
+            observation = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+        
+        # Decode the new state
+        decoded_new_state = self.environment.decode(new_state)
+        
+        return decoded_new_state, observation
+```
+
+### Example Usage
+
+Here is an example usage to demonstrate how to call `transition_func` and handle the returned values:
+
+```python
+if __name__ == "__main__":
+    # Define the initial state
+    current_state = RockSampleState(x=3, y=3, rocks=(True, False))
+
+    # Define the action
+    action = RockSampleActions.MOVE_EAST
+
+    # Call the transition function
+    next_obj = transition_func(current_state, action)
+
+    if isinstance(next_obj, tuple) and len(next_obj) == 2:
+        new_state, observation = next_obj
+        print(f"New State: {new_state}")
+        print(f"Observation: {observation}")
+    else:
+        print(f"New State: {next_obj}")
+```
+
+### Explanation
+
+1. **Revised `transition_func`**:
+   - Always returns a tuple `(new_state, observation)`.
+
+2. **Updated `decode` Method**:
+   - Handles both `RockSampleState` objects and tuples correctly.
+   - Raises an error for unsupported object types.
+
+3. **Ensure Correct Handling in `transition_model`**:
+   - The `transition_model` method in your policy ensures that the tuple returned by `transition_func` is handled correctly.
+   - It decodes the new state using the `decode` method of the environment.
+
+4. **Example Usage**:
+   - Demonstrates how to call `transition_func` and handle the returned values.
+
+This should ensure that your code correctly handles both states and observations without causing attribute errors.

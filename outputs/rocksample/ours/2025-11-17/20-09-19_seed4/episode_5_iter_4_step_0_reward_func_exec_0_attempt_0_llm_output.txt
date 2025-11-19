@@ -1,0 +1,33 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the transition and action
+    rock_idx = state.at_rock()
+    
+    if action == RockSampleActions.SAMPLE and rock_idx is not None:
+        # Sampling a rock
+        if next_state.rocks[rock_idx] != state.rocks[rock_idx]:
+            # The rock's state has changed after sampling
+            if next_state.rocks[rock_idx] == True:  # Sampled a good rock
+                return 10.0, False
+            else:
+                return 0.0, False
+        else:
+            return 0.0, False
+    
+    elif action == RockSampleActions.EXIT:
+        # Exiting the environment
+        return 0.0, True
+    
+    else:
+        # For other actions (move, check), no reward is given
+        return 0.0, False
+```

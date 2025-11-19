@@ -1,0 +1,35 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Helper function to determine if the agent has reached the exit position
+    def is_at_exit_position(state):
+        return state.x == GRID_SIZE and state.y == 0
+
+    # Determine the reward based on the action and the resulting state
+    if action == RockSampleActions.EXIT:
+        if is_at_exit_position(state):
+            return 10.0, True  # High reward for exiting from the correct position
+        else:
+            return -10.0, True  # Penalty for trying to exit from an incorrect position
+
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False  # High reward for sampling a good rock
+            else:
+                return -10.0, False  # Penalty for sampling a bad rock
+        else:
+            return -10.0, False  # Penalty for trying to sample when not at a rock
+
+    # No reward or penalty for movement actions or checking rocks
+    return 0.0, False
+```

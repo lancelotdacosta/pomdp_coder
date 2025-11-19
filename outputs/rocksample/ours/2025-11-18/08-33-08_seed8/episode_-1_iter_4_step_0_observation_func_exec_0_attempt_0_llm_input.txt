@@ -1,0 +1,195 @@
+#define system
+You are a robot exploring its environment. 
+
+
+
+Your goal is to model the distribution of observations conditioned on a state of the world in python. 
+
+You have tried it before and came up with one partially correct solution, but it is not perfect. 
+
+The observed distribution disagrees with the generated model in several cases.
+You need to improve your code to come closer to the true distribution.
+
+Environment Description: 
+Goal Description: 
+
+Here is a solution you came up with before. 
+
+```
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+
+
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current state's position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    # Determine the rock index if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    if action in CHECK_ACTIONS:
+        # Check if the action corresponds to the rock at the current position
+        if rock_idx is not None and action == (RockSampleActions.CHECK_ROCK_0 + rock_idx):
+            # If the agent checks a rock, provide a noisy reading
+            rock_status = state.rocks[rock_idx]
+            # Introduce noise with a small probability
+            if random.random() < 0.1:  # 10% chance of a noisy reading
+                obs.is_good = not rock_status
+            else:
+                obs.is_good = rock_status
+            obs.rock_idx = rock_idx
+        else:
+            # If the agent is not at a rock or checks a non-existent rock, return NULL
+            obs.rock_idx = None
+            obs.is_good = None
+    else:
+        # For all other actions, return NULL
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+
+```
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=0, y=3, rocks=[B,B])
+Input int: 7
+Output RockSampleObservation: Obs(x=0, y=3, rock=1, reading=BAD)
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=0, y=3, rocks=[B,B])
+Input int: 7
+Output RockSampleObservation: Obs(x=0,y=3, NULL)
+
+
+
+
+
+Explain what you believe is the distribution of observations conditioned on a state in english, then improve your code to better model the true distribution.
+
+Please implement the code for the following the template. 
+You must implement the ‘ observation_func ‘ function. 
+
+The code needs to be directly runnable with (state) and return a sample (observation). 
+
+Do not output examples. 
+Do not create any new classes. 
+Do not rewrite existing classes.
+Do not import any new modules from anywhere.
+Do not list out specific indices that overfit to the examples, but include ranges.
+Put the ‘ observation_func ‘ function in a python code block.

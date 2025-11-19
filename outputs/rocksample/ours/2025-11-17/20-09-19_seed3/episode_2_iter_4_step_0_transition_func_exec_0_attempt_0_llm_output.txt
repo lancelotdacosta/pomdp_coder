@@ -1,0 +1,61 @@
+To better model the true distribution of next states conditioned on actions and previous states, I need to adjust the movement logic to more accurately reflect the real-world samples provided. Specifically, the current implementation has a fixed 90% chance of moving successfully, which is causing discrepancies. Instead, we should ensure that the movement logic allows for the possibility of moving to adjacent positions, including staying in the same position.
+
+Here's the improved `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_x = state.x
+    new_y = state.y
+    new_rocks = list(state.rocks)  # Convert to mutable list for potential changes
+
+    if action == RockSampleActions.MOVE_NORTH:
+        possible_moves = [(0, -1), (0, 0), (1, 0), (-1, 0)]
+        dx, dy = random.choice(possible_moves)
+        new_y = max(0, min(GRID_SIZE - 1, state.y + dy))
+    elif action == RockSampleActions.MOVE_SOUTH:
+        possible_moves = [(0, 1), (0, 0), (1, 0), (-1, 0)]
+        dx, dy = random.choice(possible_moves)
+        new_y = max(0, min(GRID_SIZE - 1, state.y + dy))
+    elif action == RockSampleActions.MOVE_EAST:
+        possible_moves = [(1, 0), (0, 0), (0, 1), (0, -1)]
+        dx, dy = random.choice(possible_moves)
+        new_x = max(0, min(GRID_SIZE - 1, state.x + dx))
+    elif action == RockSampleActions.MOVE_WEST:
+        possible_moves = [(-1, 0), (0, 0), (0, 1), (0, -1)]
+        dx, dy = random.choice(possible_moves)
+        new_x = max(0, min(GRID_SIZE - 1, state.x + dx))
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            new_rocks[rock_idx] = False  # Sampled rocks are always marked as bad
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        pass  # No change in state for check actions
+
+    # Ensure the rocks tuple remains immutable
+    new_state = RockSampleState(x=new_x, y=new_y, rocks=tuple(new_rocks))
+    return new_state
+```
+
+### Explanation:
+
+1. **Movement Actions**:
+   - For each movement action (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST), I define a list of possible moves that include moving in the intended direction, staying in the same position, and moving to adjacent positions.
+   - I use `random.choice` to select one of these possible moves, ensuring that the agent can move in the intended direction, stay still, or move to an adjacent position with equal probability.
+   - The new position is then constrained to the grid boundaries using `max(0, min(GRID_SIZE - 1, ...))`.
+
+2. **Sampling Action**:
+   - If the agent is at a rock position and performs the SAMPLE action, the rock at that position is marked as bad.
+
+3. **Exit and Check Actions**:
+   - These actions do not change the state of the environment.
+
+This approach should better reflect the real-world samples provided, allowing for a more accurate distribution of next states conditioned on actions and previous states.

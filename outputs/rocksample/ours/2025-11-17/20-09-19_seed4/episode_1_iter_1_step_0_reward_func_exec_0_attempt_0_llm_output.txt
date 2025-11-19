@@ -1,0 +1,71 @@
+Based on the observed discrepancies between the real-world samples and the generated model, it seems that the reward function needs to account for additional conditions and edge cases. Specifically:
+
+1. **Sampling Rocks**: The reward for sampling a rock should be adjusted based on the rock's quality and the agent's position.
+2. **Exiting the Environment**: The episode should end when the agent exits, but the reward should be adjusted if the agent is not at a specific exit location.
+3. **Checking Rocks**: The reward for checking rocks should be consistent with the real-world samples.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+
+    # Check if the action is to sample a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent is at a rock, check if the rock is good
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Good rock sampled
+            else:
+                reward = -10.0  # Bad rock sampled
+            done = True  # Episode ends after sampling a rock
+
+    # Check if the action is to exit
+    if action == RockSampleActions.EXIT:
+        if (state.x, state.y) == (4, 3):
+            reward = 10.0  # Exit from specific location
+        else:
+            reward = 0.0  # No reward if not at the specific exit location
+        done = True  # Episode ends when the agent exits
+
+    # Check if the action is to check a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = -1.0  # Penalty for checking a good rock
+            else:
+                reward = 0.0  # No penalty for checking a bad rock
+
+    return reward, done
+```
+
+### Explanation of the Changes:
+
+1. **Sampling Rocks**:
+   - The reward for sampling a good rock is now `10.0` instead of `1.0`.
+   - The reward for sampling a bad rock is now `-10.0` instead of `-1.0`.
+   - The episode ends after sampling a rock.
+
+2. **Exiting the Environment**:
+   - The reward for exiting the environment is `10.0` if the agent is at the specific exit location `(4, 3)`.
+   - The reward is `0.0` if the agent exits from any other location.
+   - The episode ends when the agent exits.
+
+3. **Checking Rocks**:
+   - The reward for checking a good rock is `-1.0`.
+   - The reward for checking a bad rock is `0.0`.
+
+These changes should better align with the provided real-world samples and provide a more accurate model of the reward function.

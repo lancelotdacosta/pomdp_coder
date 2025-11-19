@@ -1,0 +1,69 @@
+Certainly! Let's analyze the discrepancies and adjust the `reward_func` accordingly.
+
+### Analysis:
+1. **EXIT Action:**
+   - The current implementation assumes that if the agent exits, the episode ends immediately, and the reward is 10.0 if all rocks are good, otherwise 0.0.
+   - The observed data shows that the episode does not always end when the agent exits, suggesting that the exit action might have additional conditions or randomness.
+
+2. **SAMPLE Action:**
+   - The current implementation rewards based on the quality of the rock at the agent's position.
+   - The observed data shows that the episode does not always end when the agent samples a rock.
+
+3. **General Observations:**
+   - The `done` flag should not always be `True` for the EXIT action.
+   - The `done` flag should not always be `False` for other actions.
+
+### Improved Reward Function:
+We need to introduce some probabilistic behavior or additional conditions to match the observed data more closely. Here's the improved `reward_func`:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the resulting state transition
+    if action == RockSampleActions.EXIT:
+        # If the agent exits, the episode ends with a reward of 10 if no rocks are bad
+        if all(rock for rock in state.rocks):
+            reward = 10.0
+        else:
+            reward = 0.0
+        # Introduce some randomness to match the observed data
+        done = random.random() < 0.8  # 80% chance of ending the episode
+    elif action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock, it gets a reward based on the quality of the rock
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            reward = 10.0 if state.rocks[rock_idx] else -10.0
+            # The episode might or might not end after sampling
+            done = random.random() < 0.5  # 50% chance of ending the episode
+        else:
+            reward = 0.0
+            done = False
+    elif action in CHECK_ACTIONS:
+        # If the agent performs a check rock action, it receives a small penalty
+        reward = -1.0
+        done = False
+    else:
+        # For all other actions (move), there is no immediate reward
+        reward = 0.0
+        done = False
+
+    return reward, done
+```
+
+### Explanation:
+- **EXIT Action:**
+  - The episode ends with an 80% probability when the agent exits. This introduces some variability to match the observed data.
+- **SAMPLE Action:**
+  - The episode ends with a 50% probability after sampling a rock. This also introduces variability to match the observed data.
+- **CHECK Actions:**
+  - No changes needed here as the observed data matches the current behavior.
+
+This should better model the true distribution of rewards and episode termination based on the provided examples.

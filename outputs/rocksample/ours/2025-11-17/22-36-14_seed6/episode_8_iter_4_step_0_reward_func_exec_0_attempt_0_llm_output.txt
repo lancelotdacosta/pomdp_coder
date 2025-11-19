@@ -1,0 +1,69 @@
+Certainly! Let's analyze the problem and correct the `reward_func` to better model the true distribution.
+
+### Problem Analysis:
+1. **Exit Action**: The exit action (5) should provide a reward of 10.0 if the agent is at one of the rock positions. This seems to be the main discrepancy in the provided samples.
+2. **Check Actions**: The check actions should only provide a small negative reward (-1.0) regardless of the rock state.
+3. **Sample Actions**: The sample action should update the rock state and provide a reward based on the rock's quality (10.0 for good, -10.0 for bad).
+
+### Corrected Reward Function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock
+        rock_idx = state.at_rock()
+        if rock_idx is not None and rock_idx < NUM_ROCKS:
+            if state.rocks[rock_idx]:  # Good rock
+                reward = 10.0
+            else:  # Bad rock
+                reward = -10.0
+            # Update rock state to bad after sampling
+            next_rocks = list(next_state.rocks)
+            next_rocks[rock_idx] = False
+            next_state.rocks = tuple(next_rocks)
+            done = False  # Episode does not end after sampling
+
+    if action == RockSampleActions.EXIT:
+        # If the agent exits the environment
+        if state.x == 0 and state.y == 0:  # Assuming (0, 0) is the exit position
+            reward = 0.0  # No reward for exiting at (0, 0)
+            done = False  # Episode does not end in the real world
+        else:
+            rock_idx = state.at_rock()
+            if rock_idx is not None and rock_idx < NUM_ROCKS:
+                reward = 10.0  # Reward for exiting at a rock position
+                done = True  # Episode ends when exiting at a rock position
+
+    if action in CHECK_ACTIONS:
+        # If the agent checks a rock, give a small negative reward
+        reward = -1.0
+
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # If the agent moves, no reward is given unless it tries to move out of bounds
+        if state.x != next_state.x or state.y != next_state.y:
+            reward = 0.0
+        else:
+            reward = -1.0  # Smaller penalty for trying to move out of bounds
+
+    return reward, done
+```
+
+### Explanation:
+1. **Exit Action**: The exit action now checks if the agent is at a rock position. If so, it provides a reward of 10.0 and ends the episode. This aligns with the observed samples.
+2. **Sample Action**: The sample action remains unchanged but ensures that the rock state is updated correctly.
+3. **Check Actions**: The check actions provide a small negative reward (-1.0) as expected.
+4. **Move Actions**: The move actions provide no reward unless the agent tries to move out of bounds, in which case a small penalty is applied.
+
+This should better match the true distribution of rewards in the environment.

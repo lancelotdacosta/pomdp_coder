@@ -1,0 +1,71 @@
+Certainly! Let's break down the reward function conditioned on the state, action, and next state transition based on the provided examples and the environment description.
+
+### Explanation of the Reward Function
+
+1. **Sampling Action (ACTION 4)**
+   - If the agent is at a rock location and samples:
+     - If the rock is good, the agent gets a positive reward of +10.
+     - If the rock is bad, the agent gets a negative reward of -10.
+   - If the agent samples but is not at a rock location, it gets a smaller negative reward of -5.
+
+2. **Checking Actions (ACTIONS 6 and 7)**
+   - When checking a rock, the agent receives a small negative reward of -1.
+   - The environment's real world samples suggest that the `done` flag should remain `False` after checking a rock.
+
+3. **Exit Action (ACTION 5)**
+   - If the agent exits from the correct position ((0, 0)), the episode is done, and the agent gets a reward of 0.
+   - If the agent exits from any other position, it gets a positive reward of +10 if it has sampled any good rock, otherwise, it gets no reward (0.0), and the episode is not done.
+
+### Improved Code
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                # If the agent samples a good rock, it gets a positive reward
+                reward = 10.0
+            else:
+                # If the agent samples a bad rock, it gets a larger negative reward
+                reward = -10.0
+        else:
+            # If the agent samples but there is no rock, it gets a smaller negative reward
+            reward = -5.0
+
+    elif action in CHECK_ACTIONS:
+        # When checking a rock, the agent receives a small negative reward
+        reward = -1.0
+
+    elif action == RockSampleActions.EXIT:
+        # If the agent exits from the correct position, the episode is done
+        if state.x == 0 and state.y == 0:  # Assuming (0, 0) is the exit location
+            done = True
+            # Check if any good rock has been sampled before exiting
+            if any(next_state.rocks):
+                reward = 10.0
+            else:
+                reward = 0.0
+        else:
+            # If the agent exits from any other position, it gets a positive reward if a good rock was sampled
+            if any(next_state.rocks):
+                reward = 10.0
+
+    return reward, done
+```
+
+This function should now better match the true distribution of rewards and the `done` flag based on the provided examples and the environment description.

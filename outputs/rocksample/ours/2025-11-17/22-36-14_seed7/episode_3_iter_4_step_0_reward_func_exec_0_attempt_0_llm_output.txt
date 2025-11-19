@@ -1,0 +1,63 @@
+Certainly! Based on the provided samples, it seems there are a few key points to address in the `reward_func` function:
+
+1. **Sampling Rock**: When the agent performs the `SAMPLE` action, the rock at the current position should be checked. If the rock is good, a positive reward of 10.0 should be given. If the rock is bad, a negative reward of -10.0 should be given. However, if the rock is already bad and the agent samples it again, the rock should remain bad, and the reward should be -10.0.
+
+2. **Exiting the Environment**: The `EXIT` action should end the episode if the agent is at the exit position (0, 0). Otherwise, the episode should not end, and no reward should be given.
+
+3. **Checking Rock**: When the agent performs a `CHECK_ROCK` action, if the agent is at the corresponding rock position, no immediate reward should be given. If the agent is not at the corresponding rock position, a negative reward of -1.0 should be given.
+
+4. **Movement Actions**: Movement actions generally do not give a reward unless they lead to a specific rock being sampled.
+
+5. **Other Actions**: Any other action not defined above should not give a reward.
+
+Let's update the `reward_func` function to better model these conditions:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Define the reward based on the action and the resulting state
+    if action == RockSampleActions.EXIT:
+        # Exiting the environment ends the episode if at the exit position
+        return 0.0, state.x == 0 and state.y == 0
+
+    elif action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock, check if it's at a rock position
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the rock is good, give a positive reward
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                # If the rock is bad, give a negative reward
+                return -10.0, False
+        else:
+            # Sampling without being at a rock position gives a negative reward
+            return -1.0, False
+
+    elif action in CHECK_ACTIONS:
+        # Checking a rock doesn't give an immediate reward
+        rock_idx = state.at_rock()
+        if rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            return 0.0, False
+        else:
+            return -1.0, False
+
+    elif action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # Movement actions generally don't give a reward unless they move to a specific rock and sample it
+        return 0.0, False
+
+    else:
+        # Any other action not defined above
+        return 0.0, False
+```
+
+This updated `reward_func` function should better match the observed distribution of rewards and episode termination conditions based on the provided samples.

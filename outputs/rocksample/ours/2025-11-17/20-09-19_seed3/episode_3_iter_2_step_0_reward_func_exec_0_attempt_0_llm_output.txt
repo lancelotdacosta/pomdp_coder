@@ -1,0 +1,78 @@
+Certainly! Let's first summarize the expected behavior of the reward function based on the given examples and the environment description.
+
+### Expected Reward Behavior:
+1. **Exit Action (5):**
+   - The episode should end (`done = True`).
+   - The reward should be `0.0`.
+
+2. **Sample Action (4):**
+   - If the agent is at a rock and samples it:
+     - If the rock is good (`True`), the reward should be `10.0`.
+     - If the rock is bad (`False`), the reward should be `-10.0`.
+   - If the agent is not at a rock, the reward should be `-1.0`.
+
+3. **Check Rock Actions (6, 7):**
+   - No immediate reward or penalty.
+   - The agent's observation will be updated, but this does not affect the reward.
+
+4. **All Other Actions:**
+   - The reward should be `0.0`.
+   - The episode should continue (`done = False`).
+
+### Improved Reward Function:
+Based on the above understanding, let's improve the `reward_func` to better match the true distribution of rewards.
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the resulting state
+    if action == RockSampleActions.EXIT:
+        # If the agent exits, the episode is done
+        return 0.0, True
+
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent samples a rock, check if it was good or bad
+            if state.rocks[rock_idx] == True:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            # No rock at this position
+            return -1.0, False
+    
+    elif action in CHECK_ACTIONS:
+        # Check rock actions do not affect the reward
+        return 0.0, False
+
+    else:
+        # For all other actions (move), the reward is usually 0
+        return 0.0, False
+```
+
+### Explanation of Changes:
+1. **Exit Action (5):**
+   - Correctly sets `done = True` and `reward = 0.0`.
+
+2. **Sample Action (4):**
+   - If the agent is at a rock:
+     - If the rock is good, the reward is `10.0`.
+     - If the rock is bad, the reward is `-10.0`.
+   - If the agent is not at a rock, the reward is `-1.0`.
+
+3. **Check Rock Actions (6, 7):**
+   - No immediate reward or penalty (`reward = 0.0`, `done = False`).
+
+4. **All Other Actions:**
+   - The reward is `0.0` and the episode continues (`done = False`).
+
+This should better match the true distribution of rewards as observed in the real-world samples.

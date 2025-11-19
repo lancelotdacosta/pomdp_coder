@@ -1,0 +1,56 @@
+Based on the discrepancies between the real world samples and your model, it seems that the reward function is not accounting for the agent's position when it attempts to exit the grid. Specifically, the `EXIT` action should only provide a reward if the agent is at a specific exit location in the grid. Additionally, the `CHECK_ROCK` actions should provide a small negative reward, which was missed in the initial implementation.
+
+Here's an improved version of the `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid from the correct position
+    if action == RockSampleActions.EXIT:
+        if (state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return -10.0, False  # Sampling a good rock gives negative reward
+            else:
+                return 10.0, False   # Sampling a bad rock gives positive reward
+        else:
+            return -10.0, False      # Sampling an empty cell gives negative reward
+
+    # Check if the agent performed a CHECK_ROCK action
+    if action in CHECK_ACTIONS:
+        return -1.0, False  # Small negative reward for checking rocks
+
+    # For other actions (move), no reward is given
+    return 0.0, False
+```
+
+### Explanation:
+1. **Exiting the Grid:**
+   - The `EXIT` action should only provide a reward of 10.0 and mark the episode as done if the agent is at one of the designated exit positions, which are `(0, 0)` or `(GRID_SIZE - 1, GRID_SIZE - 1)`. If the agent tries to exit from any other position, no reward is given and the episode is not marked as done.
+
+2. **Sampling a Rock:**
+   - The `SAMPLE` action provides a reward based on the rock's quality. If the agent samples a good rock, it gets a negative reward of -10.0. If it samples a bad rock, it gets a positive reward of 10.0. If the agent tries to sample an empty cell, it gets a negative reward of -10.0.
+
+3. **Checking Rocks:**
+   - The `CHECK_ROCK` actions provide a small negative reward of -1.0. This ensures that the agent is penalized slightly for checking rocks, which aligns with the real-world observations.
+
+4. **Other Actions:**
+   - For all other actions (moving), no reward is given and the episode continues.
+
+This should better model the true distribution of rewards in the environment.

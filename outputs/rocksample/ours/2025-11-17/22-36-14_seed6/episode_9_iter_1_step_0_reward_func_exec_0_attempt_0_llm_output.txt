@@ -1,0 +1,78 @@
+Certainly! Based on the discrepancies between the real-world samples and the generated model, it seems that the reward function is not correctly handling certain edge cases, particularly when the agent is at the boundary of the grid and attempts to move out of bounds.
+
+### Explanation of the Reward Function:
+
+1. **Exit Action**:
+   - If the agent performs the `EXIT` action, the episode is done and the reward is 10.0.
+
+2. **Sample Action**:
+   - If the agent performs the `SAMPLE` action and is at a rock position:
+     - If the rock is good, the reward is 10.0.
+     - If the rock is bad, the reward is -10.0.
+   - If the agent is not at a rock position, there is a penalty of -1.0 for attempting to sample.
+
+3. **Check Rock Actions**:
+   - If the agent performs a `CHECK_ROCK` action, there is no immediate reward (0.0).
+
+4. **Movement Actions**:
+   - If the agent performs a movement action and the next state is the same as the current state (indicating that the move was invalid due to being at the boundary), the reward is -1.0.
+   - If the movement is valid and the next state is different from the current state, the reward is 0.0.
+
+### Improved `reward_func` Function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # If the agent exits the grid, the episode is done and the reward is 10
+    if action == RockSampleActions.EXIT:
+        return 10.0, True
+
+    # If the agent samples a rock and it's good, the reward is 10, otherwise -10
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            # Sampling when not at a rock results in a penalty
+            return -1.0, False
+
+    # If the agent checks a rock, there is no immediate reward
+    if action in CHECK_ACTIONS:
+        return 0.0, False
+
+    # For all other actions (movement), the reward is -1 unless the next state is the same as the current state
+    if state == next_state:
+        return -1.0, False
+    else:
+        return 0.0, False
+```
+
+### Key Changes:
+
+1. **Boundary Handling for Movement**:
+   - The function now correctly handles cases where the agent tries to move out of bounds by checking if the next state is the same as the current state. If they are the same, it indicates an invalid move, and a penalty of -1.0 is given.
+
+2. **Consistent Reward for Valid Movements**:
+   - For valid movements where the next state is different from the current state, the reward is 0.0.
+
+3. **Exit Action**:
+   - The exit action still results in a reward of 10.0 and ends the episode.
+
+4. **Sample Action**:
+   - The sample action now correctly penalizes the agent if it attempts to sample when not at a rock.
+
+5. **Check Rock Actions**:
+   - Check rock actions still result in no immediate reward.
+
+This should better align with the real-world samples and provide a more accurate model of the reward function.

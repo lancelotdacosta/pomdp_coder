@@ -1,0 +1,44 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Define the reward based on the action and the resulting state
+    if action == RockSampleActions.EXIT:
+        # If the agent exits, check if it has sampled any good rocks
+        if all(rock for rock in next_state.rocks):
+            return 10.0, True
+        else:
+            return -10.0, True
+    
+    if action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock, check if it is at a rock position
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent is at a rock, sampling it gives a reward
+            if next_state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            # If the agent is not at a rock, sampling gives a penalty
+            return -1.0, False
+    
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # Movement actions have no immediate reward
+        return 0.0, False
+    
+    if action in CHECK_ACTIONS:
+        # Check actions have no immediate reward
+        return 0.0, False
+    
+    # Default case: no specific rule matched
+    return 0.0, False
+```

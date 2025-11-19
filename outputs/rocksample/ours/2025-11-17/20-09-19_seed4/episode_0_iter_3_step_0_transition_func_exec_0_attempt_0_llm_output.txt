@@ -1,0 +1,184 @@
+Based on the provided samples, it appears that the environment's transition function has some stochasticity or a different rule set than what is currently implemented. Specifically, the movement actions seem to be inconsistent with the current implementation of the `transition_func` function. 
+
+### Distribution of Next States Conditioned on Actions and Previous States
+
+1. **Movement Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST):**
+   - The agent should move in the specified direction, but it seems that the movement is not always deterministic. There might be a probability of moving in a different direction or staying in the same place.
+   - For example, when the agent is at `(0, 0)` and moves north, it sometimes ends up at `(0, 1)` instead of staying at `(0, 0)`.
+   - Similarly, when the agent is at `(0, 2)` and moves north, it sometimes ends up at `(0, 3)` instead of `(0, 1)`.
+
+2. **Sampling Action (SAMPLE):**
+   - The sampling action should mark the rock at the current position as "sampled" (i.e., set to `False`).
+   - This part seems to be working correctly based on the provided samples.
+
+3. **Exit Action (EXIT):**
+   - The exit action does not change the state.
+   - This part also seems to be working correctly.
+
+4. **Check Rock Actions (CHECK_ROCK_0, CHECK_ROCK_1):**
+   - These actions do not change the state; they only generate an observation.
+   - This part seems to be working correctly.
+
+### Improved Code
+
+To better model the true distribution, we can introduce a small probability of the agent moving in an unintended direction or staying in the same place. We will use a simple probability model for this purpose.
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+# -----------------------------------------------------------------------------#
+# Transition Function                                                          #
+# -----------------------------------------------------------------------------#
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        # With a small probability, the agent might move south or stay in place
+        if random.random() < 0.1:
+            new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+        elif random.random() < 0.2:
+            new_state.y = new_state.y
+        else:
+            new_state.y = max(0, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        # With a small probability, the agent might move north or stay in place
+        if random.random() < 0.1:
+            new_state.y = max(0, new_state.y - 1)
+        elif random.random() < 0.2:
+            new_state.y = new_state.y
+        else:
+            new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        # With a small probability, the agent might move west or stay in place
+        if random.random() < 0.1:
+            new_state.x = max(0, new_state.x - 1)
+        elif random.random() < 0.2:
+            new_state.x = new_state.x
+        else:
+            new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        # With a small probability, the agent might move east or stay in place
+        if random.random() < 0.1:
+            new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+        elif random.random() < 0.2:
+            new_state.x = new_state.x
+        else:
+            new_state.x = max(0, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(r if i != rock_idx else False for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            # No change in state, just an observation
+            pass
+
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **Movement Actions:**
+   - Introduced a small probability (10%) that the agent moves in the opposite direction.
+   - Introduced a small probability (20%) that the agent stays in the same place.
+
+This should better capture the observed behavior in the real-world samples provided. The probabilities are adjustable and can be fine-tuned based on further observations.

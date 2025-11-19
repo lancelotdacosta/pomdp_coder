@@ -1,0 +1,144 @@
+Based on the observed discrepancies between the real-world samples and the generated model, it appears that the agent's movement is sometimes constrained or modified by the environment. Specifically, the agent might not always move as expected due to some form of environmental noise or constraints.
+
+### Explanation of the Distribution:
+- **Movement Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST)**: The agent's movement is often successful, but there are instances where the agent does not move as intended. This could be due to some kind of random noise or environmental constraints.
+- **Sampling and Exit Actions**: These actions seem to work as expected, with no discrepancies observed.
+- **Check Actions**: These actions do not change the state, which is consistent with both the real-world samples and the model.
+
+To better model this distribution, we can introduce a small probability that the agent's movement is blocked or redirected. For simplicity, we'll assume a 10% chance that the movement action fails and the agent remains in the same position.
+
+### Improved `transition_func` Function:
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+# -----------------------------------------------------------------------------#
+# Transition Function                                                          #
+# -----------------------------------------------------------------------------#
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_x = state.x
+    new_y = state.y
+    new_rocks = list(state.rocks)  # Convert to mutable list for potential changes
+
+    if action == RockSampleActions.MOVE_NORTH:
+        if random.random() > 0.1:  # 90% chance to move successfully
+            new_y = max(0, state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        if random.random() > 0.1:  # 90% chance to move successfully
+            new_y = min(GRID_SIZE - 1, state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        if random.random() > 0.1:  # 90% chance to move successfully
+            new_x = min(GRID_SIZE - 1, state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        if random.random() > 0.1:  # 90% chance to move successfully
+            new_x = max(0, state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            new_rocks[rock_idx] = False  # Sampled rocks are always marked as bad
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        pass  # No change in state for check actions
+
+    # Ensure the rocks tuple remains immutable
+    new_state = RockSampleState(x=new_x, y=new_y, rocks=tuple(new_rocks))
+    return new_state
+```
+
+This updated `transition_func` function introduces a 10% chance that the agent's movement fails and the agent remains in the same position. This should better reflect the observed distribution of next states conditioned on actions and previous states.

@@ -1,0 +1,65 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    def is_valid_pos(pos):
+        x, y = pos
+        return 0 <= x < state.width and 0 <= y < state.height and state.grid[x, y] != ObjectTypes.wall
+
+    agent_pos = np.array(state.agent_pos)
+    agent_dir = state.agent_dir
+    carrying = state.carrying
+    grid = state.grid.copy()
+
+    if action == Actions.left:
+        # Turn left
+        agent_dir = (agent_dir - 1) % 4
+    elif action == Actions.right:
+        # Turn right
+        agent_dir = (agent_dir + 1) % 4
+    elif action == Actions.forward:
+        # Move forward
+        new_pos = agent_pos + DIR_TO_VEC[agent_dir]
+        if is_valid_pos(new_pos):
+            agent_pos = new_pos.tolist()
+    elif action == Actions.pickup:
+        # Pick up an object
+        front_pos = np.array(state.front_pos)
+        if grid[front_pos[0], front_pos[1]] in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+            carrying = grid[front_pos[0], front_pos[1]]
+            grid[front_pos[0], front_pos[1]] = ObjectTypes.empty
+    elif action == Actions.drop:
+        # Drop an object
+        front_pos = np.array(state.front_pos)
+        if grid[front_pos[0], front_pos[1]] == ObjectTypes.empty and carrying is not None:
+            grid[front_pos[0], front_pos[1]] = carrying
+            carrying = None
+    elif action == Actions.toggle:
+        # Toggle/activate an object
+        front_pos = np.array(state.front_pos)
+        obj_type = grid[front_pos[0], front_pos[1]]
+        if obj_type in [ObjectTypes.closed_door, ObjectTypes.open_door, ObjectTypes.locked_door]:
+            if obj_type == ObjectTypes.closed_door:
+                grid[front_pos[0], front_pos[1]] = ObjectTypes.open_door
+            elif obj_type == ObjectTypes.locked_door and carrying == ObjectTypes.key:
+                grid[front_pos[0], front_pos[1]] = ObjectTypes.closed_door
+                carrying = None
+            elif obj_type == ObjectTypes.open_door:
+                grid[front_pos[0], front_pos[1]] = ObjectTypes.closed_door
+    elif action == Actions.done:
+        # Done completing the task
+        pass
+
+    new_state = MinigridState(
+        grid=grid,
+        agent_pos=tuple(agent_pos),
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+    return new_state
+```

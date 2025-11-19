@@ -1,0 +1,93 @@
+To improve the `transition_func` function to better model the true distribution of next states conditioned on actions and previous states, we need to consider the following points:
+
+1. **Movement Actions**:
+   - The agent should move in the intended direction most of the time, but there is a small probability that the agent stays in the same position.
+   - The agent should also have a small probability of moving in an unintended direction (e.g., north when intending to go south).
+
+2. **Sampling Actions**:
+   - When sampling a rock, the rock's status should change with a certain probability, as already implemented.
+
+3. **Check Actions**:
+   - These actions do not change the state and are already correctly modeled.
+
+4. **Exit Action**:
+   - The exit action does not change the state and is already correctly modeled.
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    # Probability of remaining in the same position
+    stay_prob = 0.1  # Adjust this probability as needed
+    
+    if random.random() < stay_prob:
+        return new_state  # Stay in the same position
+    
+    # Probability of moving in an unintended direction
+    unintended_move_prob = 0.1  # Adjust this probability as needed
+    move_directions = [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            return transition_func(state, unintended_action)
+        else:
+            new_state.y = max(0, state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            return transition_func(state, unintended_action)
+        else:
+            new_state.y = min(GRID_SIZE - 1, state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            return transition_func(state, unintended_action)
+        else:
+            new_state.x = min(GRID_SIZE - 1, state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            return transition_func(state, unintended_action)
+        else:
+            new_state.x = max(0, state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample the rock (set it to BAD with a probability)
+            if random.random() < 0.5:  # Example probability, can be adjusted
+                new_state.rocks = list(new_state.rocks)
+                new_state.rocks[rock_idx] = False
+                new_state.rocks = tuple(new_state.rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        pass  # No change in state for check actions
+
+    return new_state
+```
+
+### Explanation of Improvements:
+
+1. **Stay Probability**:
+   - The agent has a small probability (`stay_prob`) of staying in the same position regardless of the action taken.
+
+2. **Unintended Movement**:
+   - When moving in a direction, there is a small probability (`unintended_move_prob`) that the agent will move in an unintended direction. This is modeled by selecting a random direction from the set of possible movement actions, excluding the intended action, and recursively calling `transition_func` with the unintended action.
+
+3. **Sampling**:
+   - The sampling action remains unchanged, where the rock status changes with a certain probability.
+
+4. **Check and Exit Actions**:
+   - These actions do not change the state and remain unchanged.
+
+By incorporating these improvements, the `transition_func` function should better model the true distribution of next states conditioned on actions and previous states.

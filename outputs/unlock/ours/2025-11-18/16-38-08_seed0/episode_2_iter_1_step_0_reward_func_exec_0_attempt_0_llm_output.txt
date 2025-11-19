@@ -1,0 +1,58 @@
+Certainly! Let's break down the reward conditioned on state, action, and next state in English first:
+
+1. **Goal Condition**: If the agent reaches the goal position, the reward is 1 and the episode is done.
+2. **Key Pickup**: If the agent picks up the key, the reward is 0.1.
+3. **Unlocking a Door**: If the agent toggles a locked door while carrying a key, the reward is 0.5.
+4. **Locked Door Interaction Without Key**: If the agent tries to move through a locked door without a key, the reward is -1.
+5. **Default Cases**: For all other actions, the reward is 0 and the episode is not done.
+
+The issue with the current implementation is that it sometimes incorrectly assigns a reward of 0.1 for picking up a key or 0.5 for unlocking a door, even when these actions should not result in a reward under the true distribution. This can happen if the state transition logic is not aligned with the expected behavior of the environment.
+
+Let's improve the `reward_func` function to better model the true distribution:
+
+```python
+def reward_func(state, action, next_state):
+    def is_at_goal(pos, grid):
+        """Check if the agent is at the goal position."""
+        goal_positions = state.get_type_indices(ObjectTypes.goal)
+        return pos in goal_positions
+
+    def is_door_locked(pos, grid):
+        """Check if the cell at position pos is a locked door."""
+        return grid[pos[0], pos[1]] == ObjectTypes.locked_door
+
+    def is_key_carried(state):
+        """Check if the agent is carrying a key."""
+        return state.carrying == ObjectTypes.key
+
+    reward = 0
+    done = False
+
+    # Check if the agent has reached the goal
+    if is_at_goal(next_state.agent_pos, next_state.grid):
+        reward = 1
+        done = True
+
+    # Check if the agent tried to move through a locked door without a key
+    front_pos = next_state.front_pos
+    if is_door_locked(front_pos, state.grid) and not is_key_carried(state):
+        reward = -1
+
+    # Check if the agent picked up a key
+    if action == Actions.pickup and state.grid[front_pos] == ObjectTypes.key and next_state.carrying == ObjectTypes.key:
+        reward = 0.1
+
+    # Check if the agent unlocked a door
+    if action == Actions.toggle and state.grid[front_pos] == ObjectTypes.locked_door and is_key_carried(state) and next_state.grid[front_pos] == ObjectTypes.open_door:
+        reward = 0.5
+
+    return reward, done
+```
+
+### Explanation of Changes:
+1. **Goal Condition**: This remains the same. If the agent reaches the goal position in the next state, the reward is 1 and the episode is done.
+2. **Locked Door Interaction Without Key**: This remains the same. If the agent tries to move through a locked door without a key, the reward is -1.
+3. **Key Pickup**: The reward is 0.1 only if the action is `pickup`, the front cell contains a key in the current state, and the agent is carrying the key in the next state.
+4. **Unlocking a Door**: The reward is 0.5 only if the action is `toggle`, the front cell contains a locked door in the current state, the agent is carrying a key, and the front cell is an open door in the next state.
+
+These changes ensure that the reward function aligns with the expected behavior of the environment and avoids incorrect rewards.

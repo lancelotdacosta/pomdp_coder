@@ -1,0 +1,55 @@
+Certainly! Let's analyze the issue and improve the `transition_func` function to better model the true distribution of next states.
+
+### Current Behavior:
+- When the agent performs the `SAMPLE` action at a rock position, the rock's state is toggled (i.e., good becomes bad, and bad becomes good).
+- The observed sample from the real world shows that performing the `SAMPLE` action on a rock does not change its state.
+
+### Desired Behavior:
+- The `SAMPLE` action should not change the state of the rock. It should simply return the state as it was before the action.
+
+### Explanation:
+The current implementation of the `SAMPLE` action toggles the rock's state, which is incorrect. The correct behavior should be to leave the rock's state unchanged when the `SAMPLE` action is performed.
+
+### Improved Code:
+Here is the improved `transition_func` function that correctly models the `SAMPLE` action:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    # Define the action effects
+    if action == RockSampleActions.MOVE_NORTH:
+        y = min(y + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = max(y - 1, 0)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(x + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(x - 1, 0)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # The rock's state should remain unchanged
+            pass
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (x, y) == ROCK_POSITIONS[rock_idx]:
+            # Noisy sensor reading (for simplicity, no noise added here)
+            pass
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```
+
+### Explanation of Changes:
+- The `SAMPLE` action now does nothing to the rock's state. It simply checks if the agent is at a rock position and then returns the state as it was before the action.
+- This ensures that the rock's state remains unchanged when the `SAMPLE` action is performed.
+
+This should better align with the observed distribution from the real world.

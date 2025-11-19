@@ -1,0 +1,132 @@
+Based on the observed discrepancies between the real world samples and the generated model, it appears that the agent's movement is sometimes non-deterministic, especially when the agent is at the boundaries of the grid. Specifically, the agent may not always move in the intended direction, and there might be a probability of remaining in the same position.
+
+To better model this behavior, we can introduce a probability for the agent to remain in the same position when attempting to move. This probability can be adjusted to match the observed behavior more closely. Here is the improved `transition_func`:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# Domain parameters (feel free to tweak)
+NUM_ROCKS = 2
+GRID_SIZE = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# Actions
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# Observation
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# State
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    # Probability of remaining in the same position
+    stay_prob = 0.1  # Adjust this probability as needed
+    
+    if random.random() < stay_prob:
+        return new_state  # Stay in the same position
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(0, state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE - 1, state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE - 1, state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(0, state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample the rock (set it to BAD with a probability)
+            if random.random() < 0.5:  # Example probability, can be adjusted
+                new_state.rocks = list(new_state.rocks)
+                new_state.rocks[rock_idx] = False
+                new_state.rocks = tuple(new_state.rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        pass  # No change in state for check actions
+
+    return new_state
+```
+
+### Explanation of the Changes
+
+1. **Stay Probability**: A `stay_prob` parameter is introduced to model the non-deterministic movement. This probability determines whether the agent remains in the same position after attempting to move.
+2. **Random Stay Check**: Before any movement action, a random check is performed to see if the agent should stay in the same position based on the `stay_prob`.
+
+By introducing this non-determinism, the model better captures the observed behavior where the agent sometimes does not move as intended, especially at the boundaries of the grid. You can adjust the `stay_prob` value to better match the observed data.

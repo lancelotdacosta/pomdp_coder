@@ -1,0 +1,61 @@
+Based on the provided samples, it appears that the reward function should also consider the following conditions:
+
+1. **Check Actions (CHECK_ROCK_0, CHECK_ROCK_1)**:
+   - If the agent performs a check action (CHECK_ROCK_0 or CHECK_ROCK_1) at a rock position, there should be a penalty if the rock is not at the specified position.
+
+2. **Exit Action (EXIT)**:
+   - The exit action should only terminate the episode if the agent is not at a rock position. If the agent is at a rock position and performs the exit action, the episode should not terminate, and there should be no reward.
+
+3. **Sample Action (SAMPLE)**:
+   - The sample action should provide a reward or penalty based on the quality of the rock if the agent is at a rock position. If the agent is not at a rock position and attempts to sample, there should be a penalty.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    # Check if the agent has taken the exit action
+    if action == RockSampleActions.EXIT:
+        if state.at_rock() is None:
+            done = True
+        return reward, done
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Reward for sampling a good rock
+            else:
+                reward = -10.0  # Penalty for sampling a bad rock
+        else:
+            reward = -10.0  # Penalty for trying to sample when not at a rock
+
+    # Check if the agent has performed a check action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (state.x, state.y) != ROCK_POSITIONS[rock_idx]:
+            reward = -1.0  # Penalty for checking a rock from an incorrect position
+
+    # No other actions provide rewards in the given samples
+    return reward, done
+```
+
+This function now correctly handles the conditions observed in the real world samples:
+
+1. **Check Actions**: If the agent performs a check action at a position that is not the rock's position, it receives a penalty.
+2. **Exit Action**: The episode only terminates if the agent is not at a rock position when performing the exit action.
+3. **Sample Action**: The agent receives a reward or penalty based on the quality of the rock when sampling, and a penalty if it attempts to sample when not at a rock position.
+
+This should better align with the true distribution of rewards in the environment.

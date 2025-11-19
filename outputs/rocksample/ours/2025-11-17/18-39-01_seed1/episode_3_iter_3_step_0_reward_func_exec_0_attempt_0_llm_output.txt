@@ -1,0 +1,72 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the model's predictions.
+
+### Reward Function Analysis
+
+1. **Checking Rock Actions (CHECK_ROCK_0, CHECK_ROCK_1):**
+   - In the real world, performing a `CHECK_ROCK` action results in a reward of `-1.0` and the episode is not done.
+   - The current model does not handle these actions and returns a reward of `0.0` and `False` for the `done` flag.
+
+2. **Exit Action (EXIT):**
+   - In the real world, performing an `EXIT` action at the exit position `(4, 4)` or `(4, 1)` results in a reward of `10.0` and the episode is done.
+   - The current model only checks if the agent is at the exit position at the grid's boundary `(GRID_SIZE, GRID_SIZE)` and returns a reward of `0.0` and `False` for the `done` flag if the agent is not at that position.
+
+### Improved Reward Function
+
+To better model the true distribution, we need to:
+1. Handle the `CHECK_ROCK` actions correctly.
+2. Ensure the `EXIT` action checks the correct exit positions.
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action in CHECK_ACTIONS:
+        # Check rock actions always result in a reward of -1.0 and the episode is not done
+        reward = -1.0
+        done = False
+
+    elif action == RockSampleActions.EXIT:
+        # Check if the agent is at any of the exit positions
+        exit_positions = [(4, 1), (4, 4)]
+        if (state.x, state.y) in exit_positions:
+            reward = 10.0
+            done = True
+        else:
+            reward = 0.0
+            done = False
+
+    elif action == RockSampleActions.SAMPLE:
+        # Check if the agent is at a rock position
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the rock is good, reward is 10.0, otherwise 0.0
+            reward = 10.0 if state.rocks[rock_idx] else 0.0
+            done = True
+        else:
+            reward = 0.0
+            done = False
+
+    return reward, done
+```
+
+### Explanation
+
+1. **Checking Rock Actions:**
+   - For actions `CHECK_ROCK_0` and `CHECK_ROCK_1`, the function now returns a reward of `-1.0` and sets `done` to `False`.
+
+2. **Exit Action:**
+   - The function now checks if the agent is at any of the exit positions `(4, 1)` or `(4, 4)`. If the agent is at one of these positions and performs the `EXIT` action, the reward is `10.0` and the episode is marked as done.
+
+This should better align with the real-world samples provided.

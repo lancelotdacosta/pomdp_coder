@@ -1,0 +1,88 @@
+The issue you're encountering is due to the way the `transition_func` function is being called recursively. The recursion is causing a `NameError` because the function is not recognized in the scope of the recursive call. This can happen if the function is not properly defined or if there is a naming conflict.
+
+To resolve this, we can avoid recursion by using a loop to handle the unintended movements. This will prevent the function from calling itself and should resolve the `NameError`.
+
+Here's the revised `transition_func` function that uses a loop instead of recursion:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    # Probability of remaining in the same position
+    stay_prob = 0.1  # Adjust this probability as needed
+    
+    if random.random() < stay_prob:
+        return new_state  # Stay in the same position
+    
+    # Probability of moving in an unintended direction
+    unintended_move_prob = 0.1  # Adjust this probability as needed
+    move_directions = [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]
+    
+    while True:
+        if action == RockSampleActions.MOVE_NORTH:
+            if random.random() < unintended_move_prob:
+                unintended_action = random.choice([a for a in move_directions if a != action])
+                action = unintended_action
+            else:
+                new_state.y = max(0, state.y - 1)
+                break
+        elif action == RockSampleActions.MOVE_SOUTH:
+            if random.random() < unintended_move_prob:
+                unintended_action = random.choice([a for a in move_directions if a != action])
+                action = unintended_action
+            else:
+                new_state.y = min(GRID_SIZE - 1, state.y + 1)
+                break
+        elif action == RockSampleActions.MOVE_EAST:
+            if random.random() < unintended_move_prob:
+                unintended_action = random.choice([a for a in move_directions if a != action])
+                action = unintended_action
+            else:
+                new_state.x = min(GRID_SIZE - 1, state.x + 1)
+                break
+        elif action == RockSampleActions.MOVE_WEST:
+            if random.random() < unintended_move_prob:
+                unintended_action = random.choice([a for a in move_directions if a != action])
+                action = unintended_action
+            else:
+                new_state.x = max(0, state.x - 1)
+                break
+        elif action == RockSampleActions.SAMPLE:
+            rock_idx = new_state.at_rock()
+            if rock_idx is not None:
+                # Sample the rock (set it to BAD with a probability)
+                if random.random() < 0.5:  # Example probability, can be adjusted
+                    new_state.rocks = list(new_state.rocks)
+                    new_state.rocks[rock_idx] = False
+                    new_state.rocks = tuple(new_state.rocks)
+            break
+        elif action == RockSampleActions.EXIT:
+            pass  # No change in state
+            break
+        elif action in CHECK_ACTIONS:
+            pass  # No change in state for check actions
+            break
+
+    return new_state
+```
+
+### Explanation of Changes:
+
+1. **Loop for Unintended Movements**:
+   - Instead of using recursion, we use a `while True` loop to handle the unintended movements.
+   - If an unintended movement occurs, the `action` is updated to the unintended action, and the loop continues until a valid movement is made.
+
+2. **Break on Valid Movement**:
+   - Once a valid movement or action is performed, the `break` statement is used to exit the loop.
+
+3. **Stay Probability**:
+   - The stay probability is handled at the beginning of the function, ensuring that the agent stays in the same position with a certain probability.
+
+By making these changes, the `transition_func` should now correctly handle the unintended movements and stay probabilities without causing a `NameError`. This approach avoids recursion and ensures that the function is properly defined and accessible within its own body.

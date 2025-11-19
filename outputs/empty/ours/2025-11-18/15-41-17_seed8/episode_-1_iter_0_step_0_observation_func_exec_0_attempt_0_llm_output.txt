@@ -1,0 +1,120 @@
+Certainly! The distribution of observations conditioned on a state in this MiniGrid environment can be described as follows:
+
+1. **Field of View (FOV)**: The agent's field of view is determined by its position and direction. The FOV is a 3x3 grid centered around the agent, with the agent itself positioned at the bottom center of this grid.
+
+2. **Agent Position and Direction**: The agent's position and direction are directly observable and do not change based on the action taken unless the action is 'forward' and the agent moves to a new cell.
+
+3. **Carrying Object**: The agent can carry an object, which is also part of the observation. This information is invariant to the action unless the agent picks up or drops an object.
+
+4. **FOV Content**: The content of the FOV depends on the agent's position and direction. Walls block the view beyond them, and the agent can see objects in front of it within the 3x3 FOV.
+
+5. **Action Effects**:
+   - **Turn Left/Right**: These actions change the agent's direction but do not affect the FOV.
+   - **Move Forward**: This action moves the agent forward if the cell in front is empty or contains an object that can be moved over (e.g., a key). If the cell is a wall, the agent does not move.
+   - **Pickup/Drop/Toggle**: These actions modify the grid content and the agent's carried object but do not affect the agent's position or direction.
+
+Given this understanding, here is the implementation of the `observation_func`:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+
+    def apply_action(state, action):
+        # Update the state based on the action
+        new_state = MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=state.agent_dir,
+            carrying=state.carrying
+        )
+
+        if action == Actions.left:
+            new_state.agent_dir = (new_state.agent_dir - 1) % 4
+        elif action == Actions.right:
+            new_state.agent_dir = (new_state.agent_dir + 1) % 4
+        elif action == Actions.forward:
+            fwd_pos = np.array(new_state.agent_pos) + DIR_TO_VEC[new_state.agent_dir]
+            if 0 <= fwd_pos[0] < new_state.width and 0 <= fwd_pos[1] < new_state.height:
+                if new_state.grid[fwd_pos[0], fwd_pos[1]] != ObjectTypes.wall:
+                    new_state.agent_pos = fwd_pos.tolist()
+        elif action == Actions.pickup:
+            fwd_pos = np.array(new_state.agent_pos) + DIR_TO_VEC[new_state.agent_dir]
+            if 0 <= fwd_pos[0] < new_state.width and 0 <= fwd_pos[1] < new_state.height:
+                if new_state.grid[fwd_pos[0], fwd_pos[1]] in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+                    new_state.carrying = new_state.grid[fwd_pos[0], fwd_pos[1]]
+                    new_state.grid[fwd_pos[0], fwd_pos[1]] = ObjectTypes.empty
+        elif action == Actions.drop:
+            if new_state.carrying is not None:
+                fwd_pos = np.array(new_state.agent_pos) + DIR_TO_VEC[new_state.agent_dir]
+                if 0 <= fwd_pos[0] < new_state.width and 0 <= fwd_pos[1] < new_state.height:
+                    if new_state.grid[fwd_pos[0], fwd_pos[1]] == ObjectTypes.empty:
+                        new_state.grid[fwd_pos[0], fwd_pos[1]] = new_state.carrying
+                        new_state.carrying = None
+        elif action == Actions.toggle:
+            pass  # Toggle actions are more complex and depend on the object being toggled
+        elif action == Actions.done:
+            pass  # No change in state for done action
+
+        return new_state
+
+    def get_field_of_view(state, view_size=3):
+        # Get the extents of the square set of tiles visible to the agent
+        if state.agent_dir == Direction.facing_right:
+            topX = state.agent_pos[0]
+            topY = state.agent_pos[1] - view_size // 2
+        elif state.agent_dir == Direction.facing_down:
+            topX = state.agent_pos[0] - view_size // 2
+            topY = state.agent_pos[1]
+        elif state.agent_dir == Direction.facing_left:
+            topX = state.agent_pos[0] - view_size + 1
+            topY = state.agent_pos[1] - view_size // 2
+        elif state.agent_dir == Direction.facing_up:
+            topX = state.agent_pos[0] - view_size // 2
+            topY = state.agent_pos[1] - view_size + 1
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=state.grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, state.grid.shape[0])
+        gy1 = min(topY + view_size, state.grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = state.grid[gx0:gx1, gy0:gy1]
+
+        for _ in range(state.agent_dir + 1):
+            # Rotate left
+            fov = np.rot90(fov.T, k=1).T
+
+        return fov
+
+    # Apply the action to the state
+    new_state = apply_action(state, action)
+
+    # Get the field of view based on the new state
+    fov = get_field_of_view(new_state)
+
+    # Create the observation
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=new_state.agent_pos,
+        agent_dir=new_state.agent_dir,
+        carrying=new_state.carrying
+    )
+
+    return obs
+```
+
+This function first applies the given action to the state to update the state accordingly. It then computes the field of view for the updated state and constructs the observation object to be returned. The `apply_action` function handles the logic for each possible action, and the `get_field_of_view` function computes the 3x3 grid visible to the agent based on its position and direction.

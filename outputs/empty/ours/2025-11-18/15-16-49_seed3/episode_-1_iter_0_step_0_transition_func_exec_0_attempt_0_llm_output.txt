@@ -1,0 +1,63 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    
+    def move_forward(agent_pos, agent_dir):
+        new_pos = (np.array(agent_pos) + DIR_TO_VEC[agent_dir]).tolist()
+        return new_pos
+
+    def is_wall(grid, pos):
+        return grid[pos[0], pos[1]] == ObjectTypes.wall
+
+    def rotate_agent(agent_dir, action):
+        if action == Actions.left:
+            return (agent_dir - 1) % 4
+        elif action == Actions.right:
+            return (agent_dir + 1) % 4
+        return agent_dir
+
+    def pick_up_or_drop(grid, agent_pos, carrying, action):
+        if carrying is None and action == Actions.pickup:
+            if grid[agent_pos[0], agent_pos[1]] in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+                carrying = grid[agent_pos[0], agent_pos[1]]
+                grid[agent_pos[0], agent_pos[1]] = ObjectTypes.empty
+        elif carrying is not None and action == Actions.drop:
+            if grid[agent_pos[0], agent_pos[1]] == ObjectTypes.empty:
+                grid[agent_pos[0], agent_pos[1]] = carrying
+                carrying = None
+        return carrying
+
+    def toggle_object(grid, agent_pos, agent_dir):
+        front_pos = move_forward(agent_pos, agent_dir)
+        if is_wall(grid, front_pos):
+            # Toggle a door (open or close)
+            if grid[front_pos[0], front_pos[1]] == ObjectTypes.closed_door:
+                grid[front_pos[0], front_pos[1]] = ObjectTypes.open_door
+            elif grid[front_pos[0], front_pos[1]] == ObjectTypes.open_door:
+                grid[front_pos[0], front_pos[1]] = ObjectTypes.closed_door
+
+    new_grid = state.grid.copy()
+    new_agent_pos = state.agent_pos
+    new_agent_dir = state.agent_dir
+    new_carrying = state.carrying
+
+    if action == Actions.forward:
+        new_agent_pos = move_forward(new_agent_pos, new_agent_dir)
+        if is_wall(new_grid, new_agent_pos):
+            # If the agent hits a wall, stay in place
+            new_agent_pos = state.agent_pos
+    elif action in [Actions.left, Actions.right]:
+        new_agent_dir = rotate_agent(new_agent_dir, action)
+    elif action == Actions.pickup or action == Actions.drop:
+        new_carrying = pick_up_or_drop(new_grid, new_agent_pos, new_carrying, action)
+    elif action == Actions.toggle:
+        toggle_object(new_grid, new_agent_pos, new_agent_dir)
+
+    return MinigridState(grid=new_grid, agent_pos=new_agent_pos, agent_dir=new_agent_dir, carrying=new_carrying)
+```

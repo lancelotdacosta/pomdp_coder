@@ -1,0 +1,64 @@
+### Explanation of the Distribution of Next States
+
+The current issue in the `transition_func` function lies in how the boundary conditions for the grid are handled. The real world seems to allow the agent to move beyond the grid boundaries and then clip the position back within the grid. This means that if the agent moves north from `(x, 0)`, it should end up at `(x, 1)` instead of staying at `(x, 0)`.
+
+### Improved `transition_func` Function
+
+Here is the improved `transition_func` function that better models the true distribution:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(0, y - 1)
+        if y < 0:  # If it goes out of bounds, clip back to grid
+            y = 0
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE - 1, y + 1)
+        if y >= GRID_SIZE:  # If it goes out of bounds, clip back to grid
+            y = GRID_SIZE - 1
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE - 1, x + 1)
+        if x >= GRID_SIZE:  # If it goes out of bounds, clip back to grid
+            x = GRID_SIZE - 1
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(0, x - 1)
+        if x < 0:  # If it goes out of bounds, clip back to grid
+            x = 0
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if rock_idx == 0 and action == RockSampleActions.CHECK_ROCK_0:
+                pass  # Checking the rock at the current position
+            elif rock_idx == 1 and action == RockSampleActions.CHECK_ROCK_1:
+                pass  # Checking the rock at the current position
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **Boundary Clipping**:
+   - For `MOVE_NORTH`, if `y - 1` results in a negative value, it is clipped back to `0`.
+   - For `MOVE_SOUTH`, if `y + 1` results in a value equal to or greater than `GRID_SIZE`, it is clipped back to `GRID_SIZE - 1`.
+   - For `MOVE_EAST`, if `x + 1` results in a value equal to or greater than `GRID_SIZE`, it is clipped back to `GRID_SIZE - 1`.
+   - For `MOVE_WEST`, if `x - 1` results in a negative value, it is clipped back to `0`.
+
+These changes ensure that the agent's position is always within the grid boundaries, matching the observed behavior from the real world.

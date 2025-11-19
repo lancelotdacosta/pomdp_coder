@@ -1,0 +1,70 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the modeled transitions.
+
+### Real-World Distribution of Next States:
+1. **Movement Actions**:
+   - **MOVE_NORTH**: The agent should move north if it is not at the top boundary of the grid (y > 0).
+   - **MOVE_SOUTH**: The agent should move south if it is not at the bottom boundary of the grid (y < GRID_SIZE - 1).
+   - **MOVE_EAST**: The agent should move east if it is not at the right boundary of the grid (x < GRID_SIZE - 1).
+   - **MOVE_WEST**: The agent should move west if it is not at the left boundary of the grid (x > 0).
+
+2. **Sampling Action**:
+   - If the agent is at a rock's position, the rock's state changes from good to bad.
+
+3. **Exit Action**:
+   - No change in state.
+
+4. **Check Actions**:
+   - These actions should not change the state of the world but might affect the observation. However, since we are only modeling state transitions, these actions should leave the state unchanged.
+
+### Issues in the Current Code:
+- The boundary conditions for movement actions are incorrect. The grid indices should be 0-based, so the boundaries should be `y >= 0` and `y < GRID_SIZE` for north and south movements, and `x >= 0` and `x < GRID_SIZE` for west and east movements.
+- The `at_rock` method should correctly handle the rock positions and return the index if the agent is at a rock's position.
+
+### Improved `transition_func` Function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    x, y, rocks = state.x, state.y, state.rocks
+
+    if action == RockSampleActions.MOVE_NORTH and y > 0:
+        y -= 1
+    elif action == RockSampleActions.MOVE_SOUTH and y < GRID_SIZE - 1:
+        y += 1
+    elif action == RockSampleActions.MOVE_EAST and x < GRID_SIZE - 1:
+        x += 1
+    elif action == RockSampleActions.MOVE_WEST and x > 0:
+        x -= 1
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if rock_idx == 0 and action == RockSampleActions.CHECK_ROCK_0:
+                pass  # Checking the rock at the current position
+            elif rock_idx == 1 and action == RockSampleActions.CHECK_ROCK_1:
+                pass  # Checking the rock at the current position
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```
+
+### Explanation of Changes:
+1. **Boundary Conditions**:
+   - For `MOVE_NORTH`, the condition is `y > 0` to ensure the agent does not move off the top boundary.
+   - For `MOVE_SOUTH`, the condition is `y < GRID_SIZE - 1` to ensure the agent does not move off the bottom boundary.
+   - For `MOVE_EAST`, the condition is `x < GRID_SIZE - 1` to ensure the agent does not move off the right boundary.
+   - For `MOVE_WEST`, the condition is `x > 0` to ensure the agent does not move off the left boundary.
+
+2. **Sampling Action**:
+   - The `at_rock` method correctly identifies the rock index if the agent is at a rock's position, and the rock's state is updated accordingly.
+
+3. **Check Actions**:
+   - These actions are handled without changing the state, as they are meant to affect observations rather than the underlying state.
+
+This improved function should better model the true distribution of next states conditioned on actions and previous states.

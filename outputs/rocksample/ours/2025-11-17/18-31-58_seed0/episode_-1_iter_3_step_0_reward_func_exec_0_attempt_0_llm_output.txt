@@ -1,0 +1,52 @@
+Based on the provided samples, it seems that the reward and termination conditions need to be adjusted. Specifically, the agent should only receive a reward and terminate the episode if it exits at the correct exit position (4, 4). Additionally, the agent should not terminate the episode if it exits from other positions.
+
+Here's the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has taken a sample action
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                # If the rock is good, the agent gets a reward of 10
+                reward = 10.0
+            else:
+                # If the rock is bad, the agent gets a reward of -10
+                reward = -10.0
+        else:
+            # If no rock is present, the agent gets no reward
+            reward = 0.0
+    elif action == RockSampleActions.EXIT:
+        # If the agent exits, the episode ends
+        done = True
+        if state.x == 4 and state.y == 4:
+            # If the agent is at (4, 4), it gets a reward of 10
+            reward = 10.0
+        else:
+            # Otherwise, it gets a reward of 0
+            reward = 0.0
+    elif action in CHECK_ACTIONS:
+        # If the agent checks a rock, it incurs a small penalty
+        reward = -1.0
+    else:
+        # For all other actions (e.g., moving), there is no reward
+        reward = 0.0
+    
+    # The episode is done if the agent exits from the exit position (4, 4)
+    done = action == RockSampleActions.EXIT and state.x == 4 and state.y == 4
+
+    return reward, done
+```
+
+This function now ensures that the agent only receives a reward and terminates the episode when it exits from the correct exit position (4, 4). For all other positions, the episode does not terminate, which aligns with the observed behavior in the real world.

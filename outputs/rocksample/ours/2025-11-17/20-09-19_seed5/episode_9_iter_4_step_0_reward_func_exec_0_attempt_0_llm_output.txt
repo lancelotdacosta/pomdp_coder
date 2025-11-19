@@ -1,0 +1,78 @@
+Certainly! Let's analyze the reward function based on the provided samples and improve it to better match the true distribution.
+
+### Explanation of the Reward Function
+
+1. **Exiting the Grid**:
+   - The agent should receive a positive reward of 10.0 and the episode should end if the agent exits the grid from the correct positions: (0, 0) or (GRID_SIZE - 1, GRID_SIZE - 1).
+   - In any other position, the agent should receive 0.0 reward and the episode should not end.
+
+2. **Sampling a Rock**:
+   - If the agent attempts to sample a rock at a rock's position, the reward should be:
+     - +10.0 if the rock is bad.
+     - -10.0 if the rock is good.
+   - If the agent attempts to sample a rock at a non-rock position, the reward should be -10.0.
+
+3. **Checking a Rock**:
+   - The agent should receive a small negative reward of -1.0 for checking a rock.
+
+4. **Other Actions**:
+   - For any other actions (like moving), the agent should receive 0.0 reward.
+
+### Improved Reward Function
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid from the correct position
+    if action == RockSampleActions.EXIT:
+        if (state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return -10.0, False  # Sampling a good rock gives negative reward
+            else:
+                return 10.0, False   # Sampling a bad rock gives positive reward
+        else:
+            return -10.0, False      # Sampling an empty cell gives negative reward
+
+    # Check if the agent performed a CHECK_ROCK action
+    if action in CHECK_ACTIONS:
+        return -1.0, False  # Small negative reward for checking rocks
+
+    # For other actions (move), no reward is given
+    return 0.0, False
+```
+
+### Explanation of Changes
+
+1. **Exiting the Grid**:
+   - The condition `(state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]` ensures that the agent only receives a reward and ends the episode when exiting from the correct positions.
+
+2. **Sampling a Rock**:
+   - The function correctly differentiates between sampling at a rock's position and an empty cell.
+   - It returns the appropriate reward based on whether the rock is good or bad.
+
+3. **Checking a Rock**:
+   - The function returns a small negative reward for checking a rock, as specified.
+
+4. **Other Actions**:
+   - For any other actions, the function returns 0.0 reward and indicates that the episode is not done.
+
+This improved reward function should now better match the true distribution of the environment based on the provided samples.

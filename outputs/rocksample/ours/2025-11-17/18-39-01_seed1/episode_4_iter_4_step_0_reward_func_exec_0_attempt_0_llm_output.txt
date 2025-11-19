@@ -1,0 +1,74 @@
+Certainly! Based on the provided samples, it appears that the reward function should consider the following conditions:
+
+1. **Exit Action**:
+   - If the agent performs an exit action (`EXIT`), the reward is 10.0 if all rocks are bad (`False`), and the episode is marked as done. Otherwise, the reward is 0.0, and the episode is not done.
+
+2. **Sample Action**:
+   - If the agent performs a sample action (`SAMPLE`):
+     - If the agent is at a rock, and the rock is good (`True`), the reward is 1.0, the rock is marked as bad (`False`), and the episode continues.
+     - If the agent is at a rock, and the rock is already bad (`False`), the reward is -1.0, and the episode continues.
+     - If the agent is not at a rock, the reward is -10.0, and the episode continues.
+
+3. **Check Rock Action**:
+   - If the agent performs a check rock action (`CHECK_ROCK_0` or `CHECK_ROCK_1`):
+     - If the agent checks a rock that is good (`True`), the reward is -1.0, and the episode continues.
+     - If the agent checks a rock that is bad (`False`), the reward is 0.0, and the episode continues.
+
+4. **Other Actions**:
+   - For all other actions (move actions), the reward is 0.0, and the episode continues.
+
+Let's update the `reward_func` function to better model these conditions:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the action is an exit action
+    if action == RockSampleActions.EXIT:
+        # Check if all rocks are bad in the final state
+        if all(not rock for rock in next_state.rocks):
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the action is a sample action
+    if action == RockSampleActions.SAMPLE:
+        # Determine which rock is being sampled
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the rock is good, the agent gets a reward and the rock becomes bad
+            if state.rocks[rock_idx]:
+                next_rocks = list(next_state.rocks)
+                next_rocks[rock_idx] = False
+                if tuple(next_rocks) == next_state.rocks:
+                    return 1.0, False
+                else:
+                    return -1.0, False
+            else:
+                return -1.0, False
+        else:
+            return -10.0, False
+
+    # Check if the action is a check rock action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if rock_idx < len(state.rocks):
+            if state.rocks[rock_idx]:
+                return -1.0, False
+            else:
+                return 0.0, False
+        else:
+            return 0.0, False
+
+    # For all other actions, the reward is 0 and the episode is not done
+    return 0.0, False
+```
+
+This updated function should better align with the observed samples and correctly model the reward conditioned on the state, action, and next state transitions.

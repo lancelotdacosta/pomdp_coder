@@ -1,0 +1,91 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the model's predictions to improve the `reward_func` function.
+
+### Analysis of Discrepancies
+
+1. **Exit Action**:
+   - The real-world samples show that when the agent performs the `EXIT` action, the episode should not necessarily end if the agent is not at the exit position (which we can assume is `(0, 0)`).
+
+2. **Check Rock Actions**:
+   - The real-world samples indicate that performing a `CHECK_ROCK` action at a rock position results in a penalty of `-1.0` if the agent is not at a rock position or if the rock is bad.
+
+3. **Move Out of Bounds**:
+   - The real-world samples show that moving out of bounds results in a penalty of `-1.0`, but the episode does not necessarily end.
+
+### Improved Reward Function
+
+Based on the analysis, we need to adjust the reward function to account for the above discrepancies. Here's the improved `reward_func`:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    def is_out_of_bounds(x, y):
+        return x < 0 or x >= GRID_SIZE or y < 0 or y >= GRID_SIZE
+
+    def get_next_position(x, y, action):
+        if action == RockSampleActions.MOVE_NORTH:
+            return x, y - 1
+        elif action == RockSampleActions.MOVE_SOUTH:
+            return x, y + 1
+        elif action == RockSampleActions.MOVE_EAST:
+            return x + 1, y
+        elif action == RockSampleActions.MOVE_WEST:
+            return x - 1, y
+        else:
+            return x, y
+
+    reward = 0.0
+    done = False
+
+    # Check if the agent is at a rock and the action is to sample
+    rock_at_position = state.at_rock()
+    next_rock_at_position = next_state.at_rock()
+
+    if rock_at_position is not None and action == RockSampleActions.SAMPLE:
+        if state.rocks[rock_at_position]:
+            reward = 10.0  # Reward for sampling a good rock
+        else:
+            reward = -10.0  # Penalty for sampling a bad rock
+
+    # Check if the agent has moved out of bounds
+    if is_out_of_bounds(next_state.x, next_state.y):
+        reward = -1.0  # Penalty for moving out of bounds
+
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT and next_state.x == 0 and next_state.y == 0:
+        done = True
+
+    # Check if the agent performs a check rock action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (next_state.x, next_state.y) != ROCK_POSITIONS[rock_idx]:
+            reward = -1.0  # Penalty for checking rock at wrong position
+        elif not state.rocks[rock_idx]:
+            reward = -1.0  # Penalty for checking bad rock
+
+    return reward, done
+```
+
+### Explanation of Changes
+
+1. **Exit Action**:
+   - The episode ends only if the agent is at the exit position `(0, 0)` and performs the `EXIT` action.
+   - This change ensures that the episode does not end prematurely when the agent is not at the exit position.
+
+2. **Check Rock Actions**:
+   - If the agent performs a `CHECK_ROCK` action, it incurs a penalty of `-1.0` if the agent is not at the correct rock position or if the rock is bad.
+   - This change aligns with the real-world samples where performing a check action at an incorrect position or on a bad rock results in a penalty.
+
+3. **Move Out of Bounds**:
+   - The agent incurs a penalty of `-1.0` for moving out of bounds, but the episode does not necessarily end.
+   - This change ensures that the agent can still continue exploring even after moving out of bounds, which matches the real-world samples.
+
+These changes should bring the model closer to the true distribution of rewards and transitions in the environment.

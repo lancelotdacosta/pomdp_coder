@@ -1,0 +1,78 @@
+Certainly! Let's analyze the reward conditioned on state, action, and next state transition based on the provided samples and improve the `reward_func` function accordingly.
+
+### Analysis:
+1. **Action 5 (EXIT):**
+   - When the agent exits the environment, it should receive a reward of 10.0 if it is at any of the exit positions (e.g., (4, y) for y in [1, 3, 4]).
+   - The episode should be marked as done when the agent exits.
+
+2. **Action 4 (SAMPLE):**
+   - If the agent samples a rock and the rock's state changes, it should receive a positive reward.
+   - If the rock's state does not change, it should receive a negative reward.
+
+3. **Other Actions:**
+   - For other actions (e.g., MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST), the reward is generally 0 if the agent moves correctly.
+   - If the agent remains in the same position when it should have moved, it should receive a negative reward.
+
+### Improved `reward_func`:
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.EXIT:
+        # Exit action: reward of 10.0 if at an exit position (4, y)
+        if next_state.x == 4 and next_state.y in [1, 3, 4]:
+            reward = 10.0
+            done = True
+        else:
+            reward = -1.0
+
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and state.rocks[rock_idx] != next_state.rocks[rock_idx]:
+            reward = 10.0
+        else:
+            reward = -10.0
+
+    elif action in CHECK_ACTIONS:
+        if state.x == next_state.x and state.y == next_state.y:
+            reward = -1.0
+        else:
+            reward = 0.0
+
+    elif action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        if state.x != next_state.x or state.y != next_state.y:
+            reward = 0.0
+        else:
+            reward = -1.0
+
+    return reward, done
+```
+
+### Explanation:
+- **EXIT Action:**
+  - The agent receives a reward of 10.0 and the episode is marked as done if it exits from one of the exit positions.
+  - If the agent tries to exit from a non-exit position, it receives a negative reward.
+
+- **SAMPLE Action:**
+  - The agent receives a positive reward (10.0) if it samples a rock and the rock's state changes.
+  - If the rock's state does not change, it receives a significant negative reward (-10.0) to discourage futile sampling.
+
+- **CHECK Actions:**
+  - The agent receives a negative reward (-1.0) if it remains in the same position after a check action.
+  - It receives 0.0 if it moves as expected.
+
+- **Movement Actions:**
+  - The agent receives 0.0 if it successfully moves to a new position.
+  - It receives a negative reward (-1.0) if it fails to move.
+
+This improved `reward_func` should better align with the observed distribution and handle the specific cases you mentioned.

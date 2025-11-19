@@ -1,0 +1,66 @@
+Based on the provided examples, it seems that the movement actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST) have a 10% chance of failing to move the agent. When they fail, the agent remains in the same position. However, when they succeed, the agent should move in the direction specified by the action, respecting the grid boundaries.
+
+The current implementation has a logical error in how the movement is handled. Specifically, the movement is applied only if the random check passes, but the update to `new_x` and `new_y` should be done regardless of whether the action is MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, or MOVE_WEST. 
+
+Here's the improved `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+    new_x, new_y = x, y
+
+    # Introduce a 10% chance of failing to move
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        if random.random() > 0.1:
+            if action == RockSampleActions.MOVE_NORTH:
+                new_y = max(0, y - 1)
+            elif action == RockSampleActions.MOVE_SOUTH:
+                new_y = min(GRID_SIZE - 1, y + 1)
+            elif action == RockSampleActions.MOVE_EAST:
+                new_x = min(GRID_SIZE - 1, x + 1)
+            elif action == RockSampleActions.MOVE_WEST:
+                new_x = max(0, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sampled rock becomes bad
+            rocks = tuple(rocks)
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # No change to the state, just an observation action
+            pass
+    elif action == RockSampleActions.EXIT:
+        # Exit action does not change the state
+        pass
+
+    return RockSampleState(x=new_x, y=new_y, rocks=rocks)
+```
+
+### Explanation of the Distribution of Next States
+
+1. **Movement Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST)**:
+   - There is a 90% chance that the agent will move successfully in the specified direction.
+   - There is a 10% chance that the movement fails, and the agent remains in the same position.
+   - The movement is constrained by the grid boundaries, ensuring that the agent does not move outside the grid.
+
+2. **Sampling Action (SAMPLE)**:
+   - If the agent is on top of a rock, the rock's state changes to "bad" (False).
+   - If the agent is not on top of a rock, the state remains unchanged.
+
+3. **Check Rock Actions (CHECK_ROCK_0, CHECK_ROCK_1)**:
+   - These actions do not change the state; they are only for observation.
+   - If the agent is on top of a rock, an observation will be generated, but the state itself remains unchanged.
+
+4. **Exit Action (EXIT)**:
+   - The exit action does not change the state.
+
+This improved `transition_func` should better model the true distribution of next states conditioned on actions and previous states.

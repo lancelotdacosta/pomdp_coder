@@ -1,0 +1,54 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flag
+    reward = 0.0
+    done = False
+
+    # Exit action
+    if action == RockSampleActions.EXIT:
+        done = True
+        # Reward for exiting depends on the number of good rocks sampled
+        num_good_rocks_sampled = sum(next_state.rocks)
+        reward = 10.0 * num_good_rocks_sampled - 10.0 * (NUM_ROCKS - num_good_rocks_sampled)
+
+    # Sample action
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent is at a rock and samples it, the rock's status changes to False (bad)
+            next_state_rocks = list(next_state.rocks)
+            next_state_rocks[rock_idx] = False
+            next_state.rocks = tuple(next_state_rocks)
+            # Reward for sampling a good rock
+            if next_state.rocks[rock_idx] == True:
+                reward = 10.0
+            else:
+                reward = -10.0
+
+    # Movement actions
+    elif action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # No reward for movement actions
+        pass
+
+    # Check actions
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # Noisy observation of the rock's status
+            is_good = next_state.rocks[rock_idx]
+            if random.random() < 0.9:  # 90% accurate
+                reward = 1.0 if is_good else -1.0
+            else:
+                reward = 1.0 if not is_good else -1.0
+
+    return reward, done
+```

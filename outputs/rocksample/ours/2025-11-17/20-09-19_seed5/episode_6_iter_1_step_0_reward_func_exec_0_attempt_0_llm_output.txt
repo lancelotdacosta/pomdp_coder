@@ -1,0 +1,62 @@
+Certainly! Let's break down the reward function based on the observed discrepancies between the real world and the current model.
+
+### Reward Function Explanation
+
+1. **Sampling a Rock**:
+   - If the agent samples a rock (`action == RockSampleActions.SAMPLE`):
+     - If the rock is good, the reward is `10.0`.
+     - If the rock is bad, the reward is `-10.0`.
+
+2. **Checking a Rock**:
+   - If the agent checks a rock (`action == RockSampleActions.CHECK_ROCK_0` or `action == RockSampleActions.CHECK_ROCK_1`):
+     - The reward is `-1.0` for checking a rock.
+
+3. **Exiting**:
+   - If the agent exits (`action == RockSampleActions.EXIT`):
+     - The reward is `0.0` and the episode ends (`done = True`).
+
+4. **Other Actions**:
+   - For all other actions (move north, south, east, west):
+     - The reward is `0.0` and the episode does not end (`done = False`).
+
+### Improved Reward Function
+
+Based on the above explanation, let's improve the `reward_func` function to better model the true distribution:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+
+    # The reward is 10 if the agent samples a good rock
+    if action == RockSampleActions.SAMPLE and next_state.at_rock() is not None and next_state.rocks[next_state.at_rock()]:
+        return 10.0, False
+    
+    # The reward is -10 if the agent samples a bad rock
+    if action == RockSampleActions.SAMPLE and next_state.at_rock() is not None and not next_state.rocks[next_state.at_rock()]:
+        return -10.0, False
+    
+    # The reward is -1 for checking a rock
+    if action in CHECK_ACTIONS:
+        return -1.0, False
+    
+    # The episode ends when the agent exits
+    if action == RockSampleActions.EXIT:
+        return 0.0, True
+    
+    # The reward is 0 for all other actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+    
+    # Default case: no reward, episode not done
+    return 0.0, False
+```
+
+This improved `reward_func` should better reflect the true distribution based on the provided discrepancies. It handles the cases where the agent samples or checks a rock and ensures the correct rewards are given in each scenario.

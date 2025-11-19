@@ -1,0 +1,57 @@
+Based on the provided samples and the discrepancies between the real world and the model, it appears that the reward function is more complex than initially assumed. Here are the key observations:
+
+1. **Exit Action**: The exit action should only provide a reward if the agent is at a specific location (e.g., the exit point). This location is not explicitly defined in the provided code, so we need to infer it.
+2. **Sample Action**: The sample action should only modify the state of the rocks if the agent is at a rock's position. Additionally, the reward for sampling a rock should be based on the current state of the rock, but the rock's state should not change after sampling.
+3. **Check Actions**: The check actions should not provide any reward or change the state, but they might have a small penalty (e.g., -1.0) in some cases.
+
+Given these observations, here is an improved version of the `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+
+    # Check if the agent has taken the exit action
+    if action == RockSampleActions.EXIT:
+        # Exit action should only provide a reward if the agent is at the exit point
+        if (state.x, state.y) == (0, 0):  # Assuming (0, 0) is the exit point
+            done = True
+            reward = 10.0  # Reward for successfully exiting
+        else:
+            reward = 0.0  # No reward for exiting from the wrong location
+
+    # Check if the agent has sampled a rock
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Reward for sampling a good rock
+            else:
+                reward = -10.0  # Penalty for sampling a bad rock
+
+    # Check if the agent has taken a check action
+    elif action in CHECK_ACTIONS:
+        # Check actions might have a small penalty
+        reward = -1.0
+
+    # No specific reward for movement actions
+    return reward, done
+```
+
+This updated function should better align with the observed behavior of the real world. The key changes are:
+
+1. **Exit Action**: Added a condition to check if the agent is at the exit point (assumed to be (0, 0)).
+2. **Sample Action**: Ensured that the rock's state does not change after sampling.
+3. **Check Actions**: Added a small penalty for check actions.
+
+This should address the discrepancies observed in the provided samples.

@@ -1,0 +1,50 @@
+Based on the provided samples and the discrepancies between the real-world observations and the generated model, it appears that the current implementation is overly strict about the agent's position when performing a check rock action. In the real world, the agent can observe a rock even if it is not exactly at the rock's position, but within a certain range or field of view.
+
+To better model this distribution, we need to relax the condition that the agent must be exactly at the rock's position to get an observation. Instead, we can allow the agent to observe the rock if it is within a certain distance (e.g., a 1-step radius).
+
+Here's the improved `observation_func` function:
+
+```python
+def observation_func(state: RockSampleState, action: int, empty_obs: RockSampleObservation) -> RockSampleObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = copy.deepcopy(empty_obs)
+    obs.x = state.x
+    obs.y = state.y
+
+    # Determine if the action is a check rock action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        rock_pos = ROCK_POSITIONS[rock_idx]
+        
+        # Check if the agent is within a 1-step radius of the rock's position
+        if abs(state.x - rock_pos[0]) <= 1 and abs(state.y - rock_pos[1]) <= 1:
+            # Generate a noisy reading of the rock's quality
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.1:  # 10% chance of a false reading
+                is_good = not is_good
+            obs.rock_idx = rock_idx
+            obs.is_good = is_good
+        else:
+            # If the agent is not within the rock's field of view, set rock_idx and is_good to None
+            obs.rock_idx = None
+            obs.is_good = None
+
+    return obs
+```
+
+### Explanation:
+- **Field of View**: The agent can observe a rock if it is within a 1-step radius (i.e., 1 step in any direction) from the rock's position. This is implemented using the condition `abs(state.x - rock_pos[0]) <= 1 and abs(state.y - rock_pos[1]) <= 1`.
+- **Noisy Reading**: If the agent is within the rock's field of view, it will generate a noisy reading of the rock's quality. There is a 10% chance that the reading will be incorrect.
+- **No Observation**: If the agent is not within the rock's field of view, the `rock_idx` and `is_good` fields are set to `None`.
+
+This approach should better match the real-world distribution of observations, allowing the agent to observe rocks even when it is not exactly at their positions.

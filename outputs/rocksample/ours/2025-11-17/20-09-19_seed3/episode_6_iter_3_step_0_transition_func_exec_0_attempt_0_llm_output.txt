@@ -1,0 +1,52 @@
+Based on the discrepancies between the real-world samples and the generated samples from your current model, it appears that the movement actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST) are not correctly accounting for the grid boundaries and the 10% failure rate of movement. Specifically, when an action is taken, there should be a 10% chance that the agent fails to move, and the remaining 90% chance that the agent moves as intended, respecting the grid boundaries.
+
+Here's an improved version of the `transition_func` function to better model the true distribution:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+    new_x, new_y = x, y
+
+    # Introduce a 10% chance of failing to move
+    if random.random() > 0.1:  # 90% chance to move successfully
+        if action == RockSampleActions.MOVE_NORTH:
+            new_y = max(0, y - 1)
+        elif action == RockSampleActions.MOVE_SOUTH:
+            new_y = min(GRID_SIZE - 1, y + 1)
+        elif action == RockSampleActions.MOVE_EAST:
+            new_x = min(GRID_SIZE - 1, x + 1)
+        elif action == RockSampleActions.MOVE_WEST:
+            new_x = max(0, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sampled rock becomes bad
+            rocks = tuple(rocks)
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # No change to the state, just an observation action
+            pass
+
+    return RockSampleState(x=new_x, y=new_y, rocks=rocks)
+```
+
+### Explanation of the Changes:
+
+1. **Movement Failure Rate**: The condition `if random.random() > 0.1` ensures that there is a 90% chance that the agent moves successfully and a 10% chance that it fails to move. This respects the 10% failure rate specified in the problem.
+
+2. **Grid Boundaries**: The movement actions now correctly handle the grid boundaries using `max(0, y - 1)` and `min(GRID_SIZE - 1, y + 1)` for vertical movements (north and south), and `max(0, x - 1)` and `min(GRID_SIZE - 1, x + 1)` for horizontal movements (west and east).
+
+3. **Sample Action**: The sample action remains unchanged, as it correctly updates the rock state when the agent is at a rock's position.
+
+4. **Check Actions**: The check actions also remain unchanged, as they do not alter the state but only provide observations.
+
+This improved `transition_func` should now more accurately model the true distribution of next states conditioned on actions and previous states.

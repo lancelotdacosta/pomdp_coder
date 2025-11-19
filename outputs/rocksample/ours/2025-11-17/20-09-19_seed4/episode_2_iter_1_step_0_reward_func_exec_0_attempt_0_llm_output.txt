@@ -1,0 +1,107 @@
+Certainly! Let's analyze the reward function based on the provided samples and then improve the code.
+
+### Explanation of the Reward Function
+
+- **Exit Action (5):**
+  - If the agent exits, the episode is done.
+  - The reward depends on the number of good rocks sampled.
+  - For each good rock sampled, the reward is +10.
+  - For each bad rock sampled, the reward is -10.
+
+- **Sample Action (4):**
+  - If the agent is at a rock and samples it:
+    - The rock's status changes to bad (False).
+    - If the rock was good (True), the reward is +10.
+    - If the rock was bad (False), the reward is -10.
+
+- **Check Actions (6, 7):**
+  - If the agent is at a rock and checks it:
+    - The reward is +1.0 if the rock is good (True) with 90% accuracy.
+    - The reward is -1.0 if the rock is bad (False) with 90% accuracy.
+    - With 10% probability, the reward is the opposite.
+
+- **Movement Actions (0, 1, 2, 3):**
+  - No reward for movement actions.
+
+### Issues in the Original Code
+
+1. **Sample Action:**
+   - The code was incorrectly setting the rock's status to `False` before checking the reward.
+   - This led to incorrect reward calculations when the rock was already bad.
+
+2. **Check Actions:**
+   - The original code did not handle the noisy observation correctly.
+   - It should have checked the current state's rock status and applied the noisy observation to determine the reward.
+
+3. **Exit Action:**
+   - The original code was not correctly calculating the total reward based on the number of good rocks sampled.
+
+### Improved Code
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flag
+    reward = 0.0
+    done = False
+
+    # Exit action
+    if action == RockSampleActions.EXIT:
+        done = True
+        # Reward for exiting depends on the number of good rocks sampled
+        num_good_rocks_sampled = sum(state.rocks)
+        reward = 10.0 * num_good_rocks_sampled - 10.0 * (NUM_ROCKS - num_good_rocks_sampled)
+
+    # Sample action
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rock_status = state.rocks[rock_idx]
+            # If the agent is at a rock and samples it, the rock's status changes to False (bad)
+            next_state_rocks = list(next_state.rocks)
+            next_state_rocks[rock_idx] = False
+            next_state.rocks = tuple(next_state_rocks)
+            # Reward for sampling a good rock
+            if rock_status:
+                reward = 10.0
+            else:
+                reward = -10.0
+
+    # Movement actions
+    elif action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # No reward for movement actions
+        pass
+
+    # Check actions
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.9:  # 90% accurate
+                reward = 1.0 if is_good else -1.0
+            else:
+                reward = 1.0 if not is_good else -1.0
+
+    return reward, done
+```
+
+### Key Changes
+
+1. **Exit Action:**
+   - Correctly calculated the total reward based on the number of good rocks sampled in the current state.
+
+2. **Sample Action:**
+   - Corrected the logic to check the rock's status in the current state before updating the next state and calculating the reward.
+
+3. **Check Actions:**
+   - Improved the noisy observation logic to correctly apply the 90% accuracy and 10% noise to the reward calculation.
+
+This should better model the true distribution of rewards in the environment.

@@ -1,0 +1,94 @@
+Based on the provided samples, it seems that the transition function should account for the following:
+
+1. **Stay Probability**: There is a probability of staying in the same position after an action.
+2. **Unintended Movements**: There is a probability of moving in an unintended direction when performing a move action.
+3. **Correct Movement**: If neither staying nor moving in an unintended direction occurs, the agent should move in the intended direction.
+
+However, the current implementation has some issues:
+- The agent can move outside the grid boundaries even if the unintended movement would cause it to stay within the grid.
+- The unintended movements are not being correctly constrained by the grid boundaries.
+
+To improve the code, we need to ensure that:
+1. The agent stays within the grid boundaries for all actions.
+2. Unintended movements are also constrained by the grid boundaries.
+3. The stay probability is applied correctly.
+
+Here is the improved `transition_func`:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+# RockSampleActions class and other classes are assumed to be defined as per the provided code
+
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    # Probability of remaining in the same position
+    stay_prob = 0.1  # Adjust this probability as needed
+    
+    if random.random() < stay_prob:
+        return new_state  # Stay in the same position
+    
+    # Probability of moving in an unintended direction
+    unintended_move_prob = 0.1  # Adjust this probability as needed
+    move_directions = [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            action = unintended_action
+        else:
+            new_state.y = max(0, state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            action = unintended_action
+        else:
+            new_state.y = min(GRID_SIZE - 1, state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            action = unintended_action
+        else:
+            new_state.x = min(GRID_SIZE - 1, state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            action = unintended_action
+        else:
+            new_state.x = max(0, state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample the rock (set it to BAD with a probability)
+            if random.random() < 0.5:  # Example probability, can be adjusted
+                new_state.rocks = list(new_state.rocks)
+                new_state.rocks[rock_idx] = False
+                new_state.rocks = tuple(new_state.rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        pass  # No change in state for check actions
+
+    return new_state
+```
+
+### Explanation of Changes:
+1. **Stay Probability**: The agent has a `stay_prob` chance of staying in the same position.
+2. **Unintended Movements**: If an unintended movement occurs, it is chosen from the possible move directions excluding the intended direction.
+3. **Correct Movement**: If no unintended movement occurs, the agent moves in the intended direction while ensuring it stays within the grid boundaries.
+
+These changes should better model the true distribution of next states conditioned on actions and previous states.

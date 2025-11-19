@@ -1,0 +1,55 @@
+Based on the provided samples, it seems that the movement actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST) are not behaving as expected. Specifically, the agent's movement is sometimes not respecting the grid boundaries or the intended direction. Let's analyze the expected behavior:
+
+1. **MOVE_NORTH**: The agent should move north (decrease y by 1) unless it is already at the top boundary (y = 1).
+2. **MOVE_SOUTH**: The agent should move south (increase y by 1) unless it is already at the bottom boundary (y = GRID_SIZE).
+3. **MOVE_EAST**: The agent should move east (increase x by 1) unless it is already at the right boundary (x = GRID_SIZE).
+4. **MOVE_WEST**: The agent should move west (decrease x by 1) unless it is already at the left boundary (x = 1).
+
+Given the discrepancies, it appears that the current implementation is incorrectly handling the grid boundaries and possibly the direction of movement. Let's correct the `transition_func` to ensure it respects the grid boundaries and moves in the correct direction.
+
+Here is the improved `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(new_state.rocks[:rock_idx] + (False,) + new_state.rocks[rock_idx+1:])
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state for the exit action
+    elif action in CHECK_ACTIONS:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            # Check actions do not change the state
+            pass
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **MOVE_NORTH**: The agent moves north by decreasing `y` by 1, but it should not go below `1`. The `max(1, new_state.y - 1)` ensures this.
+2. **MOVE_SOUTH**: The agent moves south by increasing `y` by 1, but it should not exceed `GRID_SIZE`. The `min(GRID_SIZE, new_state.y + 1)` ensures this.
+3. **MOVE_EAST**: The agent moves east by increasing `x` by 1, but it should not exceed `GRID_SIZE`. The `min(GRID_SIZE, new_state.x + 1)` ensures this.
+4. **MOVE_WEST**: The agent moves west by decreasing `x` by 1, but it should not go below `1`. The `max(1, new_state.x - 1)` ensures this.
+
+These changes ensure that the movement actions respect the grid boundaries and move in the correct direction, aligning with the observed behavior from the real world.

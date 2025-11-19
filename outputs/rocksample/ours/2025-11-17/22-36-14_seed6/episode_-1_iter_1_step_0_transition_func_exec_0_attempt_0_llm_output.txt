@@ -1,0 +1,77 @@
+Certainly! Let's analyze the provided examples and identify the discrepancies between the current model and the real-world samples.
+
+### Analysis of Discrepancies
+
+1. **Move South Action (Action 1)**
+   - **Real World**: From `(x=0, y=4)`, moving south results in `(x=0, y=3)`.
+   - **Current Model**: From `(x=0, y=4)`, moving south results in no change (`(x=0, y=4)`).
+
+2. **Move North Action (Action 0)**
+   - **Real World**: From `(x=1, y=1)`, moving north results in `(x=1, y=2)`.
+   - **Current Model**: From `(x=1, y=1)`, moving north results in `(x=1, y=0)`.
+   - **Real World**: From `(x=1, y=3)`, moving north results in `(x=1, y=4)`.
+   - **Current Model**: From `(x=1, y=3)`, moving north results in `(x=1, y=2)`.
+
+3. **Move North Action (Action 0)**
+   - **Real World**: From `(x=0, y=0)`, moving north results in `(x=0, y=1)`.
+   - **Current Model**: From `(x=0, y=0)`, moving north results in no change (`(x=0, y=0)`).
+
+### Explanation of the Distribution
+
+The discrepancies indicate that the current model is not correctly handling the boundary conditions for the grid. Specifically:
+- When moving south from the bottom of the grid, the agent should move up by one cell.
+- When moving north from the top of the grid, the agent should move down by one cell.
+- The current model incorrectly clamps the position to the grid boundaries without considering the opposite direction.
+
+### Improved Code
+
+Here is the improved `transition_func` function that better models the true distribution:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(0, min(GRID_SIZE - 1, new_state.y + 1))
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = max(0, min(GRID_SIZE - 1, new_state.y - 1))
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = max(0, min(GRID_SIZE - 1, new_state.x + 1))
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(0, min(GRID_SIZE - 1, new_state.x - 1))
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(r if i != rock_idx else False for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Check the rock at the current position
+            pass  # No change in state
+
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **Move North**:
+   - `new_state.y = max(0, min(GRID_SIZE - 1, new_state.y + 1))`
+   - This ensures that the agent moves up by one cell, but remains within the grid boundaries.
+
+2. **Move South**:
+   - `new_state.y = max(0, min(GRID_SIZE - 1, new_state.y - 1))`
+   - This ensures that the agent moves down by one cell, but remains within the grid boundaries.
+
+3. **Move East and Move West**:
+   - Similar logic is applied to ensure the agent stays within the grid boundaries when moving horizontally.
+
+These changes should align the model's behavior more closely with the real-world samples provided.

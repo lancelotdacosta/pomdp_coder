@@ -1,0 +1,57 @@
+The reward function should consider the following conditions:
+
+1. If the agent exits the grid (`EXIT` action), it receives a reward of 10.0 and the episode is terminated.
+2. If the agent samples a rock (`SAMPLE` action) and is at a rock location, it receives a reward based on the quality of the rock:
+   - 10.0 if the rock is good (True).
+   - -10.0 if the rock is bad (False).
+3. If the agent performs a `CHECK_ROCK` action, it receives:
+   - 0.0 if it is at the correct rock location.
+   - -1.0 if it is not at the correct rock location.
+4. For all other actions (movement actions), the reward is 0.0 and the episode continues.
+
+Based on the provided samples, there seems to be an issue with the `CHECK_ROCK` actions. The code should ensure that the agent receives -1.0 if the agent is not at the correct rock location, even if the action is a `CHECK_ROCK` action.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        return 10.0, True
+    
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            return (10.0, False) if state.rocks[rock_idx] else (-10.0, False)
+        else:
+            return 0.0, False
+    
+    # Check for movement actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, 
+                  RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+    
+    # Check for check rock actions
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (state.x, state.y) == ROCK_POSITIONS[rock_idx]:
+            return 0.0, False
+        else:
+            return -1.0, False
+    
+    # Default case
+    return 0.0, False
+```
+
+This function should now correctly handle the `CHECK_ROCK` actions and match the observed distribution from the real world.

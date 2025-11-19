@@ -1,0 +1,61 @@
+Based on the provided samples, it seems that the `EXIT` action does not always terminate the episode, which is different from the initial implementation where the `EXIT` action always set `done` to `True`. Additionally, the `SAMPLE` action also does not always terminate the episode, and the `CHECK_ROCK` actions should incur a penalty only if the agent is at the rock being checked.
+
+Here's an improved version of the `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+
+    # Check if the action is to sample a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent is at a rock, check if the rock is good
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Good rock sampled
+            else:
+                reward = -10.0  # Bad rock sampled
+            done = True  # Episode ends after sampling a rock
+
+    # Check if the action is to exit
+    if action == RockSampleActions.EXIT:
+        if (state.x, state.y) == (4, 3):
+            reward = 10.0  # Exit from specific location
+            done = True  # Episode ends when the agent exits from the specific location
+        else:
+            done = False  # Episode does not end if not at the specific exit location
+
+    # Check if the action is to check a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = -1.0  # Penalty for checking a good rock
+            else:
+                reward = 0.0  # No penalty for checking a bad rock
+
+    return reward, done
+```
+
+### Explanation of Changes:
+1. **EXIT Action**:
+   - The `done` flag is only set to `True` if the agent is at the specific exit location `(4, 3)`. If the agent attempts to exit from any other location, the episode does not end (`done = False`).
+
+2. **SAMPLE Action**:
+   - The `done` flag is set to `True` only after sampling a rock, regardless of whether the rock is good or bad.
+
+3. **CHECK_ROCK Actions**:
+   - The penalty of `-1.0` is applied only if the agent is at the rock being checked. If the agent is not at the rock, no penalty is applied.
+
+These changes align the reward and done flags more closely with the observed behavior in the real world.

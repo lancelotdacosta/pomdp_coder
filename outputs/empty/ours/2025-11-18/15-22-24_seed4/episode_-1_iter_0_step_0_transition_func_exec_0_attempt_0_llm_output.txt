@@ -1,0 +1,85 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    # Helper function to check if a position is within the grid boundaries
+    def in_bounds(pos):
+        return 0 <= pos[0] < state.width and 0 <= pos[1] < state.height
+
+    # Helper function to check if a position is blocked by a wall
+    def is_blocked(pos):
+        return state.grid[pos] == ObjectTypes.wall
+
+    # Create a copy of the current state to modify
+    new_state = MinigridState(
+        grid=state.grid.copy(),
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    if action == Actions.left:
+        # Turn left
+        new_state.agent_dir = (new_state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        # Turn right
+        new_state.agent_dir = (new_state.agent_dir + 1) % 4
+    elif action == Actions.forward:
+        # Move forward
+        next_pos = np.array(new_state.agent_pos) + DIR_TO_VEC[new_state.agent_dir]
+        next_pos = tuple(next_pos)
+        if in_bounds(next_pos) and not is_blocked(next_pos):
+            new_state.agent_pos = next_pos
+    elif action == Actions.pickup:
+        # Pick up an object
+        front_pos = new_state.front_pos
+        if in_bounds(front_pos) and state.grid[front_pos] in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+            new_state.carrying = state.grid[front_pos]
+            new_state.grid[front_pos] = ObjectTypes.empty
+    elif action == Actions.drop:
+        # Drop an object
+        front_pos = new_state.front_pos
+        if in_bounds(front_pos) and new_state.carrying is not None and state.grid[front_pos] == ObjectTypes.empty:
+            new_state.grid[front_pos] = new_state.carrying
+            new_state.carrying = None
+    elif action == Actions.toggle:
+        # Toggle/activate an object
+        front_pos = new_state.front_pos
+        if in_bounds(front_pos):
+            if state.grid[front_pos] == ObjectTypes.closed_door:
+                new_state.grid[front_pos] = ObjectTypes.open_door
+            elif state.grid[front_pos] == ObjectTypes.open_door:
+                new_state.grid[front_pos] = ObjectTypes.closed_door
+    elif action == Actions.done:
+        # Done completing the task
+        pass
+
+    return new_state
+```
+
+### Explanation of the Distribution of Next States Conditioned on Actions and Previous States
+
+1. **Turning Actions (Left, Right)**:
+   - When the agent performs a turn left or right action, its direction is updated accordingly. The agent's position remains unchanged, and the grid and carried objects are unaffected.
+
+2. **Forward Action**:
+   - The agent moves forward in the direction it is facing. If the next cell is within the grid boundaries and not blocked by a wall, the agent's position is updated to the new cell. If the next cell is blocked or out of bounds, the agent stays in place.
+
+3. **Pickup Action**:
+   - The agent attempts to pick up an object from the cell directly in front of it. If the cell contains a key, ball, or box, the object is removed from the grid, and the agent starts carrying it. If the cell is empty or contains another type of object, the action has no effect.
+
+4. **Drop Action**:
+   - The agent attempts to drop the object it is carrying into the cell directly in front of it. If the cell is empty, the object is placed there, and the agent stops carrying it. If the cell is not empty or the agent is not carrying anything, the action has no effect.
+
+5. **Toggle Action**:
+   - The agent attempts to toggle an object in the cell directly in front of it. If the cell contains a closed door, it is opened. If the cell contains an open door, it is closed. If the cell contains any other type of object, the action has no effect.
+
+6. **Done Action**:
+   - This action indicates that the agent has completed its task. It does not change the state of the environment.
+
+By implementing these rules, the `transition_func` function accurately models the behavior of the agent in the MiniGrid environment based on the given actions and previous states.

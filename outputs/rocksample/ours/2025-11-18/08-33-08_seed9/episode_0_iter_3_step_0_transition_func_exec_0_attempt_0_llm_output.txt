@@ -1,0 +1,80 @@
+Certainly! Let's first explain the distribution of next states conditioned on actions and previous states based on the observations and the discrepancies provided.
+
+### Explanation of the Distribution
+
+1. **Move Actions**:
+   - `MOVE_NORTH`: The agent moves up by one grid cell, unless it is already at the top boundary (y = 1), in which case it stays in place.
+   - `MOVE_SOUTH`: The agent moves down by one grid cell, unless it is already at the bottom boundary (y = GRID_SIZE), in which case it stays in place.
+   - `MOVE_EAST`: The agent moves right by one grid cell, unless it is already at the right boundary (x = GRID_SIZE), in which case it stays in place.
+   - `MOVE_WEST`: The agent moves left by one grid cell, unless it is already at the left boundary (x = 1), in which case it stays in place.
+
+2. **Sample Action**:
+   - If the agent is on a rock, sampling the rock changes its state to "bad" (False).
+
+3. **Exit Action**:
+   - No change in state.
+
+4. **Check Actions**:
+   - These actions do not change the state but provide an observation of the rock's state with a 90% chance of being correct.
+
+### Discrepancies and Fixes
+
+From the discrepancies provided, it seems that the boundary conditions for movement are not being handled correctly. The agent should not move beyond the grid boundaries (1, 1) to (GRID_SIZE, GRID_SIZE).
+
+Let's fix the `transition_func` function to correctly handle these boundary conditions.
+
+### Updated `transition_func` Function
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(1, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(1, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and rock_idx == action - RockSampleActions.CHECK_ROCK_0:
+            # Perform a noisy check on the rock
+            if random.random() < 0.9:  # 90% chance of correct reading
+                is_good = rocks[rock_idx]
+            else:
+                is_good = not rocks[rock_idx]
+            # Check actions do not change the state, but they return an observation
+            return RockSampleState(x, y, rocks)
+    
+    return RockSampleState(x, y, rocks)
+```
+
+### Explanation of Fixes
+
+1. ** Boundary Conditions for Movement**:
+   - `max(1, y - 1)`: Ensures that the agent does not move above the top boundary (y = 1).
+   - `min(GRID_SIZE, y + 1)`: Ensures that the agent does not move below the bottom boundary (y = GRID_SIZE).
+   - `min(GRID_SIZE, x + 1)`: Ensures that the agent does not move to the right beyond the right boundary (x = GRID_SIZE).
+   - `max(1, x - 1)`: Ensures that the agent does not move to the left beyond the left boundary (x = 1).
+
+2. **Check Actions**:
+   - These actions are handled correctly as they do not change the state but provide an observation.
+
+With these fixes, the `transition_func` should now correctly model the true distribution of next states conditioned on actions and previous states.

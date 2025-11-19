@@ -1,0 +1,35 @@
+Based on the provided samples and the discrepancy between the real world and the generated model, it seems that the initial positions for the agent are not being sampled correctly. Specifically, the real world samples include positions like `(0, 4)`, which are not included in the current list of `possible_positions`.
+
+To improve the model, we need to ensure that all possible initial positions within the grid are considered. This includes all positions that are not occupied by rocks or walls.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: RockSampleState):
+    """
+    Input:
+        empty_state (RockSampleState): An empty state with only the walls filled into the grid
+    Returns:
+        state (RockSampleState): the initial state of the environment
+    """
+    # Define all possible initial positions for the agent, excluding rock positions and walls
+    possible_positions = [
+        (x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)
+        if (x, y) not in ROCK_POSITIONS
+    ]
+
+    # Randomly select an initial position for the agent
+    x, y = random.choice(possible_positions)
+
+    # Define possible states for each rock (good or bad)
+    possible_rock_states = [True, False]  # True = G, False = B
+
+    # Randomly generate the state for each rock
+    rocks = tuple(random.choice(possible_rock_states) for _ in range(NUM_ROCKS))
+
+    # Create and return the initial state
+    initial_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return initial_state
+```
+
+This function now considers all positions on the grid that are not occupied by rocks or walls as possible initial positions for the agent. This should better match the distribution of initial states observed in the real world.

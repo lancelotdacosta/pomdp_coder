@@ -1,0 +1,58 @@
+Based on the provided samples, it seems that the reward function should consider the following:
+
+1. **Exiting the Grid**:
+   - The agent receives a reward of 10.0 when the `EXIT` action is performed, regardless of the state or next state. The episode is marked as done.
+
+2. **Sampling a Rock**:
+   - If the agent performs the `SAMPLE` action at a rock's position and the rock is good (`G`), the agent receives a reward of 10.0 and the episode continues.
+   - If the agent performs the `SAMPLE` action at a rock's position and the rock is bad (`B`), the agent receives a reward of -10.0 and the episode continues.
+   - If the agent performs the `SAMPLE` action but is not at a rock's position, the agent receives a reward of -1.0 and the episode continues.
+
+3. **Checking a Rock**:
+   - If the agent performs a `CHECK_ROCK_X` action at a rock's position, the agent receives a reward of 0.0 and the episode continues.
+   - If the agent performs a `CHECK_ROCK_X` action but is not at the corresponding rock's position, the agent receives a reward of -1.0 and the episode continues.
+
+4. **Movement Actions**:
+   - For all other actions (movement), the reward is 0.0 and the episode continues.
+
+Given these rules, the `reward_func` function can be improved as follows:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        return 10.0, True
+
+    # Check if the agent is sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if next_state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return -1.0, False
+
+    # Check if the agent is checking a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            return 0.0, False
+        else:
+            return -1.0, False
+
+    # For all other actions (movement), the reward is 0 and the episode is not done
+    return 0.0, False
+```
+
+This function should now correctly model the reward conditioned on the state, action, and next state transitions based on the provided samples.

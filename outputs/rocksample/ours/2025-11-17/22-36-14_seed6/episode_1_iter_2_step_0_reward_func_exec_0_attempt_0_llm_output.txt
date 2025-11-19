@@ -1,0 +1,51 @@
+Certainly! Based on the provided samples, it seems that the reward function should take into account the specific action being performed and the state of the environment. Here's the improved `reward_func` function:
+
+1. **Exit Action**: The exit action should always set `done` to `True`, but it does not necessarily provide a reward.
+2. **Sample Action**: Sampling a rock provides a positive or negative reward based on whether the rock is good or bad.
+3. **Check Rock Actions**: Checking a rock (even if it fails) should provide a small negative reward to discourage unnecessary checks.
+4. **Other Actions**: Other actions do not provide immediate rewards.
+
+Here is the updated `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Initialize reward and done flag
+    reward = 0.0
+    done = False
+
+    # Check if the action is an exit action
+    if action == RockSampleActions.EXIT:
+        done = True
+        return reward, done
+
+    # Check if the action is a sample action
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Positive reward for sampling a good rock
+            else:
+                reward = -10.0  # Negative reward for sampling a bad rock
+        return reward, done
+
+    # Check if the action is a check rock action
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            reward = -1.0  # Small negative reward for checking a rock
+        return reward, done
+
+    # For other actions (move), no immediate reward is given
+    return reward, done
+```
+
+This function now includes the necessary logic to handle the `CHECK_ROCK` actions by providing a small negative reward. This should better align with the observed distribution from the real world.

@@ -1,0 +1,54 @@
+Certainly! Based on the provided samples from the real world, it seems that the `SAMPLE` action can change the state of the rocks. Specifically, when the agent performs the `SAMPLE` action at a rock's position, there is a possibility that the rock's state might change from `GOOD` to `BAD`.
+
+Let's update the `transition_func` to reflect this behavior. We'll introduce a probabilistic change for the rock's state when the `SAMPLE` action is performed.
+
+Here's the updated `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        if new_state.y < GRID_SIZE - 1:
+            new_state.y += 1
+    elif action == RockSampleActions.MOVE_SOUTH:
+        if new_state.y > 0:
+            new_state.y -= 1
+    elif action == RockSampleActions.MOVE_EAST:
+        if new_state.x < GRID_SIZE - 1:
+            new_state.x += 1
+    elif action == RockSampleActions.MOVE_WEST:
+        if new_state.x > 0:
+            new_state.x -= 1
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None and rock_idx < NUM_ROCKS:
+            # Sample the rock with a probability of changing its state
+            if random.random() < 0.5:  # 50% chance of changing the rock's state
+                new_state.rocks = new_state.rocks[:rock_idx] + (False,) + new_state.rocks[rock_idx+1:]
+    elif action == RockSampleActions.EXIT:
+        # Exit the environment (this action does not change the state)
+        pass
+    elif action in CHECK_ACTIONS:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None and rock_idx < NUM_ROCKS:
+            # Check the rock (this action does not change the state)
+            pass
+    
+    return new_state
+```
+
+### Explanation:
+- **Move Actions (`MOVE_NORTH`, `MOVE_SOUTH`, `MOVE_EAST`, `MOVE_WEST`)**: These actions move the agent to a new position on the grid, if possible.
+- **Sample Action (`SAMPLE`)**: When the agent performs this action at a rock's position, there is a 50% chance that the rock's state will change from `GOOD` to `BAD`. This is implemented by generating a random number and comparing it to 0.5.
+- **Exit Action (`EXIT`)**: This action does not change the state of the environment.
+- **Check Actions (`CHECK_ROCK_0`, `CHECK_ROCK_1`)**: These actions do not change the state of the environment.
+
+This update should better model the true distribution of next states conditioned on actions and previous states.

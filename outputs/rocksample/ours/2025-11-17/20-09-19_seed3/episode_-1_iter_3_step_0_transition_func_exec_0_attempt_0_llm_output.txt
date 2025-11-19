@@ -1,0 +1,71 @@
+The observed discrepancies suggest that the current `transition_func` is not correctly handling the grid boundaries and the movement actions. Specifically, it seems that the agent's y-coordinate is not being updated correctly when moving north or south. The `max` and `min` functions are being used incorrectly to constrain the y-coordinate within the grid boundaries.
+
+### Explanation of the Distribution of Next States Conditioned on Actions and Previous States
+
+1. **Movement Actions**:
+   - **Move North (0)**: The agent moves one cell north unless it is at the top boundary of the grid (y = 1).
+   - **Move South (1)**: The agent moves one cell south unless it is at the bottom boundary of the grid (y = GRID_SIZE).
+   - **Move East (2)**: The agent moves one cell east unless it is at the right boundary of the grid (x = GRID_SIZE).
+   - **Move West (3)**: The agent moves one cell west unless it is at the left boundary of the grid (x = 1).
+
+2. **Sample Action (4)**:
+   - If the agent is at a rock's position, it samples the rock with a 50% chance to change its state.
+
+3. **Exit Action (5)**:
+   - The agent stays in the same position.
+
+4. **Check Rock Actions (6, 7)**:
+   - The agent checks the rock but does not change the state.
+
+### Improved `transition_func` Function
+
+Here is the improved `transition_func` function that correctly handles the grid boundaries and movement actions:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sampling the rock changes its state with some probability
+            if random.random() < 0.5:  # 50% chance to change state
+                new_state.rocks = new_state.rocks[:rock_idx] + (not new_state.rocks[rock_idx],) + new_state.rocks[rock_idx+1:]
+    elif action == RockSampleActions.EXIT:
+        pass  # The agent stays in the same position
+    elif action in CHECK_ACTIONS:
+        pass  # Checking a rock does not change the state
+
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **Move North**:
+   - `new_state.y = max(1, new_state.y - 1)`: Ensures the y-coordinate does not go below 1.
+
+2. **Move South**:
+   - `new_state.y = min(GRID_SIZE - 1, new_state.y + 1)`: Ensures the y-coordinate does not go above `GRID_SIZE - 1` (since the grid is 0-indexed).
+
+3. **Move East**:
+   - `new_state.x = min(GRID_SIZE - 1, new_state.x + 1)`: Ensures the x-coordinate does not go above `GRID_SIZE - 1`.
+
+4. **Move West**:
+   - `new_state.x = max(1, new_state.x - 1)`: Ensures the x-coordinate does not go below 1.
+
+These changes ensure that the agent's movement respects the grid boundaries, and the observed discrepancies should be resolved.

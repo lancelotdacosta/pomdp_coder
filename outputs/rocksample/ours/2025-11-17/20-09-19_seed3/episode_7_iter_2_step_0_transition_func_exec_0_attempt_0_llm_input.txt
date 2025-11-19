@@ -1,0 +1,239 @@
+#define system
+You are a robot exploring its environment. 
+
+
+
+Your goal is to model the distribution of next states conditioned on actions and previous states of the world in python. 
+
+You have tried it before and came up with one partially correct solution, but it is not perfect. 
+
+The observed distribution disagrees with the generated model in several cases.
+You need to improve your code to come closer to the true distribution.
+
+Environment Description: 
+Goal Description: 
+
+Here is a solution you came up with before. 
+
+```
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+
+
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y = state.x, state.y
+    rocks = list(state.rocks)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(0, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE - 1, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE - 1, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(0, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and rock_idx == action - 6:
+            # Noisy reading with 80% accuracy
+            if random.random() < 0.8:
+                rocks[rock_idx] = state.rocks[rock_idx]
+            else:
+                rocks[rock_idx] = not state.rocks[rock_idx]
+    
+    new_state = RockSampleState(x=x, y=y, rocks=tuple(rocks))
+    return new_state
+
+```
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=2, y=0, rocks=[B,G])
+Input int: 1
+Output RockSampleState: RockSampleState(x=2, y=0, rocks=[B,G])
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=2, y=0, rocks=[B,G])
+Input int: 1
+Output RockSampleState: RockSampleState(x=2, y=1, rocks=[B,G])
+
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=2, y=4, rocks=[G,B])
+Input int: 0
+Output RockSampleState: RockSampleState(x=2, y=4, rocks=[G,B])
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=2, y=4, rocks=[G,B])
+Input int: 0
+Output RockSampleState: RockSampleState(x=2, y=3, rocks=[G,B])
+
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=1, y=4, rocks=[G,B])
+Input int: 1
+Output RockSampleState: RockSampleState(x=1, y=3, rocks=[G,B])
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=1, y=4, rocks=[G,B])
+Input int: 1
+Output RockSampleState: RockSampleState(x=1, y=4, rocks=[G,B])
+
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=1, y=0, rocks=[B,B])
+Input int: 0
+Output RockSampleState: RockSampleState(x=1, y=1, rocks=[B,B])
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=1, y=0, rocks=[B,B])
+Input int: 0
+Output RockSampleState: RockSampleState(x=1, y=0, rocks=[B,B])
+
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=4, y=3, rocks=[G,B])
+Input int: 0
+Output RockSampleState: RockSampleState(x=4, y=4, rocks=[G,B])
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=4, y=3, rocks=[G,B])
+Input int: 0
+Output RockSampleState: RockSampleState(x=4, y=2, rocks=[G,B])
+
+
+
+
+
+Explain what you believe is the distribution of next states conditioned on actions and previous states in english, then improve your code to better model the true distribution.
+
+Please implement the code for the following the template. 
+You must implement the ‘ transition_func ‘ function. 
+
+The code needs to be directly runnable with (state, action) and return a sample (next_state). 
+
+Do not output examples. 
+Do not create any new classes. 
+Do not rewrite existing classes.
+Do not import any new modules from anywhere.
+Do not list out specific indices that overfit to the examples, but include ranges.
+Put the ‘ transition_func ‘ function in a python code block.

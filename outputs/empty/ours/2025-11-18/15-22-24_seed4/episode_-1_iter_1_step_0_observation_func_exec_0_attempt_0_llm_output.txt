@@ -1,0 +1,74 @@
+Certainly! Let's start by explaining the distribution of observations conditioned on a state in English.
+
+### Distribution of Observations Conditioned on a State
+
+1. **Agent Position and Direction**: The agent's position and direction are directly derived from the state. The agent's position is the current location on the grid, and the direction is the orientation (right, down, left, up).
+
+2. **Field of View (FoV)**: The agent's field of view is a 3x3 grid centered around the agent and aligned with the agent's direction. The FoV should show what the agent can see in front of it, considering its current direction.
+
+3. **Action Effects**:
+   - **Move Forward**: If the action is `forward`, the agent moves one step in the direction it is facing, provided the cell in front is not a wall.
+   - **Turn Left/Right**: If the action is `left` or `right`, the agent rotates 90 degrees counterclockwise or clockwise, respectively.
+   - **Other Actions**: Other actions (pickup, drop, toggle, done) do not change the agent's position or direction but may affect the grid state (e.g., picking up an object).
+
+### Issues in the Current Code
+
+1. **Agent Position in FoV**: The current code does not correctly place the agent in the FoV. The agent should be visible in the center of the FoV if it is within the view range.
+2. **Movement and Rotation**: The movement and rotation logic seems to work correctly, but the FoV generation needs to reflect the agent's new position and direction accurately.
+
+### Improved `observation_func`
+
+Here is the improved `observation_func` function:
+
+```python
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    # Update agent's position and direction based on the action
+    if action == Actions.forward:
+        new_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+        if 0 <= new_pos[0] < state.width and 0 <= new_pos[1] < state.height:
+            if state.grid[new_pos[0], new_pos[1]] != ObjectTypes.wall:
+                state.agent_pos = tuple(new_pos)
+
+    elif action == Actions.left:
+        state.agent_dir = (state.agent_dir - 1) % 4
+
+    elif action == Actions.right:
+        state.agent_dir = (state.agent_dir + 1) % 4
+
+    # Get the field of view
+    view_size = 3
+    image = state.get_field_of_view(view_size)
+
+    # Place the agent in the center of the FoV if it is within the view range
+    agent_pos_in_fov = (
+        view_size // 2,
+        view_size // 2
+    )
+    image[agent_pos_in_fov] = ObjectTypes.agent
+
+    # Fill the empty observation
+    empty_obs.image = image
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+
+    return empty_obs
+```
+
+### Explanation of Changes
+
+1. **Agent Position in FoV**: The agent is placed at the center of the FoV, which is `(view_size // 2, view_size // 2)`. This ensures that the agent is always visible in the center of the FoV if it is within the view range.
+
+2. **Movement and Rotation**: The movement and rotation logic remains the same as it was correctly implemented in the original code.
+
+3. **FoV Generation**: The `get_field_of_view` function is called to generate the FoV, and the agent is then placed in the center of the FoV.
+
+This should better model the true distribution of observations conditioned on a state.

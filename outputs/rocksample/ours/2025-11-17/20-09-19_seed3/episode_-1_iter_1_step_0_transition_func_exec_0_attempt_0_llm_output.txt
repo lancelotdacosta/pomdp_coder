@@ -1,0 +1,63 @@
+To better model the true distribution of next states conditioned on actions and previous states, we need to address the discrepancies observed in the samples from the real world. Here's an explanation of the expected behavior:
+
+1. **Movement Actions**:
+   - The agent should move within the grid boundaries (1 to `GRID_SIZE`).
+   - The current implementation has a boundary check, but it seems to have an off-by-one error. The grid starts at 1, not 0.
+
+2. **Sampling Action**:
+   - When the agent samples a rock, the rock's state should change from good to bad or bad to good with some probability. This is missing in the current implementation.
+
+3. **Checking Rock Actions**:
+   - These actions do not change the state, as observed.
+
+4. **Exit Action**:
+   - The agent stays in the same position, as observed.
+
+Given these points, let's improve the `transition_func` function to better model the true distribution.
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sampling the rock changes its state with some probability
+            if random.random() < 0.5:  # 50% chance to change state
+                new_state.rocks = new_state.rocks[:rock_idx] + (not new_state.rocks[rock_idx],) + new_state.rocks[rock_idx+1:]
+    elif action == RockSampleActions.EXIT:
+        pass  # The agent stays in the same position
+    elif action in CHECK_ACTIONS:
+        pass  # Checking a rock does not change the state
+
+    return new_state
+```
+
+### Explanation of Changes:
+
+1. **Boundary Correction**:
+   - Ensured that `y` is clamped between 1 and `GRID_SIZE` for `MOVE_NORTH` and `MOVE_SOUTH`.
+   - Ensured that `x` is clamped between 1 and `GRID_SIZE` for `MOVE_EAST` and `MOVE_WEST`.
+
+2. **Sampling Action**:
+   - Added logic to change the rock's state with a 50% probability when the agent samples a rock. This reflects the noisy nature of the sampling process.
+
+3. **Other Actions**:
+   - No changes were needed for `EXIT` and `CHECK_ROCK` actions, as they were already correctly implemented.
+
+This improved `transition_func` should better model the true distribution of next states based on the provided real-world samples.

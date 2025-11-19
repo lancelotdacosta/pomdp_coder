@@ -1,0 +1,29 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the observation model of the agent based on the current state and action performed.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position of the agent
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    # Determine the observation based on the action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            # If the agent is at the rock and checking it, provide a noisy reading
+            is_good = state.rocks[rock_idx]
+            # Simulate noise in the sensor reading (10% chance of incorrect reading)
+            if random.random() < 0.1:
+                is_good = not is_good
+            obs.rock_idx = rock_idx
+            obs.is_good = is_good
+
+    return obs
+```

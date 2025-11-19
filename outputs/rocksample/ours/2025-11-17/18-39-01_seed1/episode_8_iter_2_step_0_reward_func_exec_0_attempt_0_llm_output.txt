@@ -1,0 +1,56 @@
+Based on the provided samples and the discrepancies between the real world and the model, it appears that the `reward_func` function is not correctly handling the conditions under which the EXIT action should provide a reward. Specifically, the EXIT action should only provide a reward if the agent is at a specific exit location. Additionally, the CHECK actions should provide a small negative reward only when the agent is at the rock being checked.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent exits the grid
+    if action == RockSampleActions.EXIT:
+        # Only provide a reward if the agent is at a specific exit location
+        if (state.x, state.y) == (0, 0) or (state.x, state.y) == (GRID_SIZE - 1, GRID_SIZE - 1):
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent samples a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return 0.0, False
+
+    # Check if the agent checks a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            return -1.0, False
+        else:
+            return 0.0, False
+
+    # For all other actions, there is no reward
+    return 0.0, False
+```
+
+### Explanation of the Changes:
+1. **EXIT Action**:
+   - The EXIT action should only provide a reward if the agent is at one of the specified exit locations, which are typically the corners of the grid (e.g., (0, 0) or (GRID_SIZE - 1, GRID_SIZE - 1)).
+   - If the agent is not at an exit location, the reward should be 0 and the episode should not terminate.
+
+2. **CHECK Actions**:
+   - The CHECK actions should provide a small negative reward (-1.0) only when the agent is at the rock being checked.
+   - If the agent is not at the rock being checked, the reward should be 0.
+
+These changes ensure that the reward function more accurately reflects the true distribution of rewards in the environment based on the provided samples.

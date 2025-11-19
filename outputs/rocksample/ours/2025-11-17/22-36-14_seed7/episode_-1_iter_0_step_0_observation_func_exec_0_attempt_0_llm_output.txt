@@ -1,0 +1,51 @@
+Based on the provided samples, it seems that the observations are primarily dependent on the agent's position and the action taken. Specifically:
+
+1. The `x` and `y` coordinates in the observation always match the agent's current position in the state.
+2. For actions other than checking rocks (i.e., MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST, SAMPLE, EXIT), the `rock_idx` and `is_good` fields in the observation are set to `None`.
+3. For rock-checking actions (i.e., CHECK_ROCK_0, CHECK_ROCK_1), the `rock_idx` field is set to the index of the rock being checked, and the `is_good` field is a noisy reading of the rock's quality.
+
+Given this understanding, here is the implementation of the `observation_func` function:
+
+```python
+def observation_func(state: RockSampleState, action: int, empty_obs: RockSampleObservation) -> RockSampleObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    # Check if the action is a rock-checking action
+    if action in CHECK_ACTIONS:
+        # Determine the index of the rock being checked
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+
+        # Get the actual state of the rock
+        actual_is_good = state.rocks[rock_idx]
+
+        # Add some noise to the observation (50% chance of error)
+        obs.rock_idx = rock_idx
+        obs.is_good = actual_is_good if random.random() < 0.9 else not actual_is_good
+
+    return obs
+```
+
+This function correctly models the distribution of observations based on the provided samples and the described logic. It ensures that the `x` and `y` coordinates in the observation match the agent's position, and it properly handles the noisy readings for rock-checking actions.

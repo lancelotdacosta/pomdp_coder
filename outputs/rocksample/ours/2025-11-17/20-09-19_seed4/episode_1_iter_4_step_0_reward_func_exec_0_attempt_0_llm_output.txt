@@ -1,0 +1,73 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the outputs from the `reward_func` function.
+
+### Problem Analysis
+
+1. **Action 5 (EXIT)**:
+   - Real World: The episode does not end if the agent is not at the specific exit location (4, 3).
+   - Your Code: The episode ends regardless of the agent's position when the EXIT action is taken.
+
+2. **Action 6 (CHECK_ROCK_0) and Action 7 (CHECK_ROCK_1)**:
+   - Real World: There is a penalty for checking a good rock.
+   - Your Code: There is no penalty for checking a good rock.
+
+### Solution
+
+To address these issues, we need to make the following changes:
+
+1. **Action 5 (EXIT)**:
+   - Only set `done` to `True` if the agent is at the specific exit location (4, 3).
+
+2. **Action 6 (CHECK_ROCK_0) and Action 7 (CHECK_ROCK_1)**:
+   - Apply a penalty of -1.0 for checking a good rock.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+
+    # Check if the action is to sample a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent is at a rock, check if the rock is good
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Good rock sampled
+                next_state = RockSampleState(
+                    x=state.x,
+                    y=state.y,
+                    rocks=tuple([False if i == rock_idx else r for i, r in enumerate(state.rocks)])
+                )
+            else:
+                reward = -10.0  # Bad rock sampled
+            done = False  # Episode does not end after sampling a rock
+
+    # Check if the action is to exit
+    if action == RockSampleActions.EXIT:
+        if (state.x, state.y) == (4, 3):
+            reward = 10.0  # Exit from specific location
+            done = True  # Episode ends when the agent exits
+        else:
+            done = False  # Episode does not end if not at the specific exit location
+
+    # Check if the action is to check a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and state.rocks[rock_idx]:
+            reward = -1.0  # Penalty for checking a good rock
+
+    return reward, done
+```
+
+This improved function should now better match the true distribution of rewards and episode termination conditions as observed in the real world.

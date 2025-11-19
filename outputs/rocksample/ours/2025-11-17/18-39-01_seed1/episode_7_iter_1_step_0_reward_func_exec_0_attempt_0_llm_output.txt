@@ -1,0 +1,61 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent is at a rock position
+    current_rock_idx = state.at_rock()
+    next_rock_idx = next_state.at_rock()
+
+    # Define rewards based on actions and states
+    if action == RockSampleActions.SAMPLE:
+        if next_rock_idx is not None:
+            if state.rocks[next_rock_idx]:  # Good rock
+                return 10.0, False
+            else:  # Bad rock
+                return -10.0, False
+        else:
+            return -1.0, False
+
+    elif action in CHECK_ACTIONS:
+        if current_rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + current_rock_idx:
+            return 0.0, False
+        else:
+            return -1.0, False
+
+    elif action == RockSampleActions.EXIT:
+        return 0.0, True
+
+    else:
+        # For move actions, there is no reward unless a specific condition is met
+        if state.x == next_state.x and state.y == next_state.y:
+            return 0.0, False
+        else:
+            return 0.0, False
+```
+
+### Explanation of the Reward Function
+
+1. **Sampling Rocks**:
+   - If the agent performs the `SAMPLE` action and is at a rock position:
+     - If the rock is good (`True`), the agent gets a reward of 10.0.
+     - If the rock is bad (`False`), the agent gets a penalty of -10.0.
+   - If the agent performs the `SAMPLE` action but is not at a rock position, it gets a penalty of -1.0.
+
+2. **Checking Rocks**:
+   - If the agent performs a `CHECK_ROCK_X` action and is at the corresponding rock position, it gets a reward of 0.0.
+   - If the agent performs a `CHECK_ROCK_X` action but is not at the corresponding rock position, it gets a penalty of -1.0.
+
+3. **Exiting**:
+   - If the agent performs the `EXIT` action, it get a reward of 0.0 and the episode is marked as done.
+
+4. **Movement Actions**:
+   - For movement actions (`MOVE_NORTH`, `MOVE_SOUTH`, `MOVE_EAST`, `MOVE_WEST`), the reward is 0.0 unless the agent remains in the same position after the action, in which case the reward is also 0.0.
+
+This reward function is designed to encourage the agent to sample good rocks for positive rewards while penalizing it for sampling bad rocks or performing invalid actions.

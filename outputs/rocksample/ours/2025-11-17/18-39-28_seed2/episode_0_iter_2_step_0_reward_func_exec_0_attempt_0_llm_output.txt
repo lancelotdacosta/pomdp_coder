@@ -1,0 +1,62 @@
+Based on the observed discrepancies, it seems that the reward function is not correctly handling the transitions and conditions as they are in the real world. Let's analyze the issues and improve the `reward_func`:
+
+1. **Sampling a Rock**: The reward for sampling a rock should depend on the current state of the rock and whether the agent is at the correct rock location. The provided model incorrectly assigns a negative reward when the rock state changes from good to bad.
+
+2. **Exiting the Environment**: The exit action should only provide a positive reward if the agent is at the exit location (4, 4). The provided model seems to be correct for this part.
+
+3. **Checking a Rock**: The check action should not provide any reward, but the current model sometimes incorrectly provides a positive reward.
+
+4. **Movement Actions**: Movement actions should not provide any reward, which the current model correctly handles.
+
+Let's improve the `reward_func` to better match the observed distribution:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the action is the exit action and if the agent is at the exit location
+    if action == RockSampleActions.EXIT:
+        if state.x == 4 and state.y == 4:
+            return 10.0, True
+        else:
+            return -1.0, False
+
+    # Check if the action is a sample action
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if next_state.rocks[rock_idx]:  # If the rock is good
+                return 10.0, False
+            else:  # If the rock is bad
+                return -10.0, False
+        else:
+            return -1.0, False
+
+    # Check if the action is a movement action
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # No reward for moving
+        return 0.0, False
+
+    # Check if the action is a check action
+    if action in CHECK_ACTIONS:
+        # No reward for checking
+        return 0.0, False
+
+    # Default case: unexpected action or state transition
+    return -1.0, False
+```
+
+### Explanation of Changes:
+1. **Exit Action**: The logic for the exit action remains unchanged as it correctly provides a reward based on the agent's position.
+2. **Sample Action**: The logic for the sample action is adjusted to ensure that the reward is given based on the next state of the rock, not the current state. This matches the observed behavior where the rock state can change.
+3. **Check Action**: The logic for the check action is simplified to ensure no reward is given, regardless of the rock state or position.
+4. **Movement Actions**: The logic for movement actions remains unchanged as it correctly provides no reward.
+
+This should better align the model with the observed distribution and address the discrepancies in the provided examples.

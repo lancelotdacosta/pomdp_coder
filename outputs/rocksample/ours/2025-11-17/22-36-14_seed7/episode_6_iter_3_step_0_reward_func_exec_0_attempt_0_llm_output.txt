@@ -1,0 +1,52 @@
+Based on the provided samples, it appears that the reward function has specific conditions that were not correctly implemented in the initial solution. Here's a detailed explanation of the reward function:
+
+1. **Exiting the Grid**: If the agent exits the grid, it gets a reward of 0.0 and should not terminate the episode.
+2. **Sampling a Rock**:
+   - If the agent is at a rock position and samples a good rock (i.e., the rock is marked as `True` in the state), it gets a reward of 10.0.
+   - If the agent is at a rock position and samples a bad rock (i.e., the rock is marked as `False` in the state), it gets a reward of -10.0.
+3. **Checking a Rock**: If the agent checks a rock, it gets a reward of -1.0.
+4. **Moving**: No reward for moving actions.
+5. **Other Actions**: No reward for any other actions.
+
+Based on this understanding, here is the improved `reward_func`:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        return 0.0, False
+    
+    # Check if the agent sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return 0.0, False
+    
+    # Check if the agent checked a rock
+    if action in CHECK_ACTIONS:
+        return -1.0, False
+    
+    # Check if the agent moved
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+    
+    # Default case (should not happen if actions are properly defined)
+    return 0.0, False
+```
+
+This function now correctly handles the reward for sampling a rock based on whether it is good or bad, and also includes the negative reward for checking a rock. The exit action now returns the correct reward and does not terminate the episode, which aligns with the provided samples.

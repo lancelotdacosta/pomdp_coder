@@ -1,0 +1,94 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and your current model.
+
+### Understanding the Reward Function
+
+1. **Exit Action (`EXIT`)**:
+   - In the real world, exiting the grid at any position should yield a reward of 10.0 if the agent is on the exit grid (which seems to be the bottom-right corner, `(4, 4)`), and 0.0 otherwise. The episode should always end upon exiting.
+   - In your model, the exit action always ends the episode but does not provide a reward of 10.0 unless the agent is on the exit grid.
+
+2. **Sampling Rocks**:
+   - Sampling a good rock should yield a reward of 10.0, while sampling a bad rock should yield a penalty of -10.0. This part of your model is correct.
+
+3. **Checking Rocks (`CHECK_ROCK_0`, `CHECK_ROCK_1`)**:
+   - Checking a rock should incur a penalty of -1.0 in the real world, regardless of the rock's quality.
+   - In your model, checking rocks does not incur any penalty.
+
+4. **Moving Out of Bounds**:
+   - Moving out of bounds should incur a penalty of -1.0 and end the episode. This part of your model is correct.
+
+### Improved Reward Function
+
+Here is the improved `reward_func` function that better models the true distribution:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    def is_out_of_bounds(x, y):
+        return x < 0 or x >= GRID_SIZE or y < 0 or y >= GRID_SIZE
+
+    def get_next_position(x, y, action):
+        if action == RockSampleActions.MOVE_NORTH:
+            return x, y - 1
+        elif action == RockSampleActions.MOVE_SOUTH:
+            return x, y + 1
+        elif action == RockSampleActions.MOVE_EAST:
+            return x + 1, y
+        elif action == RockSampleActions.MOVE_WEST:
+            return x - 1, y
+        else:
+            return x, y
+
+    reward = 0.0
+    done = False
+
+    # Check if the agent is at a rock and the action is to sample
+    rock_at_position = state.at_rock()
+    next_rock_at_position = next_state.at_rock()
+
+    if rock_at_position is not None and action == RockSampleActions.SAMPLE:
+        if state.rocks[rock_at_position]:
+            reward = 10.0  # Reward for sampling a good rock
+        else:
+            reward = -10.0  # Penalty for sampling a bad rock
+
+    # Check if the agent has moved out of bounds
+    if is_out_of_bounds(next_state.x, next_state.y):
+        reward = -1.0  # Penalty for moving out of bounds
+        done = True
+
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        if (next_state.x, next_state.y) == (GRID_SIZE - 1, GRID_SIZE - 1):
+            reward = 10.0  # Reward for exiting from the bottom-right corner
+        else:
+            reward = 0.0  # No reward for exiting from other positions
+        done = True
+
+    # Check if the agent is checking a rock
+    if action in CHECK_ACTIONS:
+        reward = -1.0  # Penalty for checking a rock
+
+    return reward, done
+```
+
+### Explanation of Changes
+
+1. **Exit Action**:
+   - Added a condition to check if the agent is on the exit grid `(4, 4)` when exiting. If so, a reward of 10.0 is given; otherwise, the reward is 0.0.
+
+2. **Checking Rocks**:
+   - Added a penalty of -1.0 for checking rocks (`CHECK_ROCK_0`, `CHECK_ROCK_1`).
+
+3. **General Improvements**:
+   - Ensured that the episode ends correctly in all scenarios where it should.
+
+This improved function should better align with the real-world samples provided.

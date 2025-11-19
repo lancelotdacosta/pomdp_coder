@@ -1,0 +1,53 @@
+Based on the discrepancies between the real-world samples and the generated model, it seems that the reward function is more nuanced than initially implemented. Specifically, the following observations can be made:
+
+1. **Checking Rocks**: When the agent checks a rock, it receives a small negative reward of -1.0, regardless of whether the rock is good or bad.
+2. **Sampling Bad Rocks**: Sampling a bad rock results in a larger negative reward of -10.0, not -5.0.
+3. **Exiting the Environment**: Exiting the environment should terminate the episode, but it should only provide a reward of 0.0 if the agent is not at a specific exit position.
+
+Given these observations, let's improve the `reward_func` function to better model the true distribution:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                # If the agent samples a good rock, it gets a positive reward
+                reward = 10.0
+            else:
+                # If the agent samples a bad rock, it gets a larger negative reward
+                reward = -10.0
+        else:
+            # If the agent samples but there is no rock, it gets a smaller negative reward
+            reward = -5.0
+
+    elif action in CHECK_ACTIONS:
+        # When checking a rock, the agent receives a small negative reward
+        reward = -1.0
+
+    elif action == RockSampleActions.EXIT:
+        # If the agent exits, the episode is done
+        done = True
+
+    return reward, done
+```
+
+This updated `reward_func` function addresses the issues observed in the real-world samples:
+
+- **Checking Rocks**: The agent receives a small negative reward of -1.0 when checking a rock.
+- **Sampling Bad Rocks**: Sampling a bad rock now results in a larger negative reward of -10.0.
+- **Exiting the Environment**: The episode is terminated when the agent exits, but the reward remains 0.0.
+
+This should bring the model closer to the true distribution of rewards in the environment.

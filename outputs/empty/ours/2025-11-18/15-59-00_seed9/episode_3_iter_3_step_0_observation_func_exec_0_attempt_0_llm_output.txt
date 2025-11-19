@@ -1,0 +1,76 @@
+Certainly! Let's first understand the distribution of observations conditioned on a state in the MiniGrid environment.
+
+### Distribution of Observations Conditioned on a State
+
+In the MiniGrid environment, the agent can observe a partial view of the grid based on its current position and direction. The observation is typically a 3x3 grid (field of view) centered around the agent's position and oriented according to the agent's direction. The environment also allows for the possibility of the agent carrying objects.
+
+### Issues in the Current Code
+
+1. **Agent Direction Handling**: The current code incorrectly updates the agent's direction after performing actions. For example, when the agent turns left or right, the direction should be updated accordingly, but it seems to be off by one or more steps.
+2. **Field of View Calculation**: The field of view calculation is not correctly aligned with the agent's direction and position. The agent's position and direction should be used to correctly determine the visible area.
+3. **Agent Position Update**: When the agent moves forward, the new position is not always correctly calculated, especially when the agent is facing edges of the grid.
+
+### Improved Code
+
+Here is the improved `observation_func` function that better models the true distribution of observations:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    
+    def apply_action(state, action):
+        # Define the new agent position and direction based on the action
+        new_agent_pos = state.agent_pos
+        new_agent_dir = state.agent_dir
+
+        if action == Actions.left:
+            new_agent_dir = (new_agent_dir - 1) % 4
+        elif action == Actions.right:
+            new_agent_dir = (new_agent_dir + 1) % 4
+        elif action == Actions.forward:
+            new_agent_pos = tuple(np.array(new_agent_pos) + DIR_TO_VEC[new_agent_dir])
+            # Check if the new position is within bounds and not a wall
+            if not (0 <= new_agent_pos[0] < state.width and 0 <= new_agent_pos[1] < state.height):
+                new_agent_pos = state.agent_pos
+            elif state.grid[new_agent_pos] == ObjectTypes.wall:
+                new_agent_pos = state.agent_pos
+        return MinigridState(
+            grid=state.grid,
+            agent_pos=new_agent_pos,
+            agent_dir=new_agent_dir,
+            carrying=state.carrying
+        )
+
+    def get_observation(state):
+        # Get the field of view based on the agent's current position and direction
+        fov = state.get_field_of_view(3)
+        return MinigridObservation(
+            image=fov,
+            agent_pos=state.agent_pos,
+            agent_dir=state.agent_dir,
+            carrying=state.carrying
+        )
+
+    # Apply the action to get the new state
+    new_state = apply_action(state, action)
+    
+    # Get the observation based on the new state
+    obs = get_observation(new_state)
+    
+    return obs
+```
+
+### Explanation of Changes
+
+1. **Agent Direction Handling**: The direction is updated correctly by using modulo 4 to ensure it wraps around.
+2. **Field of View Calculation**: The `get_field_of_view` method in the `MinigridState` class is used to correctly calculate the field of view based on the agent's position and direction.
+3. **Agent Position Update**: The new position is checked to ensure it is within bounds and not a wall before updating the agent's position.
+
+This improved function should better model the true distribution of observations in the MiniGrid environment.

@@ -1,0 +1,173 @@
+Certainly! Let's first analyze the discrepancies between the observed real-world samples and the generated samples from your model.
+
+### Analysis of Discrepancies
+
+1. **Move North Action (Action 0)**:
+   - Real World: `(x=1, y=1) -> (x=1, y=2)`
+   - Model: `(x=1, y=1) -> (x=1, y=0)`
+   
+   - Real World: `(x=1, y=3) -> (x=1, y=4)`
+   - Model: `(x=1, y=3) -> (x=1, y=2)`
+   
+   - Real World: `(x=0, y=2) -> (x=0, y=3)`
+   - Model: `(x=0, y=2) -> (x=0, y=1)`
+   
+   - Real World: `(x=0, y=0) -> (x=0, y=1)`
+   - Model: `(x=0, y=0) -> (x=0, y=0)`
+
+   **Issue**: The real-world samples show that moving north increments the `y` coordinate, not decrements it. This suggests a misunderstanding of the direction.
+
+2. **Move South Action (Action 1)**:
+   - Real World: `(x=1, y=2) -> (x=1, y=1)`
+   - Model: `(x=1, y=2) -> (x=1, y=3)`
+
+   **Issue**: The real-world samples show that moving south decrements the `y` coordinate, not increments it. This is consistent with the opposite issue in the move north action.
+
+### Corrected Distribution
+
+- **Move North (Action 0)**: Should increment `y`.
+- **Move South (Action 1)**: Should decrement `y`.
+
+### Improved Code
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = max(0, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(0, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sampling a rock changes its state from good to bad
+            rocks_list = list(new_state.rocks)
+            rocks_list[rock_idx] = False
+            new_state.rocks = tuple(rocks_list)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None and rock_idx == action - RockSampleActions.CHECK_ROCK_0:
+            # Checking a rock does not change the state
+            pass
+        else:
+            # If not at the correct rock, no change in state
+            pass
+    
+    return new_state
+```
+
+### Explanation
+
+1. **Move North (Action 0)**: The `y` coordinate is incremented, but clamped to the grid size.
+2. **Move South (Action 1)**: The `y` coordinate is decremented, but clamped to 0.
+3. **Move East (Action 2)**: The `x` coordinate is incremented, but clamped to the grid size.
+4. **Move West (Action 3)**: The `x` coordinate is decremented, but clamped to 0.
+5. **Sample (Action 4)**: If the agent is at a rock, it changes the rock's state from good to bad.
+6. **Exit (Action 5)**: No change in state.
+7. **Check Rock Actions (Actions 6 and 7)**: If the agent is at the correct rock, no change in state. Otherwise, no change in state.
+
+This should better align with the observed real-world samples and provide a more accurate model of the environment.

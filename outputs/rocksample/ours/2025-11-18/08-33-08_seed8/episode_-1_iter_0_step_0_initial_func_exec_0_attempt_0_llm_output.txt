@@ -1,0 +1,32 @@
+Based on the provided samples, it appears that the initial state distribution for the RockSample problem can be described as follows:
+
+1. The agent's starting position `(x, y)` is uniformly distributed across the grid, with the exception of the rock positions and possibly the walls.
+2. The rocks' states (good or bad) are also uniformly distributed, with each rock having an equal probability of being good or bad.
+
+Given this understanding, we can implement the `initial_func` function to sample from this distribution.
+
+```python
+def initial_func(empty_state: RockSampleState):
+    """
+    Input:
+        empty_state (RockSampleState): An empty state with only the walls filled into the grid
+    Returns:
+        state (RockSampleState): the initial state of the environment
+    """
+    
+    # Define the possible positions for the agent
+    possible_positions = [(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)]
+    # Remove rock positions and wall positions (if any)
+    possible_positions = [pos for pos in possible_positions if pos not in ROCK_POSITIONS]
+    
+    # Sample a random position for the agent
+    x, y = random.choice(possible_positions)
+    
+    # Sample the states of the rocks (good or bad)
+    rocks = tuple(random.choice([True, False]) for _ in range(NUM_ROCKS))
+    
+    # Create and return the initial state
+    return RockSampleState(x=x, y=y, rocks=rocks)
+```
+
+This function first defines the possible positions for the agent by excluding the rock positions. It then samples a random position for the agent and randomly assigns good or bad states to each rock. Finally, it creates and returns the initial state with the sampled values.

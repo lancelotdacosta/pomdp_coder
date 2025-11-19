@@ -1,0 +1,51 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    def is_out_of_bounds(x, y):
+        return x < 0 or x >= GRID_SIZE or y < 0 or y >= GRID_SIZE
+
+    def get_next_position(x, y, action):
+        if action == RockSampleActions.MOVE_NORTH:
+            return x, y - 1
+        elif action == RockSampleActions.MOVE_SOUTH:
+            return x, y + 1
+        elif action == RockSampleActions.MOVE_EAST:
+            return x + 1, y
+        elif action == RockSampleActions.MOVE_WEST:
+            return x - 1, y
+        else:
+            return x, y
+
+    reward = 0.0
+    done = False
+
+    # Check if the agent is at a rock and the action is to sample
+    rock_at_position = state.at_rock()
+    next_rock_at_position = next_state.at_rock()
+
+    if rock_at_position is not None and action == RockSampleActions.SAMPLE:
+        if state.rocks[rock_at_position]:
+            reward = 10.0  # Reward for sampling a good rock
+        else:
+            reward = -10.0  # Penalty for sampling a bad rock
+
+    # Check if the agent has moved out of bounds
+    if is_out_of_bounds(next_state.x, next_state.y):
+        reward = -1.0  # Penalty for moving out of bounds
+        done = True
+
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        done = True
+
+    return reward, done
+```

@@ -1,0 +1,39 @@
+Based on the provided samples, it appears that the distribution of initial states has the following characteristics:
+
+- The agent's starting position is always at (1, 1).
+- The agent's direction is always facing right (0).
+- The agent is not carrying any object initially.
+- The grid layout is consistent with the walls being present at the boundaries and the goal object (10) is always located at (3, 3).
+
+Given this information, the `initial_func` function can be implemented as follows:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Set the agent's position and direction
+    agent_pos = (1, 1)
+    agent_dir = 0  # Facing right
+
+    # Set the carrying object to None
+    carrying = None
+
+    # Ensure the goal object is placed at (3, 3)
+    empty_state.grid[3, 3] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return initial_state
+```
+
+This function sets the agent's starting position, direction, and ensures that the goal object is placed at the correct position in the grid. The `empty_state` is assumed to have the walls pre-filled.

@@ -1,0 +1,61 @@
+Based on the observed discrepancies between the real world samples and the generated model, it seems that the movement actions are not being handled correctly. Specifically, the boundary conditions for the grid are not being respected properly. The agent should not be able to move beyond the boundaries of the grid.
+
+Here's an improved version of the `transition_func` function that respects the grid boundaries and handles the movement actions correctly:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(0, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE - 1, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE - 1, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(0, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if rock_idx == 0 and action == RockSampleActions.CHECK_ROCK_0:
+                pass  # Checking the rock at the current position
+            elif rock_idx == 1 and action == RockSampleActions.CHECK_ROCK_1:
+                pass  # Checking the rock at the current position
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```
+
+### Explanation of the Improved Model
+
+1. **Movement Actions**:
+   - **MOVE_NORTH**: The agent moves north by decrementing the `y` coordinate. However, it should not move beyond the top boundary of the grid, so `y` is set to `max(0, y - 1)`.
+   - **MOVE_SOUTH**: The agent moves south by incrementing the `y` coordinate. However, it should not move beyond the bottom boundary of the grid, so `y` is set to `min(GRID_SIZE - 1, y + 1)`.
+   - **MOVE_EAST**: The agent moves east by incrementing the `x` coordinate. However, it should not move beyond the right boundary of the grid, so `x` is set to `min(GRID_SIZE - 1, x + 1)`.
+   - **MOVE_WEST**: The agent moves west by decrementing the `x` coordinate. However, it should not move beyond the left boundary of the grid, so `x` is set to `max(0, x - 1)`.
+
+2. **Sampling Action**:
+   - If the agent is at a rock position and takes the SAMPLE action, the rock at that position is sampled and marked as bad (`False`).
+
+3. **Exit Action**:
+   - The EXIT action does not change the state.
+
+4. **Check Actions**:
+   - The CHECK_ROCK_0 and CHECK_ROCK_1 actions do not change the state but are included for completeness.
+
+By ensuring that the agent's movements respect the grid boundaries, the transition function should now generate states that more closely match the observed real-world samples.

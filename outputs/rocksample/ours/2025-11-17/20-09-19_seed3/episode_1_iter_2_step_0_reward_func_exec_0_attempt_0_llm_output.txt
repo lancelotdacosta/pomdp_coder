@@ -1,0 +1,80 @@
+Certainly! Let's analyze the given samples and improve the `reward_func` function to better model the true distribution.
+
+### Analysis
+
+1. **Sampling Action (ACTION 4):**
+   - If the agent is at a rock position and the rock is good, it should get a reward of 10.0.
+   - If the agent is at a rock position and the rock is bad, it should get a penalty of -10.0.
+   - The episode should be marked as done if the agent samples a rock.
+
+2. **Checking Rock Actions (ACTIONS 6 and 7):**
+   - If the agent is at a rock position and the rock is bad, it should get a penalty of -1.0.
+   - If the agent is at a rock position and the rock is good, it should get a reward of 0.0.
+   - The episode should not be marked as done.
+
+3. **Exit Action (ACTION 5):**
+   - If the agent exits, it should get a reward of 10.0 if any rock has been sampled.
+   - The episode should be marked as done.
+
+### Improved `reward_func` Function
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent is at a rock position
+    rock_index = state.at_rock()
+    
+    # Check if the action is to sample a rock
+    if action == RockSampleActions.SAMPLE and rock_index is not None:
+        # If the rock was good, the agent gets a reward of 10.0
+        if state.rocks[rock_index]:
+            return 10.0, True
+        # If the rock was bad, the agent gets a penalty of -10.0
+        else:
+            return -10.0, True
+    
+    # Check if the action is to check a rock
+    if action in CHECK_ACTIONS and rock_index is not None:
+        # If the rock is bad, the agent receives a penalty of -1.0
+        if not state.rocks[rock_index]:
+            return -1.0, False
+        # If the rock is good, no penalty
+        else:
+            return 0.0, False
+
+    # Check if the action is to exit
+    if action == RockSampleActions.EXIT:
+        # If any rock has been sampled (i.e., any rock is now false in next_state)
+        if any(not next_state.rocks[i] for i in range(NUM_ROCKS)):
+            return 10.0, True
+        else:
+            return 0.0, True
+
+    # For all other actions, the reward is 0.0
+    return 0.0, False
+```
+
+### Explanation
+
+- **Sampling Action (ACTION 4):**
+  - The agent gets a reward of 10.0 if the rock at its position is good and marks the episode as done.
+  - The agent gets a penalty of -10.0 if the rock at its position is bad and marks the episode as done.
+
+- **Checking Rock Actions (ACTIONS 6 and 7):**
+  - The agent gets a penalty of -1.0 if the rock at its position is bad.
+  - The agent gets no penalty if the rock at its position is good.
+  - The episode is not marked as done for these actions.
+
+- **Exit Action (ACTION 5):**
+  - The agent gets a reward of 10.0 if any rock has been sampled (i.e., any rock is now false in `next_state`).
+  - The episode is marked as done for this action.
+
+This should better match the observed samples from the real world.

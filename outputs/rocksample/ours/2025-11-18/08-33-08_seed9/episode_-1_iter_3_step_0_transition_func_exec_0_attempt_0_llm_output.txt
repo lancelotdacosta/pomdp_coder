@@ -1,0 +1,47 @@
+Based on the provided samples and the discrepancies between the real world and the generated model, it appears that the issue lies in how the `MOVE_NORTH` action is being applied. Specifically, the `y` coordinate is being incorrectly decremented instead of incremented when moving north.
+
+The correct behavior for the `MOVE_NORTH` action should be to move the agent one step up in the grid, which means increasing the `y` coordinate if within bounds, not decreasing it.
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+
+    # Define the action effects
+    if action == RockSampleActions.MOVE_NORTH:
+        y = min(y + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = max(y - 1, 0)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(x + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(x - 1, 0)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = not rocks[rock_idx]  # Toggle the rock's state
+            rocks = tuple(rocks)
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (x, y) == ROCK_POSITIONS[rock_idx]:
+            # Noisy sensor reading (for simplicity, no noise added here)
+            pass
+
+    new_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return new_state
+```
+
+### Explanation of Changes:
+1. **Move North Action**: The `y` coordinate is now incremented using `min(y + 1, GRID_SIZE - 1)` to ensure it does not exceed the grid bounds.
+2. **Move South Action**: The `y` coordinate is decremented using `max(y - 1, 0)` to ensure it does not go below 0.
+
+This should correctly model the transition for the `MOVE_NORTH` action and align with the real-world samples provided.

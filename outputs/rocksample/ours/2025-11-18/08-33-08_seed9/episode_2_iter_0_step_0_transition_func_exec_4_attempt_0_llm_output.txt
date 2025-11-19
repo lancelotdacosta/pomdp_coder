@@ -1,0 +1,97 @@
+It seems that the issue persists because the calling code is not correctly handling the tuple returned by `transition_func` when a `CHECK_ROCK` action is taken. To ensure that the calling code can handle both cases (where the function returns a single `RockSampleState` and where it returns a tuple), we need to modify the calling code to check the type of the return value.
+
+Here's the updated `transition_func` that always returns a `RockSampleState` object, and a suggestion for how to modify the calling code to handle the observation:
+
+### Updated `transition_func`
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+        observation (RockSampleObservation or None): the observation after the action (None for non-check actions)
+    """
+    x, y = state.x, state.y
+    rocks = list(state.rocks)
+    observation = None  # Default observation
+
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(y - 1, 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(y + 1, GRID_SIZE)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(x + 1, GRID_SIZE)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(x - 1, 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks[rock_idx] = False  # Sample the rock and mark it as BAD
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (x, y) == ROCK_POSITIONS[rock_idx]:
+            is_good = rocks[rock_idx]
+            if random.random() < 0.9:  # 90% chance of correct reading
+                is_good = not is_good
+            observation = RockSampleObservation(x, y, rock_idx, is_good)
+        else:
+            observation = RockSampleObservation(x, y, None, None)
+
+    new_state = RockSampleState(x, y, tuple(rocks))
+    return new_state, observation
+```
+
+### Modifying the Calling Code
+
+In the calling code, you need to check if the return value is a tuple and handle the observation accordingly. Here's an example of how you might modify the calling code:
+
+```python
+# Example usage in the calling code
+state = RockSampleState(x=1, y=1, rocks=[True, False])
+action = RockSampleActions.MOVE_NORTH
+
+# Call transition function
+result = transition_func(state, action)
+
+# Check if result is a tuple (new_state, observation)
+if isinstance(result, tuple):
+    new_state, observation = result
+else:
+    new_state = result
+    observation = None  # No observation for non-check actions
+
+print(new_state)  # RockSampleState(x=1, y=1, rocks=[True, False])
+print(observation)  # None or RockSampleObservation(x=1, y=1, rock_idx=None, is_good=None)
+```
+
+### Explanation
+
+1. **Move Actions (NORTH, SOUTH, EAST, WEST)**:
+   - The agent's position changes based on the action.
+   - The agent cannot move outside the grid boundaries (1 to `GRID_SIZE` for both x and y).
+   - The rocks' states remain unchanged.
+
+2. **Sample Action**:
+   - If the agent is at a rock's position, the rock is sampled and marked as BAD (`False`).
+   - If the agent is not at a rock's position, no change occurs in the state.
+
+3. **Exit Action**:
+   - No change in the state.
+
+4. **Check Rock Actions**:
+   - If the agent is at the rock's position, a noisy observation is generated.
+   - The observation has a 90% chance of being correct.
+   - If the agent is not at the rock's position, the observation is `None`.
+   - The rocks' states remain unchanged.
+
+### Handling Observations
+
+- The `transition_func` now always returns a tuple containing the new state and the observation.
+- The calling code checks if the result is a tuple and extracts the observation accordingly.
+
+This should resolve the `AttributeError` you encountered by ensuring that the calling code correctly handles the return value of `transition_func`.

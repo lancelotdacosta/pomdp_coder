@@ -1,0 +1,63 @@
+The issue with the current `transition_func` is that it does not handle the agent's movement correctly when the agent is facing a cell that contains a goal object (`ObjectTypes.goal`). In the real world, the agent can move forward even if the cell contains a goal, but the current implementation mistakenly blocks this movement.
+
+To improve the model, we need to ensure that the agent can move forward into cells containing a goal. This means we need to add a condition to check if the front cell is either empty or a goal before allowing the agent to move forward.
+
+Here is the improved `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    grid = state.grid.copy()
+    agent_pos = np.array(state.agent_pos)
+    agent_dir = state.agent_dir
+    carrying = state.carrying
+
+    if action == Actions.left:
+        agent_dir = (agent_dir - 1) % 4
+    elif action == Actions.right:
+        agent_dir = (agent_dir + 1) % 4
+    elif action == Actions.forward:
+        front_pos = agent_pos + DIR_TO_VEC[agent_dir]
+        front_cell = grid[tuple(front_pos)]
+        # Allow movement into goal cells as well
+        if front_cell in [ObjectTypes.empty, ObjectTypes.goal]:
+            agent_pos = front_pos
+    elif action == Actions.pickup:
+        front_pos = agent_pos + DIR_TO_VEC[agent_dir]
+        front_cell = grid[tuple(front_pos)]
+        if front_cell in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+            carrying = front_cell
+            grid[tuple(front_pos)] = ObjectTypes.empty
+    elif action == Actions.drop:
+        if carrying is not None:
+            front_pos = agent_pos + DIR_TO_VEC[agent_dir]
+            grid[tuple(front_pos)] = carrying
+            carrying = None
+    elif action == Actions.toggle:
+        front_pos = agent_pos + DIR_TO_VEC[agent_dir]
+        front_cell = grid[tuple(front_pos)]
+        if front_cell in [ObjectTypes.closed_door, ObjectTypes.open_door, ObjectTypes.locked_door]:
+            if front_cell == ObjectTypes.closed_door:
+                grid[tuple(front_pos)] = ObjectTypes.open_door
+            elif front_cell == ObjectTypes.open_door:
+                grid[tuple(front_pos)] = ObjectTypes.closed_door
+    elif action == Actions.done:
+        pass  # No change to the state
+
+    new_state = MinigridState(
+        grid=grid,
+        agent_pos=tuple(agent_pos),
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return new_state
+```
+
+This updated `transition_func` now correctly allows the agent to move forward into cells containing a goal, which should align the generated model more closely with the observed distribution in the real world.

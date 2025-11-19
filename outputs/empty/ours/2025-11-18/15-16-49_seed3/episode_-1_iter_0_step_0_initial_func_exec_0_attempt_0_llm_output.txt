@@ -1,0 +1,57 @@
+Based on the provided environment samples, it appears that the distribution of initial states is consistent with the following characteristics:
+
+1. The agent is always positioned at `(1, 1)`.
+2. The agent is always facing right (direction `0`).
+3. The agent is not carrying any object.
+4. The grid is a 5x5 grid with walls around the edges (walls are represented by `2`).
+5. There is a goal object (`10`) located at different positions within the grid, but always inside the walls.
+
+Given this understanding, I will implement the `initial_func` function to sample an initial state from this distribution.
+
+```python
+# type: ignore
+from __future__ import annotations
+
+import numpy as np
+from typing import Tuple, Optional
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # The agent's position is always (1, 1)
+    agent_pos = (1, 1)
+    
+    # The agent always faces right (0)
+    agent_dir = 0
+    
+    # The agent is not carrying any object
+    carrying = None
+    
+    # The grid is a 5x5 grid with walls around the edges
+    grid = empty_state.grid.copy()
+    
+    # Place the goal object at a random position inside the grid
+    while True:
+        goal_x = np.random.randint(1, 4)
+        goal_y = np.random.randint(1, 4)
+        if grid[goal_x, goal_y] == 1:  # Ensure the position is empty
+            grid[goal_x, goal_y] = 10
+            break
+    
+    # Create and return the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+    
+    return initial_state
+```
+
+This implementation ensures that the agent is always placed at `(1, 1)` facing right, and a goal object is randomly placed in one of the internal empty cells of the grid. The function will return a valid initial state that matches the provided samples.

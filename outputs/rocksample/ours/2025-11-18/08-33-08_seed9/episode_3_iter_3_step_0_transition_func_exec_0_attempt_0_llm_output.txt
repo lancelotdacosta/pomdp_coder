@@ -1,0 +1,51 @@
+Based on the observed discrepancies between the generated model and the real-world samples, it appears that the boundary conditions for the grid are not being handled correctly. Specifically, the agent should not move beyond the grid boundaries (1 to `GRID_SIZE` inclusive).
+
+Here's the improved `transition_func` function that better models the true distribution of next states conditioned on actions and previous states:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(new_state.rocks[:rock_idx] + (False,) + new_state.rocks[rock_idx+1:])
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state for the exit action
+    elif action in CHECK_ACTIONS:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            # Check actions do not change the state
+            pass
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return new_state
+```
+
+### Explanation
+
+- **Boundary Conditions**: The grid boundaries are set from 1 to `GRID_SIZE` inclusive. The `max(1, ...)` and `min(GRID_SIZE, ...)` functions ensure that the agent's position does not go out of these bounds.
+- **Movement Actions**:
+  - `MOVE_NORTH`: Decreases the y-coordinate by 1, but ensures it doesn't go below 1.
+  - `MOVE_SOUTH`: Increases the y-coordinate by 1, but ensures it doesn't go above `GRID_SIZE`.
+  - `MOVE_EAST`: Increases the x-coordinate by 1, but ensures it doesn't go above `GRID_SIZE`.
+  - `MOVE_WEST`: Decreases the x-coordinate by 1, but ensures it doesn't go below 1.
+- **Sampling and Checking Actions**: These actions are handled as before. Sampling changes the rock's state to `False`, and checking does not change the state.
+
+This function should now correctly model the true distribution of next states based on the provided environment description and the observed real-world samples.

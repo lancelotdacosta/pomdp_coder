@@ -1,0 +1,65 @@
+Certainly! Let's start by explaining the observed discrepancies and then improve the `transition_func` to better model the true distribution of next states.
+
+### Explanation of Discrepancies
+
+1. **Movement Actions (0-3):**
+   - The movement actions are generally correct, but there is an issue with boundary handling. In some cases, the robot should not move beyond the grid boundaries, but it does in the provided code.
+   - For example:
+     - Moving north from (4, 4) should result in (4, 4) if it hits the boundary, but the code moves it to (4, 3).
+     - Moving south from (3, 4) should result in (3, 4) if it hits the boundary, but the code moves it to (3, 5).
+
+2. **Sampling Action (4):**
+   - The sampling action is supposed to change the state of the rock at the current position from 'G' (good) to 'B' (bad).
+   - In the provided code, the sampling action does not change the rock state when the robot is at a rock position.
+   - For example:
+     - Sampling at (1, 1) with rocks [G, B] should change to [B, B], but it remains [G, B].
+     - Sampling at (1, 4) with rocks [B, G] should change to [B, B], but it remains [B, G].
+
+### Improved `transition_func`
+
+Let's fix these issues in the `transition_func` function.
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample action changes the rock's state from 'G' to 'B'
+            new_state.rocks = tuple('B' if i == rock_idx and r == 'G' else r for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # Exit action does not change the state
+    elif action in CHECK_ACTIONS:
+        pass  # Sensor check actions do not change the state
+    
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **Boundary Handling:**
+   - The `max(1, new_state.y - 1)` ensures that the robot does not move north of the grid boundary.
+   - The `min(GRID_SIZE, new_state.y + 1)` ensures that the robot does not move south beyond the grid boundary.
+   - Similarly, `min(GRID_SIZE, new_state.x + 1)` and `max(1, new_state.x - 1)` handle the east and west boundaries.
+
+2. **Sampling Action:**
+   - The sampling action now correctly changes the rock state from 'G' to 'B' if the robot is at a rock position.
+   - The condition `r == 'G'` ensures that only good rocks are changed to bad.
+
+This should better align the model with the observed distribution of next states.

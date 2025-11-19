@@ -1,0 +1,67 @@
+Based on the provided samples and the environment description, it seems that the reward and whether the episode is done depend on specific conditions related to the agent's position, actions, and the state of the rocks. Here's a breakdown of the reward and done conditions:
+
+1. **Exiting the Grid**:
+   - If the agent takes the `EXIT` action, it should receive a reward of 10.0 and the episode should end.
+
+2. **Sampling a Rock**:
+   - If the agent takes the `SAMPLE` action, it should check if it is at a rock.
+   - If it is at a rock and the rock is good (True), it should receive a reward of 10.0.
+   - If it is at a rock and the rock is bad (False), it should receive a reward of -10.0.
+   - If it is not at a rock, it should receive a reward of -1.0.
+
+3. **Checking a Rock**:
+   - If the agent takes a `CHECK_ROCK` action, it should check if it is at the rock it is trying to check.
+   - If it is at the rock, it should receive a reward of 0.0.
+   - If it is not at the rock, it should receive a reward of -1.0.
+
+4. **Movement Actions**:
+   - For all other actions (movement actions), the reward is 0.0 and the episode does not end.
+
+Based on this understanding, here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        return 10.0, True
+
+    # Check if the agent is sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                next_rocks = list(next_state.rocks)
+                next_rocks[rock_idx] = False  # Update the rock state to bad
+                next_state = RockSampleState(x=next_state.x, y=next_state.y, rocks=tuple(next_rocks))
+                return -10.0, False
+        else:
+            return -1.0, False
+
+    # Check if the agent is checking a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            return 0.0, False
+        else:
+            return -1.0, False
+
+    # For all other actions (movement), the reward is 0 and the episode is not done
+    return 0.0, False
+```
+
+This function should better model the true distribution based on the provided samples. The key changes are:
+
+- Ensuring that the `SAMPLE` action updates the rock state correctly if the rock is bad.
+- Ensuring that the `CHECK_ROCK` action only gives a reward of 0.0 if the agent is at the correct rock.
+- Ensuring that movement actions do not end the episode and give a reward of 0.0.

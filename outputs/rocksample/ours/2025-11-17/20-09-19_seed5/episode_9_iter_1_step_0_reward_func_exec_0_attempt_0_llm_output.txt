@@ -1,0 +1,33 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        if state.x == next_state.x and state.y == next_state.y:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return -10.0, False  # Sampling a good rock gives negative reward
+            else:
+                return 10.0, False   # Sampling a bad rock gives positive reward
+        else:
+            return -10.0, False      # Sampling an empty cell gives negative reward
+
+    # For other actions (move and check), no reward is given
+    return 0.0, False
+```

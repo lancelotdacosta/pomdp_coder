@@ -1,0 +1,72 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the current model.
+
+### Understanding the Reward Function
+
+1. **Sampling Action (4)**:
+   - If the agent is at a rock position, it should receive a reward based on the rock's quality.
+   - If the rock is good, the reward is 10.0; otherwise, it's 0.0.
+   - The episode should end after sampling.
+   - However, if the agent attempts to sample while not at a rock, it should receive a penalty of -10.0.
+
+2. **Check Actions (6, 7)**:
+   - These actions are used to check the quality of rocks.
+   - If the agent is at the rock position corresponding to the action, they should receive a small penalty of -1.0.
+   - If the agent is not at the rock position, there should be no reward or penalty.
+
+3. **Exit Action (5)**:
+   - The agent receives a reward of 10.0 if it is at the exit position.
+   - The episode ends after exiting.
+   - If the agent tries to exit from a different position, it should receive a penalty of -10.0.
+
+### Improved Reward Function
+
+Here's the improved `reward_func` function based on the above understanding:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.EXIT:
+        # Check if the agent is at the exit position
+        if state.x == GRID_SIZE - 1 and state.y == GRID_SIZE - 1:
+            reward = 10.0
+            done = True
+        else:
+            reward = -10.0
+            done = False
+
+    elif action == RockSampleActions.SAMPLE:
+        # Check if the agent is at a rock position
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the rock is good, reward is 10.0, otherwise 0.0
+            reward = 10.0 if state.rocks[rock_idx] else 0.0
+            done = True
+        else:
+            reward = -10.0
+            done = False
+
+    elif action in CHECK_ACTIONS:
+        # Check if the agent is at the rock position corresponding to the action
+        rock_idx = state.at_rock()
+        if rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            reward = -1.0
+            done = False
+        else:
+            reward = 0.0
+            done = False
+
+    return reward, done
+```
+
+This function should better model the true distribution of rewards based on the provided real-world samples.

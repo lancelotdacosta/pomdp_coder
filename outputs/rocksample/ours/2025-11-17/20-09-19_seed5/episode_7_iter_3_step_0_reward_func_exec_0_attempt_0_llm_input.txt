@@ -1,0 +1,258 @@
+#define system
+You are a robot exploring its environment. 
+
+
+
+Your goal is to model the reward conditioned on state, action, next state transition of the world in python. 
+
+You have tried it before and came up with one partially correct solution, but it is not perfect. 
+
+The observed distribution disagrees with the generated model in several cases.
+You need to improve your code to come closer to the true distribution.
+
+Environment Description: 
+Goal Description: 
+
+Here is a solution you came up with before. 
+
+```
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+
+
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Reward and done flags
+    reward = 0.0
+    done = False
+    
+    # Check if the agent has taken the exit action
+    if action == RockSampleActions.EXIT:
+        done = True
+        return reward, done
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent samples a good rock, give a positive reward
+            if next_state.rocks[rock_idx]:
+                reward = 1.0
+            else:
+                reward = -1.0
+        else:
+            # Penalize for sampling when not at a rock
+            reward = -1.0
+    
+    # No reward for other actions (move, check)
+    return reward, done
+
+```
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=0, y=0, rocks=[B,B])
+Input int: 5
+Input RockSampleState: RockSampleState(x=0, y=0, rocks=[B,B])
+Output float: 0.0
+Output bool: False
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=0, y=0, rocks=[B,B])
+Input int: 5
+Input RockSampleState: RockSampleState(x=0, y=0, rocks=[B,B])
+Output float: 0.0
+Output bool: True
+
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=1, y=1, rocks=[G,B])
+Input int: 4
+Input RockSampleState: RockSampleState(x=1, y=1, rocks=[B,B])
+Output float: 10.0
+Output bool: False
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=1, y=1, rocks=[G,B])
+Input int: 4
+Input RockSampleState: RockSampleState(x=1, y=1, rocks=[B,B])
+Output float: -1.0
+Output bool: False
+
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=0, y=1, rocks=[B,G])
+Input int: 6
+Input RockSampleState: RockSampleState(x=0, y=1, rocks=[B,G])
+Output float: -1.0
+Output bool: False
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=0, y=1, rocks=[B,G])
+Input int: 6
+Input RockSampleState: RockSampleState(x=0, y=1, rocks=[B,G])
+Output float: 0.0
+Output bool: False
+
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=1, y=3, rocks=[G,G])
+Input int: 5
+Input RockSampleState: RockSampleState(x=1, y=3, rocks=[G,G])
+Output float: 0.0
+Output bool: False
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=1, y=3, rocks=[G,G])
+Input int: 5
+Input RockSampleState: RockSampleState(x=1, y=3, rocks=[G,G])
+Output float: 0.0
+Output bool: True
+
+
+
+Here are some samples from the real world that were impossible under your model
+Input RockSampleState: RockSampleState(x=2, y=2, rocks=[B,G])
+Input int: 5
+Input RockSampleState: RockSampleState(x=2, y=2, rocks=[B,G])
+Output float: 0.0
+Output bool: False
+
+
+
+And here are some samples from your code under the same conditions
+Input RockSampleState: RockSampleState(x=2, y=2, rocks=[B,G])
+Input int: 5
+Input RockSampleState: RockSampleState(x=2, y=2, rocks=[B,G])
+Output float: 0.0
+Output bool: True
+
+
+
+
+
+Explain what you believe is the reward conditioned on state, action, next state transition in english, then improve your code to better model the true distribution.
+
+Please implement the code for the following the template. 
+You must implement the ‘ reward_func ‘ function. 
+
+The code needs to be directly runnable with (state, action, next_state) and return (reward, done). 
+
+Do not output examples. 
+Do not create any new classes. 
+Do not rewrite existing classes.
+Do not import any new modules from anywhere.
+Do not list out specific indices that overfit to the examples, but include ranges.
+Put the ‘ reward_func ‘ function in a python code block.

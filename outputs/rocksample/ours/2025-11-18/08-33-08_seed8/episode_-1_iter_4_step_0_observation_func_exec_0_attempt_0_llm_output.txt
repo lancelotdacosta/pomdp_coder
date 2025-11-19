@@ -1,0 +1,77 @@
+Certainly! Let's first explain the distribution of observations conditioned on a state in English:
+
+### Explanation of the Observation Distribution
+
+1. **Agent Position**: The agent's position is always observed correctly as `(x, y)`.
+
+2. ** Checking Rocks**:
+   - If the agent performs a `CHECK_ROCK` action (e.g., `CHECK_ROCK_0` or `CHECK_ROCK_1`), and the agent is at the corresponding rock's position, the agent will receive an observation with the rock index and a noisy reading of whether the rock is good or bad.
+   - The noisy reading has a 10% chance of being incorrect. This means:
+     - If the rock is good, there is a 90% chance it will be reported as good and a 10% chance it will be reported as bad.
+     - If the rock is bad, there is a 90% chance it will be reported as bad and a 10% chance it will be reported as good.
+   - If the agent performs a `CHECK_ROCK` action but is not at the corresponding rock's position, the observation should still return a valid rock index and a noisy reading (since the agent might be attempting to check a rock from a different position).
+
+3. **Other Actions**:
+   - For all other actions (e.g., moving, sampling, or exiting), the observation should return `NULL` for both `rock_idx` and `is_good`.
+
+### Improved Code
+
+Now, let's improve the `observation_func` to better model the true distribution:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current state's position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    # Determine the rock index if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    if action in CHECK_ACTIONS:
+        # Check if the action corresponds to a valid rock check
+        rock_to_check = action - RockSampleActions.CHECK_ROCK_0
+        if 0 <= rock_to_check < NUM_ROCKS:
+            # Provide a noisy reading for the rock
+            rock_status = state.rocks[rock_to_check]
+            # Introduce noise with a small probability
+            if random.random() < 0.1:  # 10% chance of a noisy reading
+                obs.is_good = not rock_status
+            else:
+                obs.is_good = rock_status
+            obs.rock_idx = rock_to_check
+        else:
+            # If the action does not correspond to a valid rock check, return NULL
+            obs.rock_idx = None
+            obs.is_good = None
+    else:
+        # For all other actions, return NULL
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+```
+
+### Explanation of the Changes
+
+1. **Rock Index Calculation**:
+   - The rock index to check is calculated as `rock_to_check = action - RockSampleActions.CHECK_ROCK_0`. This ensures that we correctly map the action to the corresponding rock index.
+   - We then check if the calculated rock index is within the valid range (`0 <= rock_to_check < NUM_ROCKS`).
+
+2. **Noisy Reading**:
+   - If the rock index is valid, we provide a noisy reading with a 10% chance of being incorrect.
+
+3. **Handling Invalid Actions**:
+   - If the action does not correspond to a valid rock index, we return `NULL` for both `rock_idx` and `is_good`.
+
+This improved function should better model the true distribution of observations conditioned on the state.

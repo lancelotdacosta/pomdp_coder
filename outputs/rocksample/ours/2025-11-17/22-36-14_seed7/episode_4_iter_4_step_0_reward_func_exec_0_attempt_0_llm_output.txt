@@ -1,0 +1,81 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the current model to improve the `reward_func` function.
+
+### Analysis:
+1. **Exiting the Grid**:
+   - The exit position is (0, 0). If the agent is at (0, 0) and takes the `EXIT` action, the reward should be 10.0 and the episode should end (`done = True`).
+   - If the agent is not at (0, 0) but still takes the `EXIT` action, the reward should be -10.0 and the episode should not end (`done = False`).
+
+2. **Sampling a Rock**:
+   - If the agent is at a rock's position and takes the `SAMPLE` action, the reward should be based on whether the rock is good or bad. If the rock is good, the reward should be 10.0; if the rock is bad, the reward should be -10.0. The episode should not end in either case.
+
+3. **Checking a Rock**:
+   - If the agent is at a rock's position and takes a `CHECK_ROCK_0` or `CHECK_ROCK_1` action, the reward should be 0.0 and the episode should not end.
+   - If the agent is not at the rock's position and takes a `CHECK_ROCK_0` or `CHECK_ROCK_1` action, the reward should be -1.0 and the episode should not end.
+
+4. **Movement Actions**:
+   - If the agent takes a movement action (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST), the reward should be 0.0 and the episode should not end.
+
+### Improved `reward_func` Function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        exit_position = (0, 0)  # Example exit position, adjust as needed
+        if (state.x, state.y) == exit_position:
+            return 10.0, True
+        else:
+            return -10.0, False
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return -10.0, False
+
+    # Check for movement actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, 
+                  RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+
+    # Check for check rock actions
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (state.x, state.y) == ROCK_POSITIONS[rock_idx]:
+            return 0.0, False
+        else:
+            return -1.0, False
+
+    # Default case
+    return 0.0, False
+```
+
+### Explanation of Changes:
+1. **Exiting the Grid**:
+   - The condition to check if the agent is at the exit position `(0, 0)` is correctly implemented.
+
+2. **Sampling a Rock**:
+   - If the agent is not at a rock's position and takes the `SAMPLE` action, the reward should be -10.0 and the episode should not end. This was missing in the original code.
+
+3. **Checking a Rock**:
+   - The reward for checking a rock is correctly implemented as 0.0 if the agent is at the rock's position and -1.0 if not.
+
+4. **Movement Actions**:
+   - Movement actions are correctly handled with a reward of 0.0 and no episode termination.
+
+This improved function should better match the real-world samples and provide a more accurate model of the environment's reward structure.

@@ -1,0 +1,138 @@
+Certainly! Let's first explain the distribution of observations conditioned on a state in English, and then we will improve the `observation_func` function accordingly.
+
+### Explanation of Observations Conditioned on a State
+
+1. **Agent Position and Direction**:
+   - The agent's position and direction are key components of the observation. They determine the field of view (FoV) and how the FoV is oriented.
+
+2. **Field of View (FoV)**:
+   - The FoV is a square grid of size `view_size x view_size` centered in front of the agent.
+   - The FoV is rotated to match the agent's current direction.
+   - The FoV should show what the agent can see in front of it, including walls, objects, and the agent itself if it is within the FoV.
+
+3. **Action Effects**:
+   - The agent's actions (e.g., move forward, turn left, turn right) update its position and direction.
+   - The updated state is then used to generate the new FoV.
+
+### Issues in the Current Code
+
+1. **Agent Representation in FoV**:
+   - The current code does not correctly place the agent in the FoV when the agent is within the view range.
+   - The agent should be represented by `ObjectTypes.agent` in the FoV if it is within the view range.
+
+2. **FoV Rotation**:
+   - The rotation of the FoV should be consistent with the agent's direction.
+   - The current code rotates the FoV but may not handle edge cases correctly.
+
+3. **Action Application**:
+   - The action application logic seems to be correct, but the FoV generation after the action needs to be improved.
+
+### Improved `observation_func`
+
+Here is the improved `observation_func` function:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+
+    def apply_action(state, action):
+        """
+        Apply the action to the state and return the updated state.
+        """
+        new_state = MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=state.agent_dir,
+            carrying=state.carrying
+        )
+
+        if action == Actions.left:
+            new_state.agent_dir = (new_state.agent_dir - 1) % len(DIR_TO_VEC)
+        elif action == Actions.right:
+            new_state.agent_dir = (new_state.agent_dir + 1) % len(DIR_TO_VEC)
+        elif action == Actions.forward:
+            new_pos = np.array(new_state.agent_pos) + DIR_TO_VEC[new_state.agent_dir]
+            if 0 <= new_pos[0] < new_state.width and 0 <= new_pos[1] < new_state.height:
+                if new_state.grid[tuple(new_pos)] != ObjectTypes.wall:
+                    new_state.agent_pos = tuple(new_pos)
+
+        return new_state
+
+    def get_field_of_view(state, view_size=3):
+        """
+        Returns the field of view in front of the agent.
+        """
+        # Get the extents of the square set of tiles visible to the agent
+        if state.agent_dir == 0:
+            topX = state.agent_pos[0]
+            topY = state.agent_pos[1] - view_size // 2
+        elif state.agent_dir == 1:
+            topX = state.agent_pos[0] - view_size // 2
+            topY = state.agent_pos[1]
+        elif state.agent_dir == 2:
+            topX = state.agent_pos[0] - view_size + 1
+            topY = state.agent_pos[1] - view_size // 2
+        elif state.agent_dir == 3:
+            topX = state.agent_pos[0] - view_size // 2
+            topY = state.agent_pos[1] - view_size + 1
+        else:
+            assert False, "invalid agent direction"
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=state.grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, state.grid.shape[0])
+        gy1 = min(topY + view_size, state.grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = state.grid[gx0:gx1, gy0:gy1]
+
+        for _ in range(state.agent_dir):
+            # Rotate left
+            fov = np.rot90(fov, k=1)
+
+        # Check if the agent is within the field of view and place it accordingly
+        agent_pos_in_fov = np.array(state.agent_pos) - np.array([topX, topY])
+        if 0 <= agent_pos_in_fov[0] < view_size and 0 <= agent_pos_in_fov[1] < view_size:
+            fov[tuple(agent_pos_in_fov)] = ObjectTypes.agent
+
+        return fov
+
+    # Apply the action to the state
+    updated_state = apply_action(state, action)
+
+    # Get the field of view based on the updated state
+    fov = get_field_of_view(updated_state)
+
+    # Create the observation
+    empty_obs.image = fov
+    empty_obs.agent_pos = updated_state.agent_pos
+    empty_obs.agent_dir = updated_state.agent_dir
+    empty_obs.carrying = updated_state.carrying
+
+    return empty_obs
+```
+
+### Key Improvements
+
+1. **Agent Representation in FoV**:
+   - The agent is now correctly placed in the FoV if it is within the view range.
+
+2. **FoV Rotation**:
+   - The rotation logic is consistent and handles edge cases correctly.
+
+3. **Action Application**:
+   - The action application logic remains the same but ensures that the FoV is generated correctly after the action.

@@ -1,0 +1,44 @@
+Based on the provided samples, it seems that the reward function should only provide a positive reward of 10.0 and set `done` to `True` when the agent takes the `EXIT` action from a position where a rock is present and has been sampled. The current implementation incorrectly gives a reward of 10.0 and sets `done` to `True` whenever the `EXIT` action is taken, regardless of the agent's position.
+
+To correct this, we need to ensure that the `EXIT` action only provides the reward and sets `done` to `True` if the agent is at a position where a rock has been sampled. Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has taken the exit action and is at a rock position
+    if action == RockSampleActions.EXIT:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            return 10.0, True
+        else:
+            return 0.0, False
+    
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False  # Sampling a good rock gives a positive reward
+            else:
+                return -10.0, False  # Sampling a bad rock gives a negative reward
+        else:
+            return 0.0, False  # No rock at this position, no reward
+    
+    # Check if the agent has checked a rock
+    if action in CHECK_ACTIONS:
+        return -1.0, False  # Small penalty for checking a rock, regardless of position
+    
+    # For all other actions (move), there is no reward and the episode is not done
+    return 0.0, False
+```
+
+This function now correctly checks whether the agent is at a rock position when taking the `EXIT` action. If the agent is not at a rock position, the `EXIT` action will not provide a reward or end the episode. This should align the model more closely with the observed distribution from the real world.

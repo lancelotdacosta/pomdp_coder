@@ -1,0 +1,52 @@
+Certainly! The issue in your current `reward_func` is that it penalizes the agent for moving forward when the front position is an object that should not block movement, such as an open door or an empty space. In the given sample, the agent moves forward to a position that is valid (i.e., not a wall), so there should be no penalty.
+
+Here's the improved `reward_func`:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has reached the goal
+    goal_positions = next_state.get_type_indices(ObjectTypes.goal)
+    if any(next_state.agent_pos == pos for pos in goal_positions):
+        return 1.0, True
+
+    # Penalize for hitting a wall
+    front_pos = next_state.front_pos
+    if next_state.grid[front_pos] == ObjectTypes.wall and action == Actions.forward:
+        return -1.0, False
+
+    # Penalize for picking up an object when there is none
+    if action == Actions.pickup and next_state.carrying is None:
+        return -1.0, False
+
+    # Penalize for dropping an object when the agent is not carrying one
+    if action == Actions.drop and next_state.carrying is None:
+        return -1.0, False
+
+    # Penalize for toggling an object when it is not a door or other toggle-able object
+    if action == Actions.toggle and next_state.grid[front_pos] not in [ObjectTypes.open_door, ObjectTypes.closed_door, ObjectTypes.locked_door]:
+        return -1.0, False
+
+    # Default reward for other actions
+    return 0.0, False
+```
+
+### Explanation:
+
+1. **Goal Reached**: If the agent reaches a goal position, it receives a reward of 1.0 and the episode is marked as done.
+2. **Hitting a Wall**: If the agent tries to move forward into a wall, it receives a penalty of -1.0.
+3. **Picking Up an Object**: If the agent tries to pick up an object but there is none, it receives a penalty of -1.0.
+4. **Dropping an Object**: If the agent tries to drop an object but is not carrying one, it receives a penalty of -1.0.
+5. **Toggling an Object**: If the agent tries to toggle an object but the object in front is not toggle-able (i.e., not a door), it receives a penalty of -1.0.
+6. **Default Reward**: For all other actions, the reward is 0.0 and the episode continues.
+
+This improvement ensures that the agent is not penalized for moving forward into valid positions (i.e., not walls) and aligns better with the true distribution of rewards in the environment.

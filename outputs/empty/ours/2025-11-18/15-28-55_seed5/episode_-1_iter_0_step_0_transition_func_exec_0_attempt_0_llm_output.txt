@@ -1,0 +1,44 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    
+    def update_pos(agent_pos, agent_dir, grid):
+        """Update the agent's position based on the direction and grid."""
+        new_pos = np.array(agent_pos) + DIR_TO_VEC[agent_dir]
+        if (0 <= new_pos[0] < grid.shape[0]) and (0 <= new_pos[1] < grid.shape[1]):
+            if grid[new_pos[0], new_pos[1]] != ObjectTypes.wall:
+                return tuple(new_pos)
+        return agent_pos
+    
+    def rotate_agent(agent_dir, action):
+        """Rotate the agent based on the action."""
+        if action == Actions.left:
+            return (agent_dir - 1) % 4
+        elif action == Actions.right:
+            return (agent_dir + 1) % 4
+        return agent_dir
+    
+    # Create a copy of the state to modify
+    new_state = MinigridState(
+        grid=state.grid.copy(),
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+    
+    # Handle the action
+    if action == Actions.left or action == Actions.right:
+        new_state.agent_dir = rotate_agent(new_state.agent_dir, action)
+    elif action == Actions.forward:
+        new_state.agent_pos = update_pos(new_state.agent_pos, new_state.agent_dir, new_state.grid)
+    # Note: For simplicity, actions like pickup, drop, toggle, and done are not handled here.
+    # These actions would require additional logic to handle interactions with objects in the grid.
+    
+    return new_state
+```

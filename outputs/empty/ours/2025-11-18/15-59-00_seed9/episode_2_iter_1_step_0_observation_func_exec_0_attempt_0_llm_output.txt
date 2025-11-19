@@ -1,0 +1,86 @@
+Certainly! Let's first explain the distribution of observations conditioned on a state in English.
+
+### Explanation of Observation Distribution
+
+The agent's field of view (FOV) depends on its position, direction, and the grid it is in. The FOV is a 3x3 grid centered around the agent and aligned with its direction. The agent can see what is directly in front of it, to the sides, and slightly behind it, depending on its direction.
+
+### Issues in the Current Code
+
+1. **Agent Position in FOV**: The agent should always be visible in the center of the FOV.
+2. **Rotation of FOV**: The FOV needs to be rotated correctly based on the agent's direction to align with the agent's perspective.
+3. **Grid Padding**: The current code does not handle padding correctly when the agent is near the edges of the grid, leading to incorrect observations.
+
+### Improved Code
+
+Here is the improved `observation_func` function:
+
+```python
+import numpy as np
+
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    view_size = 3  # The size of the agent's field of view
+
+    # Get the extents of the square set of tiles visible to the agent
+    if state.agent_dir == 0:  # Facing right
+        topX = max(state.agent_pos[0] - 1, 0)
+        topY = max(state.agent_pos[1] - 1, 0)
+    elif state.agent_dir == 1:  # Facing down
+        topX = max(state.agent_pos[0] - 1, 0)
+        topY = state.agent_pos[1]
+    elif state.agent_dir == 2:  # Facing left
+        topX = state.agent_pos[0]
+        topY = max(state.agent_pos[1] - 1, 0)
+    elif state.agent_dir == 3:  # Facing up
+        topX = state.agent_pos[0]
+        topY = max(state.agent_pos[1] - 2, 0)
+    else:
+        assert False, "invalid agent direction"
+
+    fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=state.grid.dtype)
+
+    # Compute the overlapping region in the grid.
+    gx0 = max(topX, 0)
+    gy0 = max(topY, 0)
+    gx1 = min(topX + view_size, state.grid.shape[0])
+    gy1 = min(topY + view_size, state.grid.shape[1])
+
+    # Determine where the overlapping region goes in the padded array.
+    px0 = max(0, -topX)
+    py0 = max(0, -topY)
+
+    # Copy the overlapping slice.
+    fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = state.grid[gx0:gx1, gy0:gy1]
+
+    # Rotate the field of view to align with the agent's perspective
+    for _ in range(state.agent_dir):
+        fov = np.rot90(fov, k=1)
+
+    # Place the agent in the center of the FOV
+    fov[1, 1] = ObjectTypes.agent
+
+    # Create the observation object
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    return obs
+```
+
+### Explanation of Changes
+
+1. **FOV extents calculation**: Correctly calculate the top-left corner of the FOV based on the agent's direction.
+2. **Padding and copying**: Ensure the FOV is correctly padded and the overlapping region is copied from the grid.
+3. **Agent placement**: Place the agent in the center of the FOV (position `(1, 1)`).
+
+This should better align with the true distribution of observations in the environment.
