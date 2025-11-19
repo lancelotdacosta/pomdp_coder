@@ -1,0 +1,63 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the current model to understand the reward function better.
+
+### Analysis of Discrepancies
+
+1. **EXIT Action:**
+   - The real world gives a reward of 10.0 and sets `done` to `True` if the agent is at any position on the grid boundary when performing the EXIT action. The current model only checks for the exact position `(GRID_SIZE, GRID_SIZE)`.
+   - **Solution:** Update the condition to check for any boundary position.
+
+2. **SAMPLE Action:**
+   - The real world gives a reward of 10.0 and sets `done` to `True` if the agent is at a rock position and the rock is bad. This suggests that sampling a bad rock should also give a positive reward and end the episode.
+   - **Solution:** Modify the condition to include the case where the rock is bad.
+
+3. **CHECK_ROCK Actions:**
+   - The real world gives a reward of -1.0 and sets `done` to `False` when performing CHECK_ROCK actions. This suggests that checking a rock has a negative reward.
+   - **Solution:** Add conditions for CHECK_ROCK actions to return a reward of -1.0.
+
+### Updated Reward Function
+
+Here is the updated `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.EXIT:
+        # Check if the agent is at any boundary position
+        if state.x == 0 or state.x == GRID_SIZE - 1 or state.y == 0 or state.y == GRID_SIZE - 1:
+            reward = 10.0
+            done = True
+        else:
+            reward = 0.0
+            done = False
+
+    elif action == RockSampleActions.SAMPLE:
+        # Check if the agent is at a rock position
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the rock is good, reward is 10.0, otherwise 0.0
+            reward = 10.0
+            done = True
+        else:
+            reward = 0.0
+            done = False
+
+    elif action in CHECK_ACTIONS:
+        # Checking a rock gives a negative reward
+        reward = -1.0
+        done = False
+
+    return reward, done
+```
+
+This updated function should better align with the observed distribution of the real-world samples.

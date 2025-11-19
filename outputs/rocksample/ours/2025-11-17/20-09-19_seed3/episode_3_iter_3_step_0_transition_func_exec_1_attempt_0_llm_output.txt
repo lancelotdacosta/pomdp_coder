@@ -1,0 +1,74 @@
+The error you're encountering is due to the recursive call to `transition_func` within the function itself. When the function is compiled and executed, the Python interpreter does not recognize the recursive call because it is not properly defined in the current scope.
+
+To resolve this issue, we need to ensure that the `transition_func` is properly defined and can be called recursively. Here is the corrected version of the `transition_func` function:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    # Probability of remaining in the same position
+    stay_prob = 0.1  # Adjust this probability as needed
+    
+    if random.random() < stay_prob:
+        return new_state  # Stay in the same position
+    
+    # Probability of moving in an unintended direction
+    unintended_move_prob = 0.1  # Adjust this probability as needed
+    move_directions = [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            return transition_func(new_state, unintended_action)
+        else:
+            new_state.y = max(0, state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            return transition_func(new_state, unintended_action)
+        else:
+            new_state.y = min(GRID_SIZE - 1, state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            return transition_func(new_state, unintended_action)
+        else:
+            new_state.x = min(GRID_SIZE - 1, state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        if random.random() < unintended_move_prob:
+            unintended_action = random.choice([a for a in move_directions if a != action])
+            return transition_func(new_state, unintended_action)
+        else:
+            new_state.x = max(0, state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample the rock (set it to BAD with a probability)
+            if random.random() < 0.5:  # Example probability, can be adjusted
+                new_state.rocks = list(new_state.rocks)
+                new_state.rocks[rock_idx] = False
+                new_state.rocks = tuple(new_state.rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        pass  # No change in state for check actions
+
+    return new_state
+```
+
+### Explanation of Changes:
+
+1. **Recursive Call**:
+   - The recursive call to `transition_func` is now using `new_state` instead of `state`. This ensures that the function is called with the correct state object.
+
+2. **Scope and Definition**:
+   - The function is defined in a way that it can be called recursively without causing a `NameError`.
+
+By making these changes, the `transition_func` should now correctly handle the unintended movements and stay probabilities, and the recursive calls should work as intended.

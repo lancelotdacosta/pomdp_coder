@@ -1,0 +1,41 @@
+Based on the provided samples, it appears that the initial state distribution is as follows:
+
+- The agent's starting position `(x, y)` is uniformly distributed across the grid, with some positions possibly more frequent than others.
+- The rocks are always at fixed positions `(1, 1)` and `(1, 4)`.
+- The rocks can be either `G` (Good) or `B` (Bad), with each rock independently having a 50% chance of being `G` or `B`.
+
+Given this understanding, we can implement the `initial_func` function to generate an initial state according to this distribution.
+
+```python
+from __future__ import annotations
+
+import random
+from dataclasses import dataclass
+from typing import Tuple
+
+# Define the RockSampleState class as given in the template
+@dataclass
+class RockSampleState(State):
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+def initial_func(empty_state: RockSampleState) -> RockSampleState:
+    """
+    Input:
+        empty_state (RockSampleState): An empty state with only the walls filled into the grid
+    Returns:
+        state (RockSampleState): the initial state of the environment
+    """
+    # Generate a random position for the agent within the grid
+    x = random.randint(0, GRID_SIZE - 1)
+    y = random.randint(0, GRID_SIZE - 1)
+
+    # Generate the state of the rocks
+    rocks = tuple(random.choice([True, False]) for _ in range(NUM_ROCKS))
+
+    # Create and return the initial state
+    return RockSampleState(x=x, y=y, rocks=rocks)
+```
+
+This function `initial_func` will generate a random initial state where the agent's position is uniformly distributed across the grid, and each rock has a 50% chance of being good or bad.

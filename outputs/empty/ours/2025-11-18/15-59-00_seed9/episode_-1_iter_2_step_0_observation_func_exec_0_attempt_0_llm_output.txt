@@ -1,0 +1,142 @@
+Certainly! Let's first explain the observed distribution of observations conditioned on a state in English:
+
+### Distribution of Observations Conditioned on a State
+
+1. **Agent Position and Direction**:
+   - The agent's position and direction are directly observed and should match the current state of the environment.
+
+2. **Field of View (FoV)**:
+   - The field of view is a 3x3 grid centered around the agent, with the agent always positioned at the bottom center of the FoV if it is within the visible area.
+   - The FoV should correctly reflect the environment grid, taking into account the agent's direction.
+   - If the agent moves forward, the FoV should update to reflect the new position.
+   - The agent itself should be represented as `ObjectTypes.agent` in the FoV.
+
+3. **Carrying**:
+   - The agent's carrying status should be directly observed from the state.
+
+### Issues in the Current Code
+
+1. **Agent Position Update**:
+   - The agent's position is not correctly updated in the FoV after moving forward.
+   - The agent should be placed in the correct position within the FoV.
+
+2. **Field of View Calculation**:
+   - The FoV calculation needs to ensure that the agent is always at the bottom center of the FoV when it is within the visible area.
+   - The rotation of the FoV based on the agent's direction needs to be handled correctly.
+
+### Improved `observation_func` Function
+
+Here is the improved `observation_func` function:
+
+```python
+import numpy as np
+from typing import Tuple, Optional
+from dataclasses import dataclass
+
+# Assuming the classes and enums are already defined as provided
+
+@dataclass
+class MinigridObservation:
+    image: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int] = None
+
+@dataclass
+class MinigridState:
+    grid: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int]
+
+    @property
+    def front_pos(self) -> Tuple[int, int]:
+        return (
+            np.array(self.agent_pos) + np.array(DIR_TO_VEC[self.agent_dir])
+        ).tolist()
+
+    @property
+    def width(self) -> int:
+        return self.grid.shape[0]
+
+    @property
+    def height(self) -> int:
+        return self.grid.shape[1]
+
+    def get_field_of_view(self, view_size: int) -> NDArray[np.int8]:
+        # Get the extents of the square set of tiles visible to the agent
+        if self.agent_dir == 0:
+            topX = self.agent_pos[0]
+            topY = self.agent_pos[1] - view_size // 2
+        elif self.agent_dir == 1:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1]
+        elif self.agent_dir == 2:
+            topX = self.agent_pos[0] - view_size + 1
+            topY = self.agent_pos[1] - view_size // 2
+        elif self.agent_dir == 3:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1] - view_size + 1
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=self.grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, self.grid.shape[0])
+        gy1 = min(topY + view_size, self.grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = self.grid[
+            gx0:gx1, gy0:gy1
+        ]
+
+        # Rotate the field of view based on the agent's direction
+        for _ in range(self.agent_dir):
+            fov = np.rot90(fov)
+
+        # Place the agent at the correct position in the FoV
+        agent_pos_in_fov = (view_size // 2, view_size - 1)
+        fov[agent_pos_in_fov] = ObjectTypes.agent
+
+        return fov
+
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    # Update the agent's position and direction based on the action
+    if action == Actions.left:
+        state.agent_dir = (state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        state.agent_dir = (state.agent_dir + 1) % 4
+    elif action == Actions.forward:
+        front_pos = state.front_pos
+        if state.grid[front_pos] != ObjectTypes.wall:
+            state.agent_pos = front_pos
+
+    # Get the field of view
+    fov_size = 3  # Assuming a 3x3 field of view
+    fov = state.get_field_of_view(fov_size)
+
+    # Create and return the observation
+    empty_obs.image = fov
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+
+    return empty_obs
+```
+
+### Explanation of Improvements
+
+1. **Agent Position Update**:
+   - The agent's position is correctly updated in the `state` after moving forward.
+   - The agent is placed at the correct position within the FoV.
+
+2. **Field of View Calculation**:
+   - The FoV calculation ensures that the agent is always at the bottom center of the FoV when it is within the visible area.
+   - The rotation of the FoV based on the agent's direction is handled correctly.
+
+This should better model the true distribution of observations conditioned on a state.

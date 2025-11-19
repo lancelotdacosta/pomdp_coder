@@ -1,0 +1,66 @@
+Certainly! Let's first explain the distribution of observations conditioned on a state in plain English:
+
+### Explanation of Observation Distribution:
+1. **Agent Position**: The agent's position `(x, y)` is always part of the observation, regardless of the action taken.
+2. **Action Type**:
+   - **Check Rock**: If the agent performs a `CHECK_ROCK` action (e.g., `CHECK_ROCK_0`, `CHECK_ROCK_1`), and the agent is at the corresponding rock's position, the observation will include:
+     - `rock_idx`: The index of the rock being checked.
+     - `is_good`: A noisy reading indicating whether the rock is good or bad. There is an 80% chance that the reading is correct and a 20% chance it is incorrect.
+   - **Not at Rock**: If the agent performs a `CHECK_ROCK` action but is not at the corresponding rock's position, the observation will have `rock_idx = None` and `is_good = None`.
+   - **Other Actions**: For all other actions (e.g., moving, exiting), the observation will have `rock_idx = None` and `is_good = None`.
+
+### Improving the Code:
+The current issue in your code is that it does not correctly handle the case where the agent is not at the rock when performing a `CHECK_ROCK` action. The provided sample shows that even if the agent is not at the rock, it can still return a non-null observation under certain conditions. This suggests that the environment might return a default or random observation when the agent is not at the rock.
+
+Let's improve the `observation_func` to better model this behavior:
+
+```python
+def observation_func(state: RockSampleState, action: int, empty_obs: RockSampleObservation) -> RockSampleObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Copy the empty observation to avoid modifying the original
+    obs = copy.deepcopy(empty_obs)
+    
+    # Set the agent's position in the observation
+    obs.x = state.x
+    obs.y = state.y
+
+    # Handle different actions
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        current_rock_idx = state.at_rock()
+        
+        if current_rock_idx == rock_idx or random.random() < 0.2:  # 20% chance of random observation
+            # If the agent is at the rock, or we get a random observation, return a noisy observation
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.8:  # 80% chance of correct observation
+                obs.rock_idx = rock_idx
+                obs.is_good = is_good
+            else:
+                obs.rock_idx = rock_idx
+                obs.is_good = not is_good
+        else:
+            # If not at the rock and no random observation, return no observation
+            obs.rock_idx = None
+            obs.is_good = None
+    else:
+        # For all other actions, return NULL for rock_idx and is_good
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+```
+
+### Explanation of Changes:
+1. **Random Observation**: Added a 20% chance to return a random observation even if the agent is not at the rock. This mimics the behavior observed in the real world samples.
+2. **Correct Observation**: If the agent is at the rock or a random observation is generated, the observation will include a noisy reading of the rock's state.
+
+This should better model the true distribution of observations conditioned on the state in the RockSample environment.

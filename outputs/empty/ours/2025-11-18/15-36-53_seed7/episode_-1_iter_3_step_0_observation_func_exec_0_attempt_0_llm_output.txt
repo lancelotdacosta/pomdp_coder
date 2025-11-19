@@ -1,0 +1,79 @@
+Certainly! Let's first explain the distribution of observations conditioned on a state in English, and then we will improve the `observation_func` function to better model this distribution.
+
+### Explanation of the Distribution of Observations Conditioned on a State
+
+1. **Agent Position and Direction**: The agent's position and direction determine the field of view (FOV) that the agent can see. The FOV is a 3x3 grid centered around the agent's current position and oriented based on the agent's direction.
+
+2. **Field of View Calculation**:
+   - If the agent is facing right (0), the FOV is a 3x3 grid starting from the agent's position and extending to the right.
+   - If the agent is facing down (1), the FOV is a 3x3 grid starting from the agent's position and extending downward.
+   - If the agent is facing left (2), the FOV is a 3x3 grid starting from the agent's position and extending to the left.
+   - If the agent is facing up (3), the FOV is a 3x3 grid starting from the agent's position and extending upward.
+   - The FOV is padded with walls if it extends beyond the boundaries of the grid.
+
+3. **Action Effects**:
+   - `left` and `right` actions change the agent's direction.
+   - `forward` action moves the agent forward by one cell if it is not obstructed by a wall or other impassable object.
+
+4. **Observation Creation**:
+   - The observation includes the FOV, the agent's position, the agent's direction, and any object the agent is carrying.
+   - The agent's position in the observation grid is always at the center (1, 1) of the 3x3 FOV.
+   - The agent is represented by the value `12` in the FOV.
+
+Based on this understanding, let's improve the `observation_func` function to better model the true distribution.
+
+### Improved `observation_func` Function
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    view_size = 3  # The size of the field of view (3x3 grid)
+
+    # Update the agent's position and direction based on the action
+    if action == Actions.left:
+        state.agent_dir = (state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        state.agent_dir = (state.agent_dir + 1) % 4
+    elif action == Actions.forward:
+        # Compute the new position
+        new_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+        # Check if the new position is within the grid and not a wall
+        if 0 <= new_pos[0] < state.grid.shape[0] and 0 <= new_pos[1] < state.grid.shape[1]:
+            if state.grid[new_pos[0], new_pos[1]] != ObjectTypes.wall:
+                state.agent_pos = tuple(new_pos)
+
+    # Get the field of view of the agent
+    fov = state.get_field_of_view(view_size)
+
+    # Create the observation
+    empty_obs.image = fov
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+
+    # Ensure the agent is represented correctly in the FOV
+    agent_center = (view_size // 2, view_size // 2)
+    if (agent_center[0], agent_center[1]) in [(i, j) for i in range(view_size) for j in range(view_size)]:
+        empty_obs.image[agent_center] = ObjectTypes.agent
+
+    return empty_obs
+```
+
+### Explanation of Changes
+
+1. **Agent Position in FOV**: The agent's position in the FOV is always at the center (1, 1) of the 3x3 grid. This ensures that the agent is correctly represented in the observation.
+
+2. **Field of View Calculation**: The `get_field_of_view` method is used to calculate the FOV based on the agent's direction and position. The FOV is padded with walls if it extends beyond the boundaries of the grid.
+
+3. **Action Effects**: The `left`, `right`, and `forward` actions are handled to update the agent's position and direction correctly.
+
+4. **Observation Creation**: The observation is created by setting the `image`, `agent_pos`, `agent_dir`, and `carrying` fields of the `empty_obs` object. The agent is represented by the value `12` in the FOV at the center (1, 1) of the 3x3 grid.
+
+This improved function should better model the true distribution of observations conditioned on a state.

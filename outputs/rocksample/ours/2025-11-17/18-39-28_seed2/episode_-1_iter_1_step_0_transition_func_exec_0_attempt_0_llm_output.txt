@@ -1,0 +1,54 @@
+The observed discrepancies suggest that the movement actions are behaving differently than initially modeled. Specifically, it seems that the agent is moving in the opposite direction of what is expected. This could be due to a misunderstanding of how the grid coordinates are structured or an error in the logic for handling boundary conditions.
+
+To correct this, let's review the expected behavior:
+- **MOVE_NORTH**: The y-coordinate should decrease (move up).
+- **MOVE_SOUTH**: The y-coordinate should increase (move down).
+- **MOVE_EAST**: The x-coordinate should increase (move right).
+- **MOVE_WEST**: The x-coordinate should decrease (move left).
+
+Given the observed results, it appears that the movement is being applied in the opposite direction. We need to adjust the logic to ensure the agent moves correctly according to the expected directions.
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(0, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(0, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample the rock and change its state
+            new_state.rocks = new_state.rocks[:rock_idx] + (False,) + new_state.rocks[rock_idx + 1:]
+    elif action == RockSampleActions.EXIT:
+        # No change in state
+        pass
+    elif action in CHECK_ACTIONS:
+        # Checking a rock does not change the state
+        pass
+    
+    return new_state
+```
+
+This function should now correctly model the transition of states based on the actions. The key changes are ensuring that the movement actions are applied in the correct direction:
+
+- **MOVE_NORTH**: Decrease y-coordinate.
+- **MOVE_SOUTH**: Increase y-coordinate.
+- **MOVE_EAST**: Increase x-coordinate.
+- **MOVE_WEST**: Decrease x-coordinate.
+
+These adjustments should bring the model closer to the true distribution observed in the real world.

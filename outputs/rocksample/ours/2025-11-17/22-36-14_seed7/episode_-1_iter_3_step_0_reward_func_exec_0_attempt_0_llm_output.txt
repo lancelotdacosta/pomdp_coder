@@ -1,0 +1,76 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the model's output.
+
+### Analysis of Discrepancies
+
+1. **Exit Action at Non-Exit Locations:**
+   - The exit action should only provide a reward when the agent is at the exit location (usually (0, 0) or the top-left corner of the grid). In your current implementation, the exit action always provides a reward of 10.0 and marks the episode as done, regardless of the agent's position.
+
+2. **Check Rock Actions at Incorrect Positions:**
+   - The check rock actions should provide a reward of -1.0 if the agent is not at the correct rock position. Your current implementation does not account for this case.
+
+### Improved Reward Function
+
+Here is the improved `reward_func` function that addresses the issues identified:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    # Movement actions do not give rewards
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        reward = 0.0
+
+    # Sampling action
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if next_state.rocks[rock_idx] != state.rocks[rock_idx]:
+                # The rock was sampled and the type changed
+                reward = 10.0
+            else:
+                # The rock was not changed (bad sample)
+                reward = -1.0
+        else:
+            # Sampled at a location with no rock
+            reward = -1.0
+
+    # Exit action
+    elif action == RockSampleActions.EXIT:
+        if (state.x, state.y) == (0, 0):
+            reward = 10.0
+            done = True
+        else:
+            reward = -1.0
+
+    # Check actions
+    elif action in [RockSampleActions.CHECK_ROCK_0, RockSampleActions.CHECK_ROCK_1]:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            # At the correct rock position
+            reward = 0.0
+        else:
+            # Not at the correct rock position
+            reward = -1.0
+
+    return reward, done
+```
+
+### Explanation
+
+1. **Exit Action:**
+   - The exit action now checks if the agent is at the exit location (0, 0). If the agent is at this location, it provides a reward of 10.0 and marks the episode as done. Otherwise, it provides a reward of -1.0 to penalize the incorrect exit attempt.
+
+2. **Check Rock Actions:**
+   - The check rock actions now correctly provide a reward of -1.0 if the agent is not at the correct rock position. This ensures that the agent learns to move to the correct rock position before performing the check action.
+
+This improved function should better match the true distribution of rewards in the environment.

@@ -1,0 +1,144 @@
+Certainly! Based on the provided samples, it seems that there are discrepancies in how the movement actions are being handled. Specifically, the `MOVE_NORTH` action is not always reducing the y-coordinate by 1, and similarly for other movements.
+
+The distribution of next states conditioned on actions and previous states can be described as follows:
+
+1. **MOVE_NORTH**: The agent should move north (decrease y by 1) unless it is already at the top of the grid (y == 0). If it is at the top, it should remain in the same position.
+2. **MOVE_SOUTH**: The agent should move south (increase y by 1) unless it is already at the bottom of the grid (y == GRID_SIZE - 1). If it is at the bottom, it should remain in the same position.
+3. **MOVE_EAST**: The agent should move east (increase x by 1) unless it is already at the rightmost edge of the grid (x == GRID_SIZE - 1). If it is at the rightmost edge, it should remain in the same position.
+4. **MOVE_WEST**: The agent should move west (decrease x by 1) unless it is already at the leftmost edge of the grid (x == 0). If it is at the leftmost edge, it should remain in the same position.
+5. **SAMPLE**: If the agent is at a rock position, it should sample the rock, changing its state to `False` (bad).
+6. **EXIT**: No change in state.
+7. **CHECK_ROCK_0 and CHECK_ROCK_1**: If the agent is at the corresponding rock position, it should simulate a noisy sensor reading with 90% accuracy.
+
+Given this understanding, let's improve the `transition_func` function:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+# -----------------------------------------------------------------------------#
+# Transition Function                                                          #
+# -----------------------------------------------------------------------------#
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(new_state.y - 1, 0)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(new_state.y + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(new_state.x + 1, GRID_SIZE - 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(new_state.x - 1, 0)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(r if i != rock_idx else False for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (new_state.x, new_state.y) == ROCK_POSITIONS[rock_idx]:
+            # Simulate a noisy sensor reading
+            if random.random() < 0.9:  # 90% accurate
+                new_state.rocks = tuple(r if i != rock_idx else not r for i, r in enumerate(new_state.rocks))
+    
+    return new_state
+```
+
+This updated `transition_func` function ensures that the agent's movements are handled correctly within the grid boundaries. The movement actions now check the grid limits before updating the state, which should align with the observed behavior from the real world.

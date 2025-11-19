@@ -1,0 +1,60 @@
+To better model the true distribution of next states conditioned on actions and previous states, we need to ensure that the agent's movement is correctly bounded by the grid size. The current implementation has some off-by-one errors in the boundary conditions. Specifically, the `min` and `max` functions are not correctly handling the grid boundaries.
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y, rocks = state.x, state.y, state.rocks
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(1, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(1, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks = list(rocks)
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+            rocks = tuple(rocks)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and rock_idx == action - RockSampleActions.CHECK_ROCK_0:
+            # Perform a noisy check on the rock
+            if random.random() < 0.9:  # 90% chance of correct reading
+                is_good = rocks[rock_idx]
+            else:
+                is_good = not rocks[rock_idx]
+            # Check actions do not change the state, but they return an observation
+            return RockSampleState(x, y, rocks)
+    
+    return RockSampleState(x, y, rocks)
+```
+
+### Explanation
+
+1. **Boundary Conditions**:
+   - **Move North**: The agent should not move above the top boundary of the grid. The `max(1, y - 1)` ensures that the agent's y-coordinate does not go below 1.
+   - **Move South**: The agent should not move below the bottom boundary of the grid. The `min(GRID_SIZE, y + 1)` ensures that the agent's y-coordinate does not exceed `GRID_SIZE`.
+   - **Move East**: The agent should not move beyond the right boundary of the grid. The `min(GRID_SIZE, x + 1)` ensures that the agent's x-coordinate does not exceed `GRID_SIZE`.
+   - **Move West**: The agent should not move beyond the left boundary of the grid. The `max(1, x - 1)` ensures that the agent's x-coordinate does not go below 1.
+
+2. **Sampling Rocks**:
+   - When the agent samples a rock, it changes the rock's state to `False` (bad). This part of the code is correct and remains unchanged.
+
+3. **Checking Rocks**:
+   - When the agent checks a rock, it performs a noisy check with a 90% chance of correct reading. The state does not change during this action, but an observation is generated. This part of the code is correct and remains unchanged.
+
+By ensuring that the boundary conditions are correctly handled, the `transition_func` function should now more closely match the true distribution of next states in the environment.

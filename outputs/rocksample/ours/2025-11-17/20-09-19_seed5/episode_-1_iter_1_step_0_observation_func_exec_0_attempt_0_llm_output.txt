@@ -1,0 +1,166 @@
+Certainly! Let's first explain the distribution of observations conditioned on a state in English:
+
+### Distribution of Observations Conditioned on a State
+
+1. **Position Observations**:
+   - The agent always observes its current position `(x, y)`.
+
+2. **Check Rock Actions**:
+   - If the agent performs a `CHECK_ROCK` action and is at the rock's position:
+     - The agent observes the rock index (`rock_idx`).
+     - The agent observes whether the rock is good or bad (`is_good`).
+     - There is a 10% chance that the observation is incorrect (i.e., a good rock might be observed as bad and vice versa).
+   - If the agent performs a `CHECK_ROCK` action but is not at the rock's position:
+     - The agent observes `None` for both `rock_idx` and `is_good`.
+
+3. **Other Actions**:
+   - For all other actions, the agent observes `None` for both `rock_idx` and `is_good`.
+
+### Improved Code
+
+Based on the above distribution, let's improve the `observation_func` function to better model the true distribution:
+
+```python
+from __future__ import annotations
+
+import copy
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# Domain parameters (feel free to tweak)
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# Actions
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# Observation
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# State
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+def observation_func(state: RockSampleState, action: int, empty_obs: RockSampleObservation) -> RockSampleObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    obs = copy.deepcopy(empty_obs)
+    obs.x = state.x
+    obs.y = state.y
+
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            # The agent is at the rock position and performs a check action
+            is_good = state.rocks[rock_idx]
+            # Add some noise to the observation
+            if random.random() < 0.1:  # 10% chance of incorrect observation
+                is_good = not is_good
+            obs.rock_idx = rock_idx
+            obs.is_good = is_good
+        else:
+            # The agent is not at the rock position, so the observation is null
+            obs.rock_idx = rock_idx
+            obs.is_good = None
+    else:
+        # For all other actions, the observation is null
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+```
+
+### Explanation of Changes
+
+1. **Position Observations**:
+   - The agent's position `(x, y)` is always observed correctly.
+
+2. **Check Rock Actions**:
+   - If the agent performs a `CHECK_ROCK` action but is not at the rock's position, the `rock_idx` is still set to the index of the rock being checked, and `is_good` is set to `None`. This ensures that the observation is consistent with the action taken, even if the agent is not at the rock's position.
+
+3. **Other Actions**:
+   - For all other actions, the `rock_idx` and `is_good` fields are set to `None`.
+
+These changes ensure that the observations generated by the model more accurately reflect the true distribution in the real world.

@@ -1,0 +1,40 @@
+Based on the provided samples, it seems that the movement actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST) are not correctly handling the grid boundaries and the agent's position. The real world samples show that the agent should move within the grid boundaries (1 to GRID_SIZE) and not go out of bounds. 
+
+The current implementation uses `min` and `max` functions with incorrect boundary values, leading to the observed discrepancies. For example, the agent should not move below y=1 when moving north, or above y=GRID_SIZE when moving south.
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sampling the rock changes its state with some probability
+            if random.random() < 0.5:  # 50% chance to change state
+                new_state.rocks = new_state.rocks[:rock_idx] + (not new_state.rocks[rock_idx],) + new_state.rocks[rock_idx+1:]
+    elif action == RockSampleActions.EXIT:
+        pass  # The agent stays in the same position
+    elif action in CHECK_ACTIONS:
+        pass  # Checking a rock does not change the state
+
+    return new_state
+```
+
+This improved function correctly handles the grid boundaries for movement actions. The `max` and `min` functions are adjusted to ensure the agent's position remains within the valid range of 1 to `GRID_SIZE` for both x and y coordinates. This should align with the real-world samples provided.

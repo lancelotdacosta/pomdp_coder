@@ -1,0 +1,163 @@
+#define system
+You are a robot exploring its environment. 
+
+Environment Description: 
+Goal Description: 
+
+Your goal is to model the the distribution of next states conditioned on actions and previous states. 
+You need to implement the python code to model the world, as seen in the provided experiences. 
+Please follow the template to implement the code. 
+The code needs to be directly runnable (state, action) and return a sample (next_state). 
+
+
+Below are a few samples from the environment distribution. These are only samples from a larger distribution that your should model.
+
+Input RockSampleState: RockSampleState(x=1, y=1, rocks=[B,G])
+Input int: 6
+Output RockSampleState: RockSampleState(x=1, y=1, rocks=[B,G])
+
+
+Input RockSampleState: RockSampleState(x=1, y=2, rocks=[B,B])
+Input int: 0
+Output RockSampleState: RockSampleState(x=1, y=3, rocks=[B,B])
+
+
+Input RockSampleState: RockSampleState(x=2, y=4, rocks=[B,B])
+Input int: 2
+Output RockSampleState: RockSampleState(x=3, y=4, rocks=[B,B])
+
+
+Input RockSampleState: RockSampleState(x=1, y=1, rocks=[B,G])
+Input int: 4
+Output RockSampleState: RockSampleState(x=1, y=1, rocks=[B,G])
+
+
+Input RockSampleState: RockSampleState(x=4, y=4, rocks=[B,B])
+Input int: 5
+Output RockSampleState: RockSampleState(x=4, y=4, rocks=[B,B])
+
+
+
+
+Here is the template for the transition_func function. Please implement
+the reward function following the template. The code needs to be directly
+runnable.
+
+‘‘‘
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    raise NotImplementedError
+‘‘‘
+
+Explain what you believe is the the distribution of next states conditioned on actions and previous states in english.
+Additionally, please implement code to model the logic of the world. Please implement the 
+code following the template. Only output the definition for ‘ transition_func ‘. 
+You must implement the ‘ transition_func ‘ function.
+Create any helper function inside the scope of ‘ transition_func ‘. 
+Do not create any helper function outside the scope of ‘ transition_func ‘.
+Do not output examples usage. 
+Do not create any new classes.
+Do not rewrite existing classes. 
+Do not import any new modules from anywhere.
+Do not overfit to the specific samples.
+Put the ‘ transition_func ‘ function in a python code block.

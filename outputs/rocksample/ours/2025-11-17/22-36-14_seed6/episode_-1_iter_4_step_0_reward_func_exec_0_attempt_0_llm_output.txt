@@ -1,0 +1,54 @@
+Certainly! The issue with the current `reward_func` is that it does not correctly handle the penalty for checking a rock when the agent is at the correct rock position but checks the wrong rock. The real world samples indicate that there should be a penalty of `-1.0` if the agent attempts to check a rock that is not at the current position.
+
+Here's an improved version of the `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent is at a rock
+    current_rock_idx = state.at_rock()
+    next_rock_idx = next_state.at_rock()
+
+    # Determine the reward based on the action and the transition
+    if action == RockSampleActions.SAMPLE:
+        if current_rock_idx is not None:
+            # If the agent samples a rock, check if the rock was good
+            if state.rocks[current_rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            # Sampling when not at a rock gives a penalty
+            return -1.0, False
+    elif action == RockSampleActions.EXIT:
+        # Exiting the grid gives a reward of 10.0 if the agent is in the last column (x = 4)
+        if next_state.x == 4:
+            return 10.0, True
+        else:
+            return 0.0, False
+    elif action in CHECK_ACTIONS:
+        # Checking a rock gives no reward if the agent is at the correct rock position and checks the correct rock
+        if current_rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + current_rock_idx:
+            return 0.0, False
+        else:
+            # Penalty for checking a rock when not at the correct rock position or checking the wrong rock
+            return -1.0, False
+    else:
+        # Moving actions give no reward
+        return 0.0, False
+```
+
+### Explanation:
+- **Sampling Action (`RockSampleActions.SAMPLE`)**: The reward is determined based on whether the agent is at a rock and whether the rock is good or bad.
+- **Exit Action (`RockSampleActions.EXIT`)**: The agent receives a reward of 10.0 if it exits the grid from the last column (x = 4).
+- **Check Rock Actions (`CHECK_ACTIONS`)**: The agent receives a penalty of -1.0 if it attempts to check a rock but is not at the correct rock position or checks the wrong rock. If the agent is at the correct rock position and checks the correct rock, no reward is given.
+
+This should better align with the observed distribution from the real world samples.

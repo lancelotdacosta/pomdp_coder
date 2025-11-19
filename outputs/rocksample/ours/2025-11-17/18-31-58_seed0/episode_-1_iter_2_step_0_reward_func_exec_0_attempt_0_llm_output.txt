@@ -1,0 +1,72 @@
+Certainly! Based on the observed discrepancies between the real-world samples and the generated model, it seems that the reward and termination conditions need to be adjusted to better match the real-world behavior. Specifically, the reward for exiting the environment should depend on the agent's position, and the episode should only terminate when the agent exits at the correct location.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has taken a sample action
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                # If the rock is good, the agent gets a reward of 10
+                reward = 10.0
+            else:
+                # If the rock is bad, the agent gets a reward of -10
+                reward = -10.0
+        else:
+            # If no rock is present, the agent gets no reward
+            reward = 0.0
+    elif action == RockSampleActions.EXIT:
+        # If the agent exits, the episode ends
+        done = True
+        if state.x == 4 and state.y == 4:
+            # If the agent is at (4, 4), it gets a reward of 10
+            reward = 10.0
+        else:
+            # Otherwise, it gets a reward of 0
+            reward = 0.0
+    elif action in CHECK_ACTIONS:
+        # If the agent checks a rock, it incurs a small penalty
+        reward = -1.0
+    else:
+        # For all other actions (e.g., moving), there is no reward
+        reward = 0.0
+    
+    # The episode is done if the agent exits or reaches the exit position
+    done = action == RockSampleActions.EXIT or (state.x == 4 and state.y == 4)
+
+    return reward, done
+```
+
+### Explanation:
+1. **Sampling Rocks**:
+   - If the agent takes a `SAMPLE` action at a rock's position, the reward is determined by whether the rock is good or bad.
+   - If no rock is present at the agent's current position, the reward is 0.
+
+2. **Exiting the Environment**:
+   - The episode terminates when the agent takes the `EXIT` action.
+   - The reward for exiting depends on the agent's position:
+     - If the agent is at (4, 4), it gets a reward of 10.
+     - Otherwise, it gets a reward of 0.
+
+3. **Checking Rocks**:
+   - If the agent checks a rock, it incurs a small penalty of -1.
+
+4. **Other Actions**:
+   - For all other actions (e.g., moving), there is no reward.
+
+5. **Episode Termination**:
+   - The episode terminates if the agent exits or reaches the exit position (4, 4).
+
+This should better align with the observed real-world samples and provide a more accurate model of the environment's reward and termination conditions.

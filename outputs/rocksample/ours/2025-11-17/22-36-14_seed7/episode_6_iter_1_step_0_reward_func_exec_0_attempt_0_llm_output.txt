@@ -1,0 +1,36 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        return 0.0, True
+    
+    # Check if the agent sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and state.rocks[rock_idx]:
+            return 10.0, False
+        else:
+            return 0.0, False
+    
+    # Check if the agent moved
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # No reward for moving
+        return 0.0, False
+    
+    # Check if the agent checked a rock (no reward for checking)
+    if action in CHECK_ACTIONS:
+        return 0.0, False
+    
+    # Default case (should not happen if actions are properly defined)
+    return 0.0, False
+```

@@ -1,0 +1,62 @@
+Certainly! Based on the provided samples, it seems that the reward is conditioned on the agent's position, the action taken, and whether the action is successful or not. Here's a breakdown of the conditions:
+
+1. **Exit Action**:
+   - The agent should receive a reward of 10.0 and terminate the episode if it performs the `EXIT` action at the exit location (0, 0).
+   - If the agent performs the `EXIT` action at any other location, it should receive a reward of 0.0 and the episode should continue.
+
+2. **Sample Action**:
+   - If the agent performs the `SAMPLE` action at a rock's position, it should receive a reward of 10.0 if the rock is good (True), otherwise -10.0.
+   - If the agent performs the `SAMPLE` action but is not at a rock's position, it should receive a reward of 0.0.
+
+3. **Check Rock Actions**:
+   - If the agent performs a `CHECK_ROCK_i` action at the corresponding rock's position, it should receive a reward of 0.0.
+   - If the agent performs a `CHECK_ROCK_i` action but is not at the corresponding rock's position, it should receive a reward of -1.0.
+
+Given this understanding, here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent has reached the exit location (0, 0)
+    if action == RockSampleActions.EXIT:
+        if state.x == 0 and state.y == 0:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent samples a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            return 10.0 if state.rocks[rock_idx] else -10.0, False
+        else:
+            return 0.0, False
+
+    # Check if the agent performs a check action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if rock_idx < len(state.rocks):
+            if state.at_rock() == rock_idx:
+                return 0.0, False
+            else:
+                return -1.0, False
+        else:
+            raise ValueError("Invalid check action index")
+
+    # For all other actions, the reward is 0.0 and the episode is not done
+    return 0.0, False
+```
+
+This function should better align with the true distribution based on the provided samples. The key changes are:
+
+1. The exit action now checks the current state's position instead of the next state's position.
+2. The sample action correctly checks the current state's rock status and position.
+3. The check rock actions correctly penalize the agent if it is not at the corresponding rock's position.

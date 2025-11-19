@@ -1,0 +1,67 @@
+Certainly! Based on the observations and the discrepancies between the real world and the generated model, it appears that the reward function is not correctly handling certain actions, particularly the `CHECK` and `EXIT` actions, as well as the `SAMPLE` action when the agent is not at a rock.
+
+Here's an improved version of the `reward_func` function that better models the true distribution:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    # Check if the agent is at a rock
+    rock_idx = state.at_rock()
+
+    if action == RockSampleActions.SAMPLE:
+        if rock_idx is not None:
+            # If the rock was good, the agent gets a positive reward
+            if state.rocks[rock_idx]:
+                reward = 10.0
+                # The rock is now sampled and becomes bad
+                next_rocks = list(next_state.rocks)
+                next_rocks[rock_idx] = False
+                next_state = RockSampleState(next_state.x, next_state.y, tuple(next_rocks))
+            else:
+                reward = -10.0  # Sampling a bad rock gives a negative reward
+        else:
+            # Sampling when not at a rock gives a negative reward
+            reward = -1.0
+
+    elif action == RockSampleActions.EXIT:
+        # Exiting the environment ends the episode
+        done = True
+
+    elif action in CHECK_ACTIONS:
+        # Checking a rock gives no immediate reward, but can provide information
+        if rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            # Simulate noisy observation (not implemented here)
+            pass
+        else:
+            # Checking when not at a rock gives a negative reward
+            reward = -1.0
+
+    return reward, done
+```
+
+### Explanation:
+1. **Sampling Action (`action == RockSampleActions.SAMPLE`)**:
+   - If the agent is at a rock (`rock_idx is not None`):
+     - If the rock is good (`state.rocks[rock_idx]`), the agent gets a positive reward of `10.0`.
+     - If the rock is bad, the agent gets a negative reward of `-10.0`.
+   - If the agent is not at a rock, the reward is `-1.0`.
+
+2. **Exit Action (`action == RockSampleActions.EXIT`)**:
+   - The episode ends (`done = True`).
+
+3. **Check Actions (`action in CHECK_ACTIONS`)**:
+   - If the agent is at a rock and performs the correct check action (`action == RockSampleActions.CHECK_ROCK_0 + rock_idx`), no immediate reward is given.
+   - If the agent is not at a rock or performs an incorrect check action, the reward is `-1.0`.
+
+This should better align with the observed behavior in the real world samples you provided.

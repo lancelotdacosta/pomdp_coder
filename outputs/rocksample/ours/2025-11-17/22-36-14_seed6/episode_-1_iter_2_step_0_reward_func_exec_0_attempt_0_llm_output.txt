@@ -1,0 +1,72 @@
+Certainly! Let's first explain the reward conditioned on state, action, and next state transition in English:
+
+1. **Sampling a Rock**:
+   - If the agent is at a rock and samples it, the reward is +10 if the rock is good, and -10 if the rock is bad.
+   - If the agent samples when not at a rock, the reward is -1.0.
+
+2. **Exiting the Grid**:
+   - If the agent exits the grid (action `EXIT`), the reward is +10 if the agent is at any position in the last column (x = 4).
+   - The episode ends when the agent exits the grid.
+
+3. **Checking a Rock**:
+   - If the agent checks a rock while at the correct rock position, the reward is 0.0.
+   - If the agent checks a rock while not at the correct rock position, the reward is -1.0.
+
+4. **Moving Actions**:
+   - Moving actions (NORTH, SOUTH, EAST, WEST) give a reward of 0.0.
+
+Now, let's improve the `reward_func` function to better model the true distribution:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent is at a rock
+    current_rock_idx = state.at_rock()
+    next_rock_idx = next_state.at_rock()
+
+    # Determine the reward based on the action and the transition
+    if action == RockSampleActions.SAMPLE:
+        if current_rock_idx is not None:
+            # If the agent samples a rock, check if the rock was good
+            if state.rocks[current_rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            # Sampling when not at a rock gives a penalty
+            return -1.0, False
+    elif action == RockSampleActions.EXIT:
+        # Exiting the grid gives a reward of 10.0 if the agent is in the last column (x = 4)
+        if next_state.x == 4:
+            return 10.0, True
+        else:
+            return 0.0, False
+    elif action in CHECK_ACTIONS:
+        # Checking a rock gives no reward if the agent is at the rock position
+        if current_rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + current_rock_idx:
+            return 0.0, False
+        else:
+            return -1.0, False
+    else:
+        # Moving actions give no reward
+        return 0.0, False
+```
+
+### Explanation of Changes:
+1. **Exiting the Grid**:
+   - The condition for the `EXIT` action was incorrect in the original code. It should check the next state's x-coordinate to determine if the agent has successfully exited the grid.
+   - The episode ends (`done = True`) only if the agent exits the grid.
+
+2. **Checking a Rock**:
+   - The condition for checking a rock was fixed to ensure that the agent is at the correct rock position and the action matches the rock index.
+   - If the agent is not at the correct rock position or the action does not match the rock index, a penalty of -1.0 is given.
+
+These changes should better align with the observed distribution from the real world.

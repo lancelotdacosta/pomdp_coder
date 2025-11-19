@@ -1,0 +1,50 @@
+Based on the provided samples, it appears that the `EXIT` action is not just a neutral action but one that can provide a reward under certain conditions. Specifically, the `EXIT` action seems to yield a reward of 10.0 if the agent is directly on top of a rock, regardless of whether the rock is good or bad. The episode also terminates in these cases.
+
+To better model this behavior, we need to update the `reward_func` function to check if the agent is on top of a rock when the `EXIT` action is taken and then provide the appropriate reward.
+
+Here is the updated `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            return 10.0, True
+        else:
+            return 0.0, False
+    
+    # Check if the agent sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return 0.0, False
+    
+    # Check if the agent checked a rock
+    if action in CHECK_ACTIONS:
+        return -1.0, False
+    
+    # Check if the agent moved
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+    
+    # Default case (should not happen if actions are properly defined)
+    return 0.0, False
+```
+
+This updated function now checks if the `EXIT` action is taken and if the agent is on top of a rock. If so, it returns a reward of 10.0 and terminates the episode. Otherwise, it behaves as before.

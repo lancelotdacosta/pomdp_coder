@@ -1,0 +1,91 @@
+Certainly! Let's first explain the expected distribution of observations conditioned on a state in plain English:
+
+### Expected Distribution of Observations
+
+1. **Agent Position**: The observation always includes the agent's current position `(x, y)`.
+2. **Check Rock Actions**:
+   - If the agent performs a `CHECK_ROCK` action (e.g., `CHECK_ROCK_0` or `CHECK_ROCK_1`) and is at the corresponding rock position, the observation should include:
+     - `rock_idx`: The index of the rock being checked.
+     - `is_good`: A noisy reading of the rock's state (True if the rock is good, False if bad). The noise probability is 0.1, meaning there is a 10% chance that the reading is incorrect.
+   - If the agent performs a `CHECK_ROCK` action but is not at the corresponding rock position, the observation should be `NULL` (i.e., `rock_idx` and `is_good` should be `None`).
+3. **Other Actions**:
+   - For all other actions (e.g., `MOVE_NORTH`, `MOVE_SOUTH`, etc.), the observation should be `NULL` (i.e., `rock_idx` and `is_good` should be `None`).
+
+### Improving the Code
+
+The issue in the provided code is that it does not correctly handle the case where the agent performs a `CHECK_ROCK` action but is not at the corresponding rock position. The current implementation always returns `NULL` for such cases, which is incorrect. Instead, it should only return `NULL` if the agent is not at a rock position and is not performing a `CHECK_ROCK` action.
+
+Here is the improved `observation_func` function:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    # Check if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    # Define the probability of a noisy reading (is_good)
+    NOISE_PROBABILITY = 0.1
+
+    if action in CHECK_ACTIONS:
+        # The agent performed a check action
+        if rock_idx is not None:
+            # The agent is at a rock position and performed a check action
+            if action == RockSampleActions.CHECK_ROCK_0 and rock_idx == 0:
+                obs.rock_idx = 0
+                is_good = state.rocks[0]
+                if random.random() < NOISE_PROBABILITY:
+                    obs.is_good = not is_good
+                else:
+                    obs.is_good = is_good
+            elif action == RockSampleActions.CHECK_ROCK_1 and rock_idx == 1:
+                obs.rock_idx = 1
+                is_good = state.rocks[1]
+                if random.random() < NOISE_PROBABILITY:
+                    obs.is_good = not is_good
+                else:
+                    obs.is_good = is_good
+        else:
+            # The agent is not at a rock position, so the observation is NULL
+            pass
+    else:
+        # For all other actions, the observation is NULL
+        pass
+
+    return obs
+```
+
+### Explanation of Improvements
+
+1. **Handling `CHECK_ROCK` Actions**:
+   - The code now checks if the agent is performing a `CHECK_ROCK` action and is at the corresponding rock position.
+   - If the agent is at the correct rock position, it sets `rock_idx` and `is_good` accordingly, with the possibility of noisy readings.
+   - If the agent performs a `CHECK_ROCK` action but is not at the corresponding rock position, it correctly returns `NULL` (i.e., `rock_idx` and `is_good` are `None`).
+
+2. **Other Actions**:
+   - For all other actions, the observation remains `NULL`.
+
+This should better model the true distribution of observations conditioned on a state.

@@ -1,0 +1,181 @@
+The observed discrepancies suggest that the movement actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST) have a more complex probabilistic behavior than the current implementation. Specifically, the agent can move in unintended directions with some probability, leading to outcomes that were previously impossible under the model.
+
+To better model the true distribution, we need to account for the possibility of moving in other directions with certain probabilities. For example, when the agent tries to move north, it might move east or west instead, or even stay in place.
+
+Here is the improved `transition_func` function:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+#existing imports and classes...
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    def move_north(state):
+        rand = random.random()
+        if rand < 0.8:  # 80% chance of moving north
+            return RockSampleState(x=state.x, y=max(0, state.y - 1), rocks=state.rocks)
+        elif rand < 0.9:  # 10% chance of moving east
+            return RockSampleState(x=min(GRID_SIZE - 1, state.x + 1), y=state.y, rocks=state.rocks)
+        elif rand < 0.95:  # 5% chance of moving west
+            return RockSampleState(x=max(0, state.x - 1), y=state.y, rocks=state.rocks)
+        else:  # 5% chance of staying in place
+            return state
+
+    def move_south(state):
+        rand = random.random()
+        if rand < 0.8:  # 80% chance of moving south
+            return RockSampleState(x=state.x, y=min(GRID_SIZE - 1, state.y + 1), rocks=state.rocks)
+        elif rand < 0.9:  # 10% chance of moving east
+            return RockSampleState(x=min(GRID_SIZE - 1, state.x + 1), y=state.y, rocks=state.rocks)
+        elif rand < 0.95:  # 5% chance of moving west
+            return RockSampleState(x=max(0, state.x - 1), y=state.y, rocks=state.rocks)
+        else:  # 5% chance of staying in place
+            return state
+
+    def move_east(state):
+        rand = random.random()
+        if rand < 0.8:  # 80% chance of moving east
+            return RockSampleState(x=min(GRID_SIZE - 1, state.x + 1), y=state.y, rocks=state.rocks)
+        elif rand < 0.9:  # 10% chance of moving north
+            return RockSampleState(x=state.x, y=max(0, state.y - 1), rocks=state.rocks)
+        elif rand < 0.95:  # 5% chance of moving south
+            return RockSampleState(x=state.x, y=min(GRID_SIZE - 1, state.y + 1), rocks=state.rocks)
+        else:  # 5% chance of staying in place
+            return state
+
+    def move_west(state):
+        rand = random.random()
+        if rand < 0.8:  # 80% chance of moving west
+            return RockSampleState(x=max(0, state.x - 1), y=state.y, rocks=state.rocks)
+        elif rand < 0.9:  # 10% chance of moving north
+            return RockSampleState(x=state.x, y=max(0, state.y - 1), rocks=state.rocks)
+        elif rand < 0.95:  # 5% chance of moving south
+            return RockSampleState(x=state.x, y=min(GRID_SIZE - 1, state.y + 1), rocks=state.rocks)
+        else:  # 5% chance of staying in place
+            return state
+
+    def sample_rock(state):
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            new_rocks = list(state.rocks)
+            new_rocks[rock_idx] = True  # Sample the rock (assume it always turns good)
+            return RockSampleState(x=state.x, y=state.y, rocks=tuple(new_rocks))
+        else:
+            return state
+
+    def exit(state):
+        return state  # No change when exiting
+
+    def check_rock(state, rock_idx):
+        if state.at_rock() == rock_idx:
+            return RockSampleState(x=state.x, y=state.y, rocks=state.rocks)
+        else:
+            return state
+
+    if action == RockSampleActions.MOVE_NORTH:
+        return move_north(state)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        return move_south(state)
+    elif action == RockSampleActions.MOVE_EAST:
+        return move_east(state)
+    elif action == RockSampleActions.MOVE_WEST:
+        return move_west(state)
+    elif action == RockSampleActions.SAMPLE:
+        return sample_rock(state)
+    elif action == RockSampleActions.EXIT:
+        return exit(state)
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        return check_rock(state, rock_idx)
+    else:
+        raise ValueError(f"Unknown action: {action}")
+```
+
+### Explanation of the Distribution
+
+1. **Move North**:
+   - 80% chance of moving north.
+   - 10% chance of moving east.
+   - 5% chance of moving west.
+   - 5% chance of staying in place.
+
+2. **Move South**:
+   - 80% chance of moving south.
+   - 10% chance of moving east.
+   - 5% chance of moving west.
+   - 5% chance of staying in place.
+
+3. **Move East**:
+   - 80% chance of moving east.
+   - 10% chance of moving north.
+   - 5% chance of moving south.
+   - 5% chance of staying in place.
+
+4. **Move West**:
+   - 80% chance of moving west.
+   - 10% chance of moving north.
+   - 5% chance of moving south.
+   - 5% chance of staying in place.
+
+This distribution better captures the probabilistic nature of the movements, allowing for a more realistic simulation of the environment.

@@ -1,0 +1,102 @@
+```python
+import numpy as np
+from dataclasses import dataclass
+
+@dataclass
+class MinigridObservation:
+    image: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int] = None
+
+
+@dataclass
+class MinigridState:
+    grid: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int]
+
+    @property
+    def front_pos(self) -> Tuple[int, int]:
+        return (
+            np.array(self.agent_pos) + np.array(DIR_TO_VEC[self.agent_dir])
+        ).tolist()
+
+    @property
+    def width(self) -> int:
+        return self.grid.shape[0]
+
+    @property
+    def height(self) -> int:
+        return self.grid.shape[1]
+
+    def get_type_indices(self, type: int) -> List[Tuple[int, int]]:
+        idxs = np.where(self.grid == type)  # Returns (row_indices, col_indices)
+        return list(zip(idxs[0], idxs[1]))  # Combine row and column indices
+
+    def get_field_of_view(self, view_size: int) -> NDArray[np.int8]:
+        topX, topY = 0, 0
+        if self.agent_dir == 0:
+            topX = self.agent_pos[0]
+            topY = self.agent_pos[1] - view_size // 2
+        elif self.agent_dir == 1:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1]
+        elif self.agent_dir == 2:
+            topX = self.agent_pos[0] - view_size + 1
+            topY = self.agent_pos[1] - view_size // 2
+        elif self.agent_dir == 3:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1] - view_size + 1
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=self.grid.dtype)
+
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, self.grid.shape[0])
+        gy1 = min(topY + view_size, self.grid.shape[1])
+
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = self.grid[gx0:gx1, gy0:gy1]
+
+        for _ in range(self.agent_dir + 1):
+            fov = np.rot90(fov.T, k=1).T
+
+        return fov
+
+
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    view_size = 3
+    agent_pos = state.agent_pos
+    agent_dir = state.agent_dir
+    carrying = state.carrying
+
+    # Get the field of view based on the agent's current position and direction
+    image = state.get_field_of_view(view_size)
+
+    # Update the agent's position and direction if the action is "forward"
+    if action == Actions.forward:
+        front_pos = state.front_pos
+        if state.grid[front_pos] in [ObjectTypes.empty, ObjectTypes.goal]:
+            state.agent_pos = front_pos
+
+    # If the action is "pickup", check if the agent can pick up an object
+    if action == Actions.pickup:
+        front_pos = state.front_pos
+        if state.grid[front_pos] in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+            carrying = state.grid[front_pos]
+            state.grid[front_pos] = ObjectTypes.empty
+
+    # Create the observation with the updated information
+    obs = MinigridObservation(
+        image=image,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return obs
+```

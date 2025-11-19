@@ -1,0 +1,58 @@
+Certainly! Let's break down the problem and then improve the `transition_func` function accordingly.
+
+### Explanation of the Distribution
+
+1. **Agent Movement**:
+   - When the agent takes the `forward` action (action 2), it should move one cell in the direction it is facing, provided the cell is not blocked by a wall or other obstacles.
+   - If the cell in front of the agent is empty (`ObjectTypes.empty`), the agent should move into that cell.
+   - If the cell in front of the agent contains a goal (`ObjectTypes.goal`), the agent should also move into that cell.
+   - If the cell in front of the agent contains a wall (`ObjectTypes.wall`), the agent should remain in its current position.
+
+2. **Agent Turning**:
+   - When the agent takes the `left` action (action 0), it should turn 90 degrees to the left.
+   - When the agent takes the `right` action (action 1), it should turn 90 degrees to the right.
+
+3. **Other Actions**:
+   - Actions such as `pickup`, `drop`, `toggle`, and `done` are not relevant for this specific problem, so we will ignore them for now.
+
+### Improved `transition_func` Function
+
+Here is the improved `transition_func` function that better models the true distribution:
+
+```python
+def transition_func(state: MinigridState, action: int) -> MinigridState:
+    new_state = MinigridState(
+        grid=state.grid.copy(),
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    if action == Actions.left:
+        new_state.agent_dir = (new_state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        new_state.agent_dir = (new_state.agent_dir + 1) % 4
+    elif action == Actions.forward:
+        front_pos = new_state.front_pos
+        if (0 <= front_pos[0] < new_state.width and 
+            0 <= front_pos[1] < new_state.height and 
+            (new_state.grid[front_pos] == ObjectTypes.empty or 
+             new_state.grid[front_pos] == ObjectTypes.goal)):
+            new_state.agent_pos = front_pos
+
+    return new_state
+```
+
+### Explanation of the Changes
+
+1. **Agent Movement**:
+   - The condition for moving forward now checks if the cell in front of the agent is either empty or a goal.
+   - This ensures that the agent can move into a goal cell, which was missing in the previous implementation.
+
+2. **Boundary Checks**:
+   - The boundary checks ensure that the agent does not move out of the grid boundaries.
+
+3. **Agent Turning**:
+   - The turning logic remains the same as it was correctly implemented in the previous version.
+
+This improved function should better model the true distribution of next states conditioned on actions and previous states.

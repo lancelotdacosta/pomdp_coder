@@ -1,0 +1,68 @@
+Certainly! Let's refine the `reward_func` function to better match the observed distribution from the real world.
+
+### Explanation of the Reward Function
+
+1. **Exit Action**: The agent should receive a reward of 10.0 and the episode should end if the agent performs the exit action at the (4, 4) location. If the agent performs the exit action at any other location, it should receive a penalty of -1.0 and the episode should not end.
+
+2. **Sample Action**: If the agent performs the sample action at a rock location, it should receive a reward based on the quality of the rock:
+   - +10.0 if the rock is good.
+   - -10.0 if the rock is bad.
+   If the agent performs the sample action but is not at a rock location, it should receive a penalty of -1.0.
+
+3. **Movement Actions**: The agent should receive no reward for performing movement actions (north, south, east, west).
+
+4. **Check Actions**: The agent should receive no reward for performing check actions, regardless of its position.
+
+5. **Other Actions**: Any other actions should result in a penalty of -1.0.
+
+### Improved `reward_func` Function
+
+Here's the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the action is the exit action
+    if action == RockSampleActions.EXIT:
+        if state.x == 4 and state.y == 4:
+            return 10.0, True
+        else:
+            return -1.0, False
+
+    # Check if the action is a sample action
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if next_state.rocks[rock_idx]:  # If the rock is good
+                return 10.0, False
+            else:  # If the rock is bad
+                return -10.0, False
+        else:
+            return -1.0, False
+
+    # Check if the action is a movement action
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+
+    # Check if the action is a check action
+    if action in CHECK_ACTIONS:
+        return 0.0, False
+
+    # Default case: unexpected action or state transition
+    return -1.0, False
+```
+
+This function should now more accurately reflect the observed distribution from the real world. The key changes are:
+
+1. Ensuring that the exit action only gives a reward of 10.0 and ends the episode if the agent is at (4, 4).
+2. Ensuring that the sample action gives appropriate rewards based on the rock's quality and whether the agent is at a rock location.
+3. Ensuring that movement and check actions give no reward.
+4. Handling any other actions with a penalty of -1.0.

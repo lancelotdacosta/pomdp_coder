@@ -1,0 +1,79 @@
+### Explanation of the Distribution of Next States
+
+In the RockSample environment, the `SAMPLE` action is intended to modify the state of the rock at the current position. The observed behavior indicates that sampling a rock can potentially change its state from good to bad or vice versa. This suggests that there is a probabilistic component to the `SAMPLE` action.
+
+The current implementation of the `transition_func` for the `SAMPLE` action does not reflect this probabilistic behavior. Instead, it simply returns the current state without any changes. To better model the true distribution, we need to introduce a probabilistic change to the rock's state when the `SAMPLE` action is taken.
+
+### Improved `transition_func`
+
+Here is the improved `transition_func` function that includes the probabilistic change of the rock's state:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    
+    def move_north(state):
+        return RockSampleState(x=state.x, y=min(GRID_SIZE - 1, state.y + 1), rocks=state.rocks)
+    
+    def move_south(state):
+        return RockSampleState(x=state.x, y=max(0, state.y - 1), rocks=state.rocks)
+    
+    def move_east(state):
+        return RockSampleState(x=min(GRID_SIZE - 1, state.x + 1), y=state.y, rocks=state.rocks)
+    
+    def move_west(state):
+        return RockSampleState(x=max(0, state.x - 1), y=state.y, rocks=state.rocks)
+    
+    def sample_rock(state):
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            new_rocks = list(state.rocks)
+            # Probabilistic change of the rock's state
+            if random.random() < 0.5:  # 50% chance to change the rock's state
+                new_rocks[rock_idx] = not new_rocks[rock_idx]
+            return RockSampleState(x=state.x, y=state.y, rocks=tuple(new_rocks))
+        return state
+    
+    def exit_action(state):
+        return state  # Exit action does not change the state
+    
+    def check_rock(state, rock_idx):
+        if rock_idx < NUM_ROCKS:
+            return RockSampleState(x=state.x, y=state.y, rocks=state.rocks)
+        return state
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        return move_north(state)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        return move_south(state)
+    elif action == RockSampleActions.MOVE_EAST:
+        return move_east(state)
+    elif action == RockSampleActions.MOVE_WEST:
+        return move_west(state)
+    elif action == RockSampleActions.SAMPLE:
+        return sample_rock(state)
+    elif action == RockSampleActions.EXIT:
+        return exit_action(state)
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        return check_rock(state, rock_idx)
+    else:
+        raise ValueError(f"Unknown action: {action}")
+```
+
+### Explanation of the Changes
+
+1. **Probabilistic Change in `sample_rock` Function**:
+   - When the `SAMPLE` action is taken and the agent is at a rock position, there is a 50% chance that the state of the rock will change.
+   - This is implemented using `random.random() < 0.5`, which returns `True` with a probability of 0.5.
+
+2. **No Changes to Other Functions**:
+   - The other functions (`move_north`, `move_south`, `move_east`, `move_west`, `exit_action`, `check_rock`) remain unchanged as they correctly handle their respective actions.
+
+This improvement should better model the observed behavior in the real world, where sampling a rock can result in a change in its state.

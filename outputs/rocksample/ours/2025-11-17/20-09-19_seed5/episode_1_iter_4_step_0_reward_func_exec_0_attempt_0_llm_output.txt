@@ -1,0 +1,61 @@
+Based on the provided samples and the discrepancies between the real world and the generated model, it seems that the reward function is not correctly handling the conditions for the `EXIT` action. Specifically, the reward and termination conditions for the `EXIT` action should only be positive and terminate the episode if the agent is at one of the specified exit positions.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the current state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+    
+    # Check if the action is to sample a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the agent is at a rock and samples it, get a reward based on the rock's quality
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Good rock
+            else:
+                reward = -10.0  # Bad rock
+    
+    # Check if the action is to check a rock
+    elif action in CHECK_ACTIONS:
+        reward = -1.0  # Penalty for checking a rock
+    
+    # Check if the action is to exit the environment
+    elif action == RockSampleActions.EXIT:
+        # Only provide a positive reward and terminate if the agent is at a specific position (exit position)
+        if (state.x, state.y) in [(0, 0), (4, 4)]:
+            reward = 10.0  # Large positive reward for exiting
+            done = True  # Episode ends when the agent exits
+        else:
+            # No reward and episode does not end if not at the exit position
+            reward = 0.0
+            done = False
+
+    return reward, done
+```
+
+### Explanation:
+1. **Sampling a Rock**:
+   - If the action is `SAMPLE` and the agent is at a rock, the reward is determined by the quality of the rock (`10.0` for good, `-10.0` for bad).
+
+2. **Checking a Rock**:
+   - If the action is to check a rock (any action in `CHECK_ACTIONS`), a penalty of `-1.0` is applied.
+
+3. **Exiting the Environment**:
+   - If the action is `EXIT`, the reward and termination conditions are checked:
+     - If the agent is at one of the specified exit positions `(0, 0)` or `(4, 4)`, a positive reward of `10.0` is given and the episode ends (`done = True`).
+     - If the agent is not at one of these positions, no reward is given (`0.0`) and the episode does not end (`done = False`).
+
+This should correctly model the reward and termination conditions for the `EXIT` action based on the provided samples and the environment description.

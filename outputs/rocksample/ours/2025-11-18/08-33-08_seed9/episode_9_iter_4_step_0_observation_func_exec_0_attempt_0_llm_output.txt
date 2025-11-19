@@ -1,0 +1,69 @@
+Certainly! Let's break down the issue and improve the `observation_func` to better model the true distribution of observations.
+
+### Explanation of the Distribution of Observations Conditioned on a State
+
+1. **Movement Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST):**
+   - These actions do not provide any additional information beyond the agent's position. The observation will only contain the agent's current coordinates `(x, y)`, and `rock_idx` and `is_good` will be `None`.
+
+2. **Sample Action:**
+   - This action does not provide any sensor readings. The observation will only contain the agent's current coordinates `(x, y)`, and `rock_idx` and `is_good` will be `None`.
+
+3. **Exit Action:**
+   - This action ends the episode and does not provide any additional information. The observation will only contain the agent's current coordinates `(x, y)`, and `rock_idx` and `is_good` will be `None`.
+
+4. **Check Actions (CHECK_ROCK_0, CHECK_ROCK_1):**
+   - These actions provide a noisy reading of the rock at the specified position.
+   - If the agent is within a small radius (e.g., 1 cell) of the rock's position, the sensor will provide a reading with a certain accuracy (e.g., 85%).
+   - If the agent is not near the rock, the sensor should still provide a reading, but it might be noisy or incorrect.
+
+### Improved Code
+
+The issue in the current implementation is that the `CHECK_ACTIONS` are only providing a reading if the agent is exactly at the rock's position. However, the real world samples suggest that the agent can receive a reading even when it is near the rock's position.
+
+Here is the improved `observation_func`:
+
+```python
+def observation_func(state: RockSampleState, action: int, empty_obs: RockSampleObservation) -> RockSampleObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0  # Convert action to rock index
+        rock_pos = ROCK_POSITIONS[rock_idx]
+        
+        # Check if the agent is within a small radius of the rock
+        if abs(state.x - rock_pos[0]) <= 1 and abs(state.y - rock_pos[1]) <= 1:
+            # If the agent is near the rock's position, provide a noisy reading
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.85:  # Assume 85% accuracy for the sensor
+                obs.is_good = is_good
+            else:
+                obs.is_good = not is_good
+            obs.rock_idx = rock_idx
+        else:
+            # If the agent is not near the rock, provide a noisy or incorrect reading
+            is_good = random.choice([True, False])
+            obs.is_good = is_good
+            obs.rock_idx = rock_idx
+
+    return obs
+```
+
+### Explanation of the Changes
+
+1. **Check Actions:**
+   - The condition `if abs(state.x - rock_pos[0]) <= 1 and abs(state.y - rock_pos[1]) <= 1` ensures that the agent can receive a reading if it is within a 1-cell radius of the rock's position.
+   - If the agent is near the rock, the sensor provides a reading with 85% accuracy.
+   - If the agent is not near the rock, the sensor still provides a noisy or incorrect reading by randomly choosing `True` or `False`.
+
+This should better model the true distribution of observations conditioned on the state.

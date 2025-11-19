@@ -1,0 +1,83 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the model's predictions. The main issue seems to be related to the boundary conditions for the grid. Specifically, the grid boundaries are not correctly handled, leading to incorrect state transitions.
+
+### Explanation of the True Distribution:
+
+1. **Move North (action 0)**:
+   - If the agent is at `y = 1`, it should stay at `y = 1` because the grid starts at `y = 1`.
+   - If the agent is at any other `y` value, it should move one step north.
+
+2. **Move South (action 1)**:
+   - If the agent is at `y = GRID_SIZE`, it should stay at `y = GRID_SIZE` because the grid ends at `y = GRID_SIZE`.
+   - If the agent is at any other `y` value, it should move one step south.
+
+3. **Move East (action 2)**:
+   - If the agent is at `x = GRID_SIZE`, it should stay at `x = GRID_SIZE` because the grid ends at `x = GRID_SIZE`.
+   - If the agent is at any other `x` value, it should move one step east.
+
+4. **Move West (action 3)**:
+   - If the agent is at `x = 1`, it should stay at `x = 1` because the grid starts at `x = 1`.
+   - If the agent is at any other `x` value, it should move one step west.
+
+5. **Sample (action 4)**:
+   - If the agent is at a rock position, the rock's type should change from good to bad.
+   - If the agent is not at a rock position, there should be no change in the state.
+
+6. **Exit (action 5)**:
+   - No change in the state.
+
+7. **Check Rock (actions 6 and 7)**:
+   - These actions do not change the state.
+
+### Improved Code:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(new_state.rocks[:rock_idx] + (False,) + new_state.rocks[rock_idx+1:])
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state for the exit action
+    elif action in CHECK_ACTIONS:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            # Check actions do not change the state
+            pass
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return new_state
+```
+
+### Explanation of Changes:
+
+1. **Move North (action 0)**:
+   - Changed `max(1, new_state.y - 1)` to ensure the agent does not move above `y = 1`.
+
+2. **Move South (action 1)**:
+   - Changed `min(GRID_SIZE, new_state.y + 1)` to ensure the agent does not move below `y = GRID_SIZE`.
+
+3. **Move East (action 2)**:
+   - Changed `min(GRID_SIZE, new_state.x + 1)` to ensure the agent does not move beyond `x = GRID_SIZE`.
+
+4. **Move West (action 3)**:
+   - Changed `max(1, new_state.x - 1)` to ensure the agent does not move beyond `x = 1`.
+
+These changes should better model the true distribution of next states conditioned on actions and previous states.

@@ -1,0 +1,47 @@
+Based on the discrepancies between the real-world samples and the generated model, it seems that the reward function is not correctly capturing the following aspects:
+
+1. **Check Rock Actions**: The `CHECK_ROCK_0` and `CHECK_ROCK_1` actions should incur a small negative reward regardless of whether the agent is at the rock's position or not.
+2. **Sample Action**: The `SAMPLE` action should only change the state if the agent is at a rock's position. If the rock is good, the reward should be 10, and if bad, the reward should be -10. However, the rock's status should not change.
+3. **Exit Action**: The `EXIT` action should end the episode with a reward of 0.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    rock_idx = state.at_rock()
+    
+    # The reward is 10 if the agent samples a good rock
+    if action == RockSampleActions.SAMPLE and rock_idx is not None and next_state.rocks[rock_idx]:
+        return 10.0, False
+    
+    # The reward is -10 if the agent samples a bad rock
+    if action == RockSampleActions.SAMPLE and rock_idx is not None and not next_state.rocks[rock_idx]:
+        return -10.0, False
+    
+    # The reward is -1 for check rock actions
+    if action in CHECK_ACTIONS:
+        return -1.0, False
+    
+    # The reward is 0 for all other actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+    
+    # The episode ends when the agent exits with a reward of 0
+    if action == RockSampleActions.EXIT:
+        return 0.0, True
+    
+    # Default case: no reward, episode not done
+    return 0.0, False
+```
+
+This function now correctly handles the `CHECK_ROCK_0` and `CHECK_ROCK_1` actions by always returning a small negative reward (-1) regardless of the agent's position. It also ensures that the `SAMPLE` action only changes the state and rewards based on the rock at the agent's current position. The `EXIT` action correctly ends the episode with a reward of 0.

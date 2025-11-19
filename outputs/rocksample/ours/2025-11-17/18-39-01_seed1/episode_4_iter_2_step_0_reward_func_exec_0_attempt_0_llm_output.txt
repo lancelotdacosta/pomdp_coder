@@ -1,0 +1,73 @@
+To better model the true distribution of rewards in the RockSample environment, we need to address the discrepancies observed in the provided samples. Here's an analysis of the issues and the corresponding improvements:
+
+### Analysis:
+1. **Check Rock Action**: The check rock action should provide a noisy reading of the rock's quality. In the current implementation, the reward for this action is always 0.0 and the episode is not done. However, in the real world, the reward can be -1.0 if the rock is bad.
+
+2. **Exit Action**: The exit action should only terminate the episode and provide a reward of 10.0 if all rocks are bad. The current implementation incorrectly provides a reward of 10.0 even when the agent exits from a position where not all rocks are bad.
+
+3. **Sample Action**: The sample action should provide a reward of 1.0 if the rock is good and -1.0 if the rock is bad. The rock's state should also change to bad after sampling. The current implementation correctly handles this but needs to be more robust to handle edge cases.
+
+### Improved `reward_func` Function:
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the action is an exit action
+    if action == RockSampleActions.EXIT:
+        # Check if all rocks are bad in the final state
+        if all(not rock for rock in next_state.rocks):
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the action is a sample action
+    if action == RockSampleActions.SAMPLE:
+        # Determine which rock is being sampled
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # If the rock is good, the agent gets a reward and the rock becomes bad
+            if state.rocks[rock_idx]:
+                next_rocks = list(next_state.rocks)
+                next_rocks[rock_idx] = False
+                if tuple(next_rocks) == next_state.rocks:
+                    return 1.0, False
+                else:
+                    return -1.0, False
+            else:
+                return -1.0, False
+        else:
+            return -10.0, False
+
+    # Check if the action is a check rock action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if rock_idx < len(state.rocks):
+            if state.rocks[rock_idx]:
+                return -1.0, False
+            else:
+                return 0.0, False
+        else:
+            return 0.0, False
+
+    # For all other actions, the reward is 0 and the episode is not done
+    return 0.0, False
+```
+
+### Explanation:
+1. **Exit Action**:
+   - The exit action now correctly checks if all rocks are bad in the next state before providing a reward of 10.0 and terminating the episode.
+
+2. **Sample Action**:
+   - The sample action now correctly handles the case where the rock is good or bad. It also ensures that the rock's state changes to bad after sampling.
+
+3. **Check Rock Action**:
+   - The check rock action now provides a reward of -1.0 if the rock is good and 0.0 if the rock is bad. This matches the observed behavior in the real world.
+
+This improved function should better model the true distribution of rewards in the RockSample environment.

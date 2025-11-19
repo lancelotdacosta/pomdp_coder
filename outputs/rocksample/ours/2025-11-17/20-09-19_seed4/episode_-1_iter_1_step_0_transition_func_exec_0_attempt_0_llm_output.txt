@@ -1,0 +1,53 @@
+The issue in the current implementation lies in the way the agent's movement is handled. The agent's position is being updated based on the action, but the boundary conditions are not being applied correctly. Specifically, the `max` and `min` functions are being used to ensure the agent stays within the grid, but they are not being applied consistently for all actions.
+
+To better model the true distribution of next states, we need to ensure that the agent's movement is constrained by the grid boundaries for all actions, and that the correct direction is applied.
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y = state.x, state.y
+    rocks = list(state.rocks)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        y = max(0, y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        y = min(GRID_SIZE - 1, y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        x = min(GRID_SIZE - 1, x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        x = max(0, x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks[rock_idx] = False  # Sample the rock, changing its state to bad
+    elif action == RockSampleActions.EXIT:
+        # Exit action does not change the state
+        pass
+    else:
+        # For CHECK_ROCK actions, no change in position but update rocks if applicable
+        if action in CHECK_ACTIONS:
+            rock_idx = action - RockSampleActions.CHECK_ROCK_0
+            if (x, y) == ROCK_POSITIONS[rock_idx]:
+                # Simulate a noisy sensor reading
+                is_good = random.choice([True, False])
+                rocks[rock_idx] = is_good  # Update the rock state based on the noisy reading
+
+    # Create new state with updated position and rock states
+    new_state = RockSampleState(x, y, tuple(rocks))
+    return new_state
+```
+
+### Explanation of Changes:
+1. **Boundary Conditions**: The `max` and `min` functions are applied to ensure the agent's position stays within the grid boundaries for all movement actions.
+2. **Action Handling**: The `CHECK_ROCK` actions are handled separately to simulate a noisy sensor reading and update the rock state accordingly.
+3. **Consistent Movement**: The movement logic is consistent across all actions, ensuring that the agent moves in the correct direction and respects the grid boundaries.
+
+This should better model the true distribution of next states conditioned on actions and previous states.

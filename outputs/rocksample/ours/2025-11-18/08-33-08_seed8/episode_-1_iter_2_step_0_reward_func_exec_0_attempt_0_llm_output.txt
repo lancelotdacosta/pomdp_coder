@@ -1,0 +1,81 @@
+Certainly! Let's analyze the issue and then improve the `reward_func` function.
+
+### Analysis
+
+From the provided samples, it appears that the discrepancy is primarily related to the reward for checking actions (`CHECK_ROCK_0` and `CHECK_ROCK_1`). The real-world samples indicate that these actions can result in a negative reward if the rock's state changes unexpectedly. This suggests that the environment has some mechanism to introduce noise or uncertainty when inspecting rocks.
+
+### Updated Reward Function
+
+To better model this behavior, we need to ensure that the reward for checking rocks accounts for potential changes in the rock's state due to noise or uncertainty. Additionally, we need to handle the exit action correctly.
+
+Here is the updated `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Reward for checking a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = CHECK_ACTIONS.index(action)
+        if state.at_rock() == rock_idx:
+            if state.rocks[rock_idx] != next_state.rocks[rock_idx]:
+                return -1.0, False
+            else:
+                return 0.0, False
+        else:
+            return -1.0, False
+
+    # Reward for sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and next_state.rocks[rock_idx]:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Reward for exit action
+    if action == RockSampleActions.EXIT:
+        if (state.x, state.y) in ROCK_POSITIONS:
+            return 10.0, True
+        else:
+            return 0.0, True
+
+    # No reward for movement actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+
+    # Default case (should not happen)
+    return 0.0, False
+```
+
+### Explanation
+
+1. **Checking Actions**: 
+   - We first check if the agent is at the rock being inspected (`state.at_rock() == rock_idx`).
+   - If the agent is at the rock and the rock's state changes unexpectedly (`state.rocks[rock_idx] != next_state.rocks[rock_idx]`), we return a reward of `-1.0`.
+   - If the agent is at the rock and the rock's state remains the same, we return a reward of `0.0`.
+   - If the agent is not at the rock, we also return a reward of `-1.0`.
+
+2. **Sampling Action**:
+   - If the agent samples a rock and the rock is good (`next_state.rocks[rock_idx]`), we return a reward of `10.0` and mark the episode as done.
+   - Otherwise, we return a reward of `0.0`.
+
+3. **Exit Action**:
+   - If the agent exits from a rock position (`(state.x, state.y) in ROCK_POSITIONS`), we return a reward of `10.0` and mark the episode as done.
+   - Otherwise, we return a reward of `0.0` and mark the episode as done.
+
+4. **Movement Actions**:
+   - Movement actions do not provide any immediate reward.
+
+5. **Default Case**:
+   - This should not happen but returns a reward of `0.0` and does not end the episode.
+
+This updated function should better model the true distribution of rewards based on the provided samples.

@@ -1,0 +1,51 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    
+    def apply_action(state, action):
+        """
+        Apply the given action to the state and return the new state.
+        """
+        if action == Actions.forward:
+            next_pos = np.array(state.agent_pos) + np.array(DIR_TO_VEC[state.agent_dir])
+            if (0 <= next_pos[0] < state.width and 0 <= next_pos[1] < state.height and 
+                state.grid[next_pos[0], next_pos[1]] != ObjectTypes.wall):
+                state.agent_pos = tuple(next_pos)
+        elif action == Actions.left:
+            state.agent_dir = (state.agent_dir - 1) % 4
+        elif action == Actions.right:
+            state.agent_dir = (state.agent_dir + 1) % 4
+        # Note: Actions pickup, drop, toggle, and done are not implemented in this function for simplicity.
+        return state
+
+    def get_field_of_view(state):
+        """
+        Get the field of view based on the agent's current position and direction.
+        """
+        view_size = 3
+        fov = state.get_field_of_view(view_size)
+        return fov
+
+    # Apply the action to the state
+    new_state = apply_action(state, action)
+
+    # Get the field of view after applying the action
+    fov = get_field_of_view(new_state)
+
+    # Create the observation
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=new_state.agent_pos,
+        agent_dir=new_state.agent_dir,
+        carrying=new_state.carrying
+    )
+
+    return obs
+```

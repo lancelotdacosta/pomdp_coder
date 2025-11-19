@@ -1,0 +1,72 @@
+Certainly! Let's first describe the distribution of observations conditioned on a state in English, and then we'll improve the code to better model this distribution.
+
+### Distribution of Observations Conditioned on a State
+
+1. **Non-Check Actions**:
+   - For actions that are not checking rocks (`CHECK_ROCK_0` or `CHECK_ROCK_1`), the observation should only contain the agent's position `(x, y)`, and both `rock_idx` and `is_good` should be `None`.
+
+2. **Check Rock Actions**:
+   - If the agent is at the position of the rock it is trying to check:
+     - The observation should include the agent's position `(x, y)`.
+     - The `rock_idx` should be the index of the rock being checked.
+     - The `is_good` should be a noisy reading of whether the rock is good (with a 10% chance of a false reading).
+   - If the agent is not at the position of the rock it is trying to check:
+     - The observation should still include the agent's position `(x, y)`.
+     - However, both `rock_idx` and `is_good` should be `None` because the agent cannot check the rock from a distance.
+
+### Improved Code
+
+Here is the improved `observation_func` function:
+
+```python
+def observation_func(state: RockSampleState, action: int, empty_obs: RockSampleObservation) -> RockSampleObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = copy.deepcopy(empty_obs)
+    obs.x = state.x
+    obs.y = state.y
+
+    # Determine if the action is a check rock action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        rock_pos = ROCK_POSITIONS[rock_idx]
+        
+        # Check if the agent is at the rock's position
+        if (state.x, state.y) == rock_pos:
+            # Generate a noisy reading of the rock's quality
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.1:  # 10% chance of a false reading
+                is_good = not is_good
+            obs.rock_idx = rock_idx
+            obs.is_good = is_good
+        else:
+            # If the agent is not at the rock's position, set rock_idx and is_good to None
+            obs.rock_idx = None
+            obs.is_good = None
+
+    return obs
+```
+
+### Explanation of Changes
+
+1. **Initialization**:
+   - The observation is initialized with the agent's current position `(x, y)`.
+   - `rock_idx` and `is_good` are set to `None` by default.
+
+2. **Check Rock Actions**:
+   - If the action is a check rock action (`CHECK_ROCK_0` or `CHECK_ROCK_1`):
+     - The rock index is determined based on the action.
+     - The rock's position is checked against the agent's current position.
+     - If the agent is at the rock's position, a noisy reading of the rock's quality is generated (with a 10% chance of a false reading).
+     - If the agent is not at the rock's position, both `rock_idx` and `is_good` remain `None`.
+
+This should better match the true distribution of observations in the environment.

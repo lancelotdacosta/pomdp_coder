@@ -1,0 +1,81 @@
+Based on the provided samples, it appears that the reward function needs to account for the following conditions:
+
+1. **Checking a Rock**: If the agent performs a `CHECK_ROCK` action, it should receive a reward of -1 if the rock's state does not match after the action, or if the agent is not at the correct rock. Otherwise, the reward is 0.
+
+2. **Sampling a Rock**: If the agent performs a `SAMPLE` action at a rock and the rock is good, it should receive a reward of 10. If the rock is bad or the agent is not at a rock, the reward is 0.
+
+3. **Exiting the Environment**: If the agent performs an `EXIT` action and is at one of the rock positions, it should receive a reward of 10. Otherwise, the reward is 0.
+
+4. **Movement Actions**: Movement actions do not provide any reward.
+
+5. **Invalid Actions**: Any other action or invalid state transitions should result in a reward of 0.
+
+Given these conditions, the `reward_func` can be updated to better model the true distribution. Here is the improved code:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Reward for checking a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = CHECK_ACTIONS.index(action)
+        if state.at_rock() == rock_idx:
+            if state.rocks[rock_idx] != next_state.rocks[rock_idx]:
+                return -1.0, False
+            else:
+                return 0.0, False
+        else:
+            return -1.0, False
+
+    # Reward for sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and next_state.rocks[rock_idx]:
+            return 10.0, True
+        else:
+            return -10.0, False
+
+    # Reward for exit action
+    if action == RockSampleActions.EXIT:
+        if (state.x, state.y) in ROCK_POSITIONS:
+            return 10.0, True
+        else:
+            return 0.0, True
+
+    # No reward for movement actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+
+    # Default case (should not happen)
+    return 0.0, False
+```
+
+### Explanation of Changes:
+
+1. **Checking a Rock**:
+   - If the agent is at the correct rock and the rock's state does not change, the reward is 0.
+   - If the agent is not at the correct rock or the rock's state changes incorrectly, the reward is -1.
+
+2. **Sampling a Rock**:
+   - If the agent samples a good rock, the reward is 10.
+   - If the agent samples a bad rock or is not at a rock, the reward is -10.
+
+3. **Exiting the Environment**:
+   - If the agent exits from a rock position, the reward is 10.
+   - If the agent exits from any other position, the reward is 0.
+
+4. **Movement Actions**:
+   - Movement actions do not provide any reward.
+
+5. **Invalid Actions**:
+   - Any other action or invalid state transitions result in a reward of 0.
+
+This updated function should better align with the observed distribution and handle the edge cases more accurately.

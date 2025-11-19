@@ -1,0 +1,61 @@
+Based on the provided samples, it appears that the reward is conditioned on the state, action, and next state in the following ways:
+
+1. **Exiting the Grid:**
+   - If the agent takes the `EXIT` action, it receives a reward of 10.0 and the episode ends.
+
+2. **Sampling a Rock:**
+   - If the agent takes the `SAMPLE` action at a rock's position:
+     - If the rock is good, the agent receives a reward of 10.0.
+     - If the rock is bad, the agent receives a reward of -10.0.
+   - If the agent takes the `SAMPLE` action but is not at a rock's position, it receives a reward of -10.0.
+
+3. **Moving or Checking a Rock:**
+   - If the agent takes a movement action (NORTH, SOUTH, EAST, WEST) or a check rock action (CHECK_ROCK_0, CHECK_ROCK_1), it receives a reward of 0.0.
+   - However, if the agent takes a check rock action at a rock's position, it receives a penalty of -1.0.
+
+4. **Other Actions:**
+   - For any other actions, the agent receives a reward of 0.0.
+
+Given these observations, the `reward_func` function can be improved to better model the true distribution:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        return 10.0, True
+
+    # Check if the agent is sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is None:
+            return -10.0, False  # Sampling where there is no rock
+        else:
+            if state.rocks[rock_idx]:
+                return 10.0, False  # Good rock sampled
+            else:
+                return -10.0, False  # Bad rock sampled
+
+    # Check if the agent is moving or checking a rock
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+
+    # Check if the agent is checking a rock and is at the rock's position
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            return -1.0, False  # Penalty for checking a rock at its position
+
+    # Default case: no reward and not done
+    return 0.0, False
+```
+
+This function should now correctly handle the cases where the agent takes a check rock action at a rock's position, as well as the other actions based on the provided samples.

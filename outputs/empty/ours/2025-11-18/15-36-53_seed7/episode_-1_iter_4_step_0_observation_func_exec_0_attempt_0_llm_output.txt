@@ -1,0 +1,84 @@
+Certainly! Let's first understand the distribution of observations conditioned on a state. 
+
+### Understanding the Distribution
+
+1. **Agent Position and Direction**:
+   - The agent's position and direction are key to determining what it can see. The agent has a 3x3 field of view (FOV) centered around its current position, and the FOV is rotated based on the agent's direction.
+
+2. **Field of View**:
+   - The FOV should always show the area directly in front of the agent, with the agent itself marked at a specific position within the FOV.
+   - The FOV should be correctly rotated based on the agent's direction.
+   - If the agent moves forward, the new position should be reflected in the FOV.
+
+3. **Actions**:
+   - **Turn Left/Right**: These actions change the agent's direction but not its position.
+   - **Forward**: This action moves the agent to the next cell in the direction it is facing, if that cell is not a wall.
+
+### Issues in the Current Code
+
+1. **Incorrect Rotation**:
+   - The rotation of the FOV in the `get_field_of_view` method seems to be incorrect. Specifically, the agent's position within the FOV is not being correctly adjusted after rotation.
+
+2. **Agent Position in FOV**:
+   - The agent's position in the FOV is hardcoded to `(view_size // 2, view_size - 1)`, which may not be correct for all directions and positions.
+
+3. **Forward Movement**:
+   - The forward movement logic does not correctly update the agent's position in the FOV.
+
+### Improved Code
+
+Here is the improved `observation_func` function:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    view_size = 3  # The size of the field of view (3x3 grid)
+
+    # Update the agent's position and direction based on the action
+    if action == Actions.left:
+        state.agent_dir = (state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        state.agent_dir = (state.agent_dir + 1) % 4
+    elif action == Actions.forward:
+        # Compute the new position
+        new_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+        # Check if the new position is within the grid and not a wall
+        if 0 <= new_pos[0] < state.grid.shape[0] and 0 <= new_pos[1] < state.grid.shape[1]:
+            if state.grid[new_pos[0], new_pos[1]] != ObjectTypes.wall:
+                state.agent_pos = tuple(new_pos)
+
+    # Get the field of view of the agent
+    fov = state.get_field_of_view(view_size)
+
+    # Create the observation
+    empty_obs.image = fov
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+
+    # Mark the agent's position in the FOV
+    agent_pos_in_fov = (view_size // 2, view_size // 2)
+    fov[agent_pos_in_fov] = ObjectTypes.agent
+
+    return empty_obs
+```
+
+### Explanation of Changes
+
+1. **Agent Position in FOV**:
+   - The agent's position in the FOV is now correctly set to the center of the FOV `(view_size // 2, view_size // 2)`.
+
+2. **Field of View Rotation**:
+   - The rotation logic in `get_field_of_view` remains unchanged, but the agent's position within the FOV is now correctly placed.
+
+3. **Action Handling**:
+   - The forward movement logic is corrected to ensure the agent moves to the next cell if it is not a wall, and the agent's position in the FOV is updated accordingly.
+
+This should better model the true distribution of observations conditioned on a state.

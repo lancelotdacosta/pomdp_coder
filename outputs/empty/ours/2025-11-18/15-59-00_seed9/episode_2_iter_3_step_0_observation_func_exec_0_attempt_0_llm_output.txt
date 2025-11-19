@@ -1,0 +1,68 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    
+    def apply_action(state, action):
+        """Apply the given action to the state and return the new state."""
+        new_state = MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=state.agent_dir,
+            carrying=state.carrying
+        )
+        
+        if action == Actions.left:
+            new_state.agent_dir = (new_state.agent_dir - 1) % 4
+        elif action == Actions.right:
+            new_state.agent_dir = (new_state.agent_dir + 1) % 4
+        elif action == Actions.forward:
+            new_pos = np.array(new_state.agent_pos) + DIR_TO_VEC[new_state.agent_dir]
+            if 0 <= new_pos[0] < new_state.width and 0 <= new_pos[1] < new_state.height:
+                if new_state.grid[tuple(new_pos)] != ObjectTypes.wall:
+                    new_state.agent_pos = tuple(new_pos)
+        # Placeholder for other actions like pickup, drop, toggle, etc.
+        return new_state
+
+    def get_field_of_view(state, view_size=3):
+        """Returns the field of view in front of the agent."""
+        fov = state.get_field_of_view(view_size=view_size)
+        return fov
+
+    # Apply the action to the state
+    new_state = apply_action(state, action)
+
+    # Get the field of view after applying the action
+    fov = get_field_of_view(new_state)
+
+    # Create the observation
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=new_state.agent_pos,
+        agent_dir=new_state.agent_dir,
+        carrying=new_state.carrying
+    )
+
+    return obs
+```
+
+### Explanation of the Distribution of Observations Conditioned on a State
+
+The distribution of observations conditioned on a state is determined by the agent's position, direction, and the action taken. Here's how it works:
+
+1. **Agent Position and Direction**: The agent's position and direction determine the part of the grid that is visible to the agent. The field of view (FoV) is a 3x3 grid centered in front of the agent, and its orientation depends on the agent's direction.
+
+2. **Action Effects**:
+   - **Turning Actions** (`left` and `right`): These actions change the agent's direction but do not move the agent. The FoV will rotate accordingly.
+   - **Forward Action** (`forward`): This action moves the agent one step forward in the direction it is facing, provided there is no wall. The FoV will shift to reflect the new position.
+   - **Other Actions**: Actions like `pickup`, `drop`, and `toggle` affect the grid or the agent's inventory but do not change the agent's position or direction. For simplicity, these actions are not implemented in the `apply_action` function.
+
+3. **Field of View (FoV)**: The FoV is a 3x3 grid that represents the area in front of the agent. It is rotated and shifted based on the agent's direction and position. The FoV is updated to reflect any changes in the agent's position or the environment.
+
+By applying these rules, the `observation_func` function generates an observation that accurately reflects the state of the environment after the given action is taken.

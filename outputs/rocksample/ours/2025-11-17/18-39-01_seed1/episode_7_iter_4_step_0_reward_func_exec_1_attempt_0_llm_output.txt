@@ -1,0 +1,57 @@
+The error you're encountering is due to the `done` variable not being defined in some branches of the `reward_func` function. Specifically, when the action is neither sampling a rock, checking a rock, nor exiting the environment, the `done` variable is not set.
+
+To fix this, we need to ensure that the `done` variable is always defined before the function returns. Here's the corrected version of the `reward_func`:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Initialize done to False by default
+    done = False
+
+    # Reward for sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Sampling a good rock gives a positive reward
+            else:
+                reward = -10.0  # Sampling a bad rock gives a negative reward
+        else:
+            reward = -10.0  # Sampling without being at a rock gives a negative reward
+    # Reward for checking a rock
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        correct_rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if rock_idx == correct_rock_idx:
+            reward = 0.0  # Checking the correct rock gives no reward
+        else:
+            reward = -1.0  # Checking without being at the rock or the wrong rock gives a small negative reward
+    # Reward for exiting the environment
+    elif action == RockSampleActions.EXIT:
+        if (state.x, state.y) == (0, 0):
+            reward = 10.0  # Exiting from the exit location gives a positive reward
+            done = True
+        else:
+            reward = 0.0  # Exiting from any other location gives no reward
+    else:
+        reward = 0.0  # No reward for other actions
+
+    return reward, done
+```
+
+### Explanation of Changes:
+1. **Initialization of `done`**:
+   - The `done` variable is initialized to `False` at the beginning of the function. This ensures that it always has a value before the function returns.
+
+2. **No Further Changes**:
+   - The rest of the function remains the same, as the logic for each action and its corresponding reward and `done` status is already correctly implemented.
+
+This should resolve the `UnboundLocalError` and ensure that the function always returns a valid `(reward, done)` tuple.

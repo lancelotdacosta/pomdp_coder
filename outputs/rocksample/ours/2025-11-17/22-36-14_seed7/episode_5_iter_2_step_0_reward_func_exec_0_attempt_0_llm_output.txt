@@ -1,0 +1,50 @@
+The reward function should provide a reward of 10.0 and set `done` to `True` only when the agent takes the `EXIT` action and is at the exit point (0, 0). For all other positions, the `EXIT` action should result in no reward and `done` being `False`. The samples provided suggest that the exit point might be more flexible, allowing the agent to exit from multiple positions such as (4, 2), (4, 1), (4, 3), and (4, 4).
+
+To improve the code, we need to allow the agent to exit from these additional positions. We can define a list of valid exit points and check if the agent's position matches any of these points when the `EXIT` action is taken.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+
+    # Check if the agent has taken the exit action
+    if action == RockSampleActions.EXIT:
+        # Define the valid exit points
+        VALID_EXIT_POINTS = [(0, 0), (4, 2), (4, 1), (4, 3), (4, 4)]
+        if (state.x, state.y) in VALID_EXIT_POINTS:
+            done = True
+            reward = 10.0  # Reward for successfully exiting
+        else:
+            reward = 0.0  # No reward for exiting from the wrong location
+
+    # Check if the agent has sampled a rock
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                reward = 10.0  # Reward for sampling a good rock
+            else:
+                reward = -10.0  # Penalty for sampling a bad rock
+
+    # Check if the agent has taken a check action
+    elif action in CHECK_ACTIONS:
+        # Check actions might have a small penalty
+        reward = -1.0
+
+    # No specific reward for movement actions
+    return reward, done
+```
+
+This function now correctly handles the exit points as specified by the samples provided. The agent can exit from any of the defined valid exit points and receive the appropriate reward and termination signal.

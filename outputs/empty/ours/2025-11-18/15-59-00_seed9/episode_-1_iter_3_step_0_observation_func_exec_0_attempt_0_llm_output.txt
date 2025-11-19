@@ -1,0 +1,77 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    
+    def get_view_size():
+        """Determine the size of the field of view."""
+        if SEE_THROUGH_WALLS:
+            return 3
+        else:
+            return 7
+
+    def update_agent_position(state, action):
+        """Update the agent's position based on the action taken."""
+        new_pos = list(state.agent_pos)
+        new_dir = state.agent_dir
+
+        if action == Actions.forward:
+            new_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+            new_pos = tuple(new_pos.tolist())
+        elif action == Actions.left:
+            new_dir = (state.agent_dir - 1) % 4
+        elif action == Actions.right:
+            new_dir = (state.agent_dir + 1) % 4
+
+        # Ensure the agent does not move outside the grid
+        new_pos = (
+            max(0, min(new_pos[0], state.width - 1)),
+            max(0, min(new_pos[1], state.height - 1))
+        )
+        
+        return new_pos, new_dir
+
+    def get_field_of_view(state, view_size):
+        """Get the field of view in front of the agent."""
+        fov = state.get_field_of_view(view_size)
+        return fov
+
+    # Determine the size of the field of view
+    view_size = get_view_size()
+
+    # Update the agent's position and direction based on the action
+    new_pos, new_dir = update_agent_position(state, action)
+
+    # Get the field of view
+    image = get_field_of_view(state, view_size)
+
+    # Create the observation
+    obs = MinigridObservation(
+        image=image,
+        agent_pos=new_pos,
+        agent_dir=new_dir,
+        carrying=state.carrying
+    )
+
+    return obs
+```
+
+### Explanation
+
+The distribution of observations conditioned on a state in MiniGrid is determined by the agent's position, direction, and the action taken. The key points are:
+
+1. **Agent Position and Direction**: The agent's current position and direction are critical for determining what the agent can see. The field of view (FoV) is centered around the agent and oriented based on the agent's direction.
+
+2. **Action Taken**: The action taken (e.g., turn left, turn right, move forward) affects the new position and direction of the agent. This, in turn, changes the field of view.
+
+3. **Field of View**: The FoV is a 3x3 grid (or larger if `SEE_THROUGH_WALLS` is set to True). The FoV is rotated based on the agent's direction to match the orientation of the agent.
+
+4. **Grid Representation**: The grid is represented as an array where different values correspond to different object types (e.g., walls, empty cells, keys).
+
+The `observation_func` function updates the agent's position and direction based on the action, computes the field of view, and returns the updated observation. This ensures that the observation accurately reflects the state of the environment from the agent's perspective.

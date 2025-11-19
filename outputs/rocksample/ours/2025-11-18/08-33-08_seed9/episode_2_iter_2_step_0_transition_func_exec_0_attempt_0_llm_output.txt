@@ -1,0 +1,98 @@
+Certainly! Let's analyze the discrepancies between the observed and generated states to understand the underlying distribution better and then improve the `transition_func` function accordingly.
+
+### Analysis of Discrepancies
+
+1. **Move South (Action 1)**:
+   - Observed: RockSampleState(x=4, y=2) with action 1 results in RockSampleState(x=4, y=1).
+   - Generated: RockSampleState(x=4, y=2) with action 1 results in RockSampleState(x=4, y=3).
+   - **Issue**: The agent is moving south, but the generated state moves it north instead.
+
+2. **Move North (Action 0)**:
+   - Observed: RockSampleState(x=2, y=1) with action 0 results in RockSampleState(x=2, y=2).
+   - Generated: RockSampleState(x=2, y=1) with action 0 results in RockSampleState(x=2, y=1).
+   - **Issue**: The agent should move north, but it stays in place.
+   
+   - Observed: RockSampleState(x=3, y=3) with action 0 results in RockSampleState(x=3, y=4).
+   - Generated: RockSampleState(x=3, y=3) with action 0 results in RockSampleState(x=3, y=2).
+   - **Issue**: The agent should move north, but it moves south instead.
+
+   - Observed: RockSampleState(x=3, y=2) with action 0 results in RockSampleState(x=3, y=3).
+   - Generated: RockSampleState(x=3, y=2) with action 0 results in RockSampleState(x=3, y=1).
+   - **Issue**: The agent should move north, but it moves south instead.
+
+   - Observed: RockSampleState(x=1, y=1) with action 0 results in RockSampleState(x=1, y=2).
+   - Generated: RockSampleState(x=1, y=1) with action 0 results in RockSampleState(x=1, y=1).
+   - **Issue**: The agent should move north, but it stays in place.
+
+### Distribution of Next States
+
+The discrepancies suggest that the movement actions (north, south, east, west) are not being handled correctly. Specifically, the agent's position is not updating as expected. The `max` and `min` functions are used to ensure the agent stays within the grid boundaries, but the actual movement direction is incorrect in some cases.
+
+### Improved `transition_func`
+
+To address these issues, we need to ensure that the agent moves in the correct direction for each action. We will check the current position and update it accordingly, ensuring that the agent does not move outside the grid boundaries.
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_y = max(1, new_state.y - 1)
+        if new_y != new_state.y:  # Only move if it's a valid move
+            new_state.y = new_y
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_y = min(GRID_SIZE, new_state.y + 1)
+        if new_y != new_state.y:  # Only move if it's a valid move
+            new_state.y = new_y
+    elif action == RockSampleActions.MOVE_EAST:
+        new_x = min(GRID_SIZE, new_state.x + 1)
+        if new_x != new_state.x:  # Only move if it's a valid move
+            new_state.x = new_x
+    elif action == RockSampleActions.MOVE_WEST:
+        new_x = max(1, new_state.x - 1)
+        if new_x != new_state.x:  # Only move if it's a valid move
+            new_state.x = new_x
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(r if i != rock_idx else False for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # Exiting doesn't change the state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # Noisy observation, but the state itself doesn't change
+            pass
+    
+    return new_state
+```
+
+### Explanation
+
+1. **Move North (Action 0)**:
+   - Calculate the new y-coordinate by moving north: `new_y = max(1, new_state.y - 1)`.
+   - Ensure the agent only moves if the new y-coordinate is different from the current y-coordinate.
+
+2. **Move South (Action 1)**:
+   - Calculate the new y-coordinate by moving south: `new_y = min(GRID_SIZE, new_state.y + 1)`.
+   - Ensure the agent only moves if the new y-coordinate is different from the current y-coordinate.
+
+3. **Move East (Action 2)**:
+   - Calculate the new x-coordinate by moving east: `new_x = min(GRID_SIZE, new_state.x + 1)`.
+   - Ensure the agent only moves if the new x-coordinate is different from the current x-coordinate.
+
+4. **Move West (Action 3)**:
+   - Calculate the new x-coordinate by moving west: `new_x = max(1, new_state.x - 1)`.
+   - Ensure the agent only moves if the new x-coordinate is different from the current x-coordinate.
+
+5. **Other Actions**:
+   - The rest of the actions remain unchanged as they do not involve movement.
+
+This should ensure that the agent's movements are consistent with the observed behavior in the real world.

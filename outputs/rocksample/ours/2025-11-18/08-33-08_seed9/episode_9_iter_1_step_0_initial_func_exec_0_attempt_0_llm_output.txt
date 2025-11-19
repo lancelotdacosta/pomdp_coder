@@ -1,0 +1,43 @@
+### Explanation of the Distribution of Initial States
+
+Based on the provided samples, it appears that the initial states are more diverse than what was previously implemented. The agent can start at any position within the grid, and the rocks can be in any combination of good (G) or bad (B) states. The previous implementation limited the agent's starting positions to a small subset and only considered a few combinations of rock states.
+
+### Improved `initial_func` Function
+
+The improved function will generate the initial state by:
+1. Randomly selecting the agent's starting position from all valid positions in the grid.
+2. Randomly selecting the rock states for each rock, allowing for all possible combinations of good and bad rocks.
+
+Here is the updated `initial_func` function:
+
+```python
+def initial_func(empty_state: RockSampleState):
+    """
+    Input:
+        empty_state (RockSampleState): An empty state with only the walls filled into the grid
+    Returns:
+        state (RockSampleState): the initial state of the environment
+    """
+    # Define the possible positions for the agent within the grid
+    possible_positions = [(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)]
+
+    # Randomly select a position for the agent
+    x, y = random.choice(possible_positions)
+
+    # Define the possible rock states
+    rock_states = [
+        (True, False),
+        (False, True),
+        (False, False),
+        (True, True)
+    ]
+
+    # Randomly select a rock state
+    rocks = random.choice(rock_states)
+
+    # Create and return the initial state
+    initial_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return initial_state
+```
+
+This function ensures that the agent can start at any position within the grid and that the rock states are randomly selected from all possible combinations, which better matches the observed distribution of initial states.

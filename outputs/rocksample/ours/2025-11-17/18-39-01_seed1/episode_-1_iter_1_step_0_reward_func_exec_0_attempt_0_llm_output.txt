@@ -1,0 +1,55 @@
+Based on the provided examples and the observed discrepancies between the real world and the generated model, it appears that the reward function is not correctly handling the `EXIT` action and the `SAMPLE` action. Specifically:
+
+1. **Exit Action (Action 5)**: The `EXIT` action should provide a large positive reward (`10.0`) and terminate the episode (`done = True`) if the agent is at one of the exit positions (in this case, positions (4, 1), (4, 3), (4, 4), and (1, 4)).
+2. **Sample Action (Action 4)**: The `SAMPLE` action should provide a negative reward (`-10.0`) if the agent is not at a rock position.
+
+Let's update the `reward_func` to reflect these observations:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and state.rocks[rock_idx] != next_state.rocks[rock_idx]:
+            reward = 10.0
+        else:
+            reward = -10.0
+
+    elif action in CHECK_ACTIONS:
+        if state.x == next_state.x and state.y == next_state.y:
+            reward = -1.0
+        else:
+            reward = 0.0
+
+    elif action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        if state.x != next_state.x or state.y != next_state.y:
+            reward = 0.0
+        else:
+            reward = -1.0
+
+    elif action == RockSampleActions.EXIT:
+        exit_positions = [(4, 1), (4, 3), (4, 4), (1, 4)]
+        if (state.x, state.y) in exit_positions:
+            reward = 10.0
+            done = True
+
+    return reward, done
+```
+
+### Explanation:
+- **Exit Action**: The `EXIT` action now checks if the agent is at one of the predefined exit positions. If so, it provides a reward of `10.0` and sets `done` to `True`.
+- **Sample Action**: The `SAMPLE` action now provides a negative reward of `-10.0` if the agent is not at a rock position.
+- **Other Actions**: The rewards for other actions remain as they were, ensuring no movement or check actions provide appropriate penalties based on the state transition.
+
+This updated function should better align with the observed distribution in the real world.

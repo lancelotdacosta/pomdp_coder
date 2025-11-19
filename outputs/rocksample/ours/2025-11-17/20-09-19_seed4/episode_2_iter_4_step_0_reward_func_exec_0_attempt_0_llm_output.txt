@@ -1,0 +1,104 @@
+Certainly! Let's break down the reward conditioned on state, action, next state transition based on the provided examples and the environment description.
+
+### Explanation of Reward Conditions
+
+1. **Exit Action (EXIT)**
+   - **Condition**: The agent exits the grid.
+   - **Reward**: The reward depends on the number of good rocks sampled.
+   - **Done**: The episode is marked as done if the exit is successful.
+   - **Cases**:
+     - If the agent is at one of the exit positions `(0, 0)` or `(GRID_SIZE - 1, GRID_SIZE - 1)`, the episode ends.
+     - The reward is calculated as `10 * (num_good_rocks_sampled) - 10 * (NUM_ROCKS - num_good_rocks_sampled)`.
+
+2. **Sample Action (SAMPLE)**
+   - **Condition**: The agent samples a rock.
+   - **Reward**: The reward depends on the status of the rock.
+   - **Done**: The episode does not end.
+   - **Cases**:
+     - If the agent is at a rock position and samples it, the rock's status is set to `False` (bad).
+     - If the rock is good, the reward is `10`.
+     - If the rock is bad, the reward is `-10`.
+
+3. **Check Actions (CHECK_ROCK_0, CHECK_ROCK_1)**
+   - **Condition**: The agent checks a rock.
+   - **Reward**: The reward depends on the noisy reading of the rock.
+   - **Done**: The episode does not end.
+   - **Cases**:
+     - If the agent is at the rock position, a noisy reading is given with 90% accuracy.
+     - If the rock is good, the reward is `1` with 90% probability and `-1` with 10% probability.
+     - If the rock is bad, the reward is `-1` with 90% probability and `1` with 10% probability.
+
+4. **Other Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST)**
+   - **Condition**: The agent moves in the grid.
+   - **Reward**: No reward.
+   - **Done**: The episode does not end.
+
+### Improved Code
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flag
+    reward = 0.0
+    done = False
+
+    # Exit action
+    if action == RockSampleActions.EXIT:
+        # Only reward for exiting if the agent is at a specific exit position
+        if (state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]:
+            done = True
+            # Reward for exiting depends on the number of good rocks sampled
+            num_good_rocks_sampled = sum(next_state.rocks)
+            reward = 10.0 * num_good_rocks_sampled - 10.0 * (NUM_ROCKS - num_good_rocks_sampled)
+
+    # Sample action
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rock_status = state.rocks[rock_idx]
+            # If the agent is at a rock and samples it, the rock's status changes to False (bad)
+            next_state_rocks = list(next_state.rocks)
+            next_state_rocks[rock_idx] = False
+            next_state.rocks = tuple(next_state_rocks)
+            # Reward for sampling a good rock
+            if rock_status:
+                reward = 10.0
+            else:
+                reward = -10.0
+
+    # Check actions
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.9:  # 90% accurate
+                reward = 1.0 if is_good else -1.0
+            else:
+                reward = 1.0 if not is_good else -1.0
+
+    return reward, done
+```
+
+### Explanation of Changes
+
+1. **Exit Action**:
+   - The reward calculation now uses `next_state.rocks` instead of `state.rocks` to ensure it reflects the correct state after sampling.
+   - This ensures that the reward is based on the final state of the rocks after any sampling actions.
+
+2. **Check Actions**:
+   - The reward for check actions is now correctly calculated based on the noisy reading of the rock.
+   - The reward is determined by the current state of the rock and the noisy sensor reading.
+
+3. **General Fixes**:
+   - Ensured that the `done` flag is only set when the agent successfully exits from one of the specified exit positions.
+   - The reward for sampling a rock is correctly applied to the next state, ensuring the rock status is updated.
+
+This should bring the model closer to the true distribution observed in the real world.

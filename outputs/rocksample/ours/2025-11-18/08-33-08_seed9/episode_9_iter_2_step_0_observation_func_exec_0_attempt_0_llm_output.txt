@@ -1,0 +1,114 @@
+Certainly! Let's analyze the problem and improve the `observation_func` to better model the true distribution of observations conditioned on a state.
+
+### Explanation of the Observation Distribution
+
+1. **Agent Position**: The agent always reports its current position `(x, y)` in the observation.
+2. **Action Specific Observations**:
+   - For `CHECK_ROCK_0` and `CHECK_ROCK_1` actions:
+     - If the agent is at the position of the rock being checked, it provides a noisy reading of whether the rock is good or bad.
+     - The reading is accurate 85% of the time, and inaccurate 15% of the time.
+     - If the agent is not at the rock's position, the observation should still report the rock index but with a `None` reading.
+   - For all other actions, the `rock_idx` and `is_good` fields should be `None`.
+
+### Issues in the Current Code
+
+- The current code does not handle the case where the agent is not at the rock's position but still attempts to check the rock.
+- The `rock_idx` field should always be set for `CHECK_ROCK` actions, regardless of whether the agent is at the rock's position.
+
+### Improved Code
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+# Assuming the classes and enums are already defined as in the provided code
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+# -----------------------------------------------------------------------------#
+# Observation Function                                                         #
+# -----------------------------------------------------------------------------#
+def observation_func(state: RockSampleState, action: int, empty_obs: RockSampleObservation) -> RockSampleObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0  # Convert action to rock index
+        obs.rock_idx = rock_idx  # Always set rock_idx for check actions
+        if state.at_rock() == rock_idx:
+            # If the agent is at the rock's position, provide a noisy reading
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.85:  # Assume 85% accuracy for the sensor
+                obs.is_good = is_good
+            else:
+                obs.is_good = not is_good
+
+    return obs
+```
+
+### Explanation of the Changes
+
+1. **Always Set `rock_idx` for Check Actions**: 
+   - The `rock_idx` field is now always set to the appropriate rock index when the action is a check action, regardless of whether the agent is at the rock's position.
+2. **Noisy Reading Logic**:
+   - The noisy reading logic remains the same, providing an accurate reading 85% of the time and an inaccurate reading 15% of the time.
+
+This should better model the true distribution of observations conditioned on the state.

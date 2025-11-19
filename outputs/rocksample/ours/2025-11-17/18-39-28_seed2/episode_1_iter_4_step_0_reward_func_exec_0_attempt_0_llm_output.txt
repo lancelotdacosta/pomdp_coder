@@ -1,0 +1,81 @@
+Certainly! Let's analyze the discrepancies and improve the `reward_func` function to better match the true distribution of the environment.
+
+### Analysis:
+1. **Checking Rocks:**
+   - The real world gives a reward of `-1.0` when checking a rock at a position where no rock is present.
+   - The current implementation gives a reward of `0.0` in such cases.
+
+2. **Exiting:**
+   - The real world gives a reward of `0.0` when exiting the environment from a position where there is no rock.
+   - The current implementation gives a reward of `0.0` but marks the episode as done, which is correct.
+   - The real world gives a reward of `10.0` when exiting the environment from a position where there is a bad rock.
+   - The current implementation gives a reward of `0.0` in such cases.
+
+### Improved `reward_func`:
+We need to update the `reward_func` to handle these cases correctly.
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    if action == RockSampleActions.SAMPLE:
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:  # Good rock
+                return 10.0, False
+            else:  # Bad rock
+                return -10.0, False
+        else:
+            return -1.0, False  # No rock to sample
+
+    if action == RockSampleActions.EXIT:
+        if rock_idx is not None:
+            if not state.rocks[rock_idx]:  # Bad rock
+                return 10.0, True
+            else:  # Good rock
+                return 0.0, True
+        else:
+            return 0.0, True  # Not at a rock position
+
+    if action in CHECK_ACTIONS:
+        if (action == RockSampleActions.CHECK_ROCK_0 and rock_idx != 0) or (action == RockSampleActions.CHECK_ROCK_1 and rock_idx != 1):
+            return -1.0, False  # Checking a rock that is not present at the position
+        else:
+            return 0.0, False  # Valid check
+
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        if state.x == next_state.x and state.y == next_state.y:
+            return 0.0, False  # No movement
+        else:
+            return 0.0, False  # Movement reward
+
+    return 0.0, False  # Default case
+```
+
+### Explanation:
+1. **Sampling Rocks:**
+   - If the agent samples a rock at a rock position, it receives a reward of `10.0` for a good rock and `-10.0` for a bad rock.
+   - If the agent tries to sample at a position with no rock, it receives a reward of `-1.0`.
+
+2. **Exiting:**
+   - If the agent exits the environment from a position with a bad rock, it receives a reward of `10.0`.
+   - If the agent exits from a position with a good rock, it receives a reward of `0.0`.
+   - If the agent exits from a position with no rock, it receives a reward of `0.0`.
+
+3. **Checking Rocks:**
+   - If the agent checks a rock that is not present at the current position, it receives a reward of `-1.0`.
+   - If the agent checks a rock that is present at the current position, it receives a reward of `0.0`.
+
+4. **Movement:**
+   - If the agent moves, it receives a reward of `0.0` regardless of whether it moves or stays in the same position.
+
+This should better align with the true distribution of the environment.

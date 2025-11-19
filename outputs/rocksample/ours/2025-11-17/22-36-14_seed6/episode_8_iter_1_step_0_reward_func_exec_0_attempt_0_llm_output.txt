@@ -1,0 +1,81 @@
+Certainly! Let's analyze the discrepancies and adjust the `reward_func` to better model the true distribution based on the provided samples.
+
+### Analysis of Discrepancies
+
+1. **Action 5 (EXIT):**
+   - **Sample:** In the real world, exiting from `(x=2, y=1)` gives a reward of 0.0 and does not end the episode.
+   - **Code:** In the current model, exiting always ends the episode with no reward.
+   - **Fix:** The exit action should only end the episode if the agent is at the exit position.
+
+2. **Action 6, 7 (CHECK_ROCK_0, CHECK_ROCK_1):**
+   - **Sample:** In the real world, checking a rock from `(x=1, y=1)` or `(x=1, y=4)` gives a reward of -1.0.
+   - **Code:** In the current model, checking a rock gives no reward.
+   - **Fix:** Checking a rock should give a small negative reward to model the cost of checking.
+
+3. **Movement Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST):**
+   - **Sample:** In the real world, moving out of bounds gives a reward of 0.0.
+   - **Code:** In the current model, moving out of bounds gives a reward of -10.0.
+   - **Fix:** Moving out of bounds should give a smaller penalty or no penalty.
+
+4. **Sampling (SAMPLE):**
+   - **Sample:** In the real world, sampling can change the state of the rock and does not always end the episode.
+   - **Code:** In the current model, sampling always ends the episode.
+   - **Fix:** Sampling should not always end the episode, and it should update the rock state accordingly.
+
+### Updated `reward_func`
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:  # Good rock
+                reward = 10.0
+            else:  # Bad rock
+                reward = -10.0
+            # Update rock state to bad after sampling
+            next_rocks = list(next_state.rocks)
+            next_rocks[rock_idx] = False
+            next_state.rocks = tuple(next_rocks)
+            done = False  # Episode does not end after sampling
+
+    if action == RockSampleActions.EXIT:
+        # If the agent exits the environment
+        if state.x == 0 and state.y == 0:  # Assuming (0, 0) is the exit position
+            done = True
+
+    if action in CHECK_ACTIONS:
+        # If the agent checks a rock, give a small negative reward
+        reward = -1.0
+
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # If the agent moves, no reward is given unless it tries to move out of bounds
+        if state.x != next_state.x or state.y != next_state.y:
+            reward = 0.0
+        else:
+            reward = -1.0  # Smaller penalty for trying to move out of bounds
+
+    return reward, done
+```
+
+### Explanation
+
+- **EXIT Action:** The episode ends only if the agent exits from the exit position (assumed to be `(0, 0)`).
+- **CHECK Actions:** Checking a rock gives a small negative reward of -1.0.
+- **Movement Actions:** Moving out of bounds gives a smaller penalty of -1.0.
+- **Sampling:** Sampling a rock updates the rock state to bad and does not end the episode.
+
+This should better align with the real world samples provided.

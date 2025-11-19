@@ -1,0 +1,65 @@
+Based on the provided observations, it seems that the reward function should consider the following conditions:
+
+1. **Exiting the Grid:**
+   - If the agent exits the grid, the episode is done and the reward is 10.
+
+2. **Sampling a Rock:**
+   - If the agent samples a rock and it's good, the reward is 10.
+   - If the agent samples a bad rock, the reward is -10.
+   - If the agent samples when not at a rock, the reward is -1.
+
+3. **Checking a Rock:**
+   - If the agent checks a rock and is not at the correct rock position, the reward is -1.
+   - If the agent checks a rock and is at the correct rock position, the reward is 0.
+
+4. **Movement Actions:**
+   - For all other actions (movement), the reward is -1 if the next state is the same as the current state.
+   - Otherwise, the reward is 0.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # If the agent exits the grid, the episode is done and the reward is 10
+    if action == RockSampleActions.EXIT:
+        return 10.0, True
+
+    # If the agent samples a rock and it's good, the reward is 10, otherwise -10
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            # Sampling when not at a rock results in a penalty
+            return -1.0, False
+
+    # If the agent checks a rock and is not at the correct rock position, the reward is -1
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        expected_rock_idx = CHECK_ACTIONS.index(action)  # Convert action to rock index
+        if rock_idx == expected_rock_idx:
+            return 0.0, False
+        else:
+            # Checking a rock when not at the correct rock position results in a penalty
+            return -1.0, False
+
+    # For all other actions (movement), the reward is -1 unless the next state is the same as the current state
+    if state == next_state:
+        return -1.0, False
+    else:
+        return 0.0, False
+```
+
+This function now correctly handles the cases where the agent checks a rock and is not at the correct rock position, and it ensures that movement actions result in a penalty if the next state is the same as the current state.

@@ -1,0 +1,69 @@
+Based on the provided samples, it appears that the reward and termination conditions are more context-dependent than initially modeled. Specifically:
+
+1. **Sampling a Rock**:
+   - If the agent is at a rock and takes the `SAMPLE` action, it should receive a reward of 10 if the rock is good (`True`), and -10 if the rock is bad (`False`).
+
+2. **Exiting the Environment**:
+   - If the agent takes the `EXIT` action, the episode should terminate, but the reward depends on the agent's position:
+     - If the agent is at `(4, 4)`, the reward should be 10.
+     - Otherwise, the reward should be 0.
+
+3. **Checking a Rock**:
+   - If the agent takes a `CHECK_ROCK` action, it incurs a small penalty of -1.
+
+4. **Other Actions**:
+   - For all other actions (e.g., moving), there is no reward.
+
+5. **Episode Termination**:
+   - The episode terminates if the agent takes the `EXIT` action, regardless of the position.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has taken a sample action
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                # If the rock is good, the agent gets a reward of 10
+                reward = 10.0
+            else:
+                # If the rock is bad, the agent gets a reward of -10
+                reward = -10.0
+        else:
+            # If no rock is present, the agent gets no reward
+            reward = 0.0
+    elif action == RockSampleActions.EXIT:
+        # If the agent exits, the episode ends
+        done = True
+        if state.x == 4 and state.y == 4:
+            # If the agent is at (4, 4), it gets a reward of 10
+            reward = 10.0
+        else:
+            # Otherwise, it gets a reward of 0
+            reward = 0.0
+    elif action in CHECK_ACTIONS:
+        # If the agent checks a rock, it incurs a small penalty
+        reward = -1.0
+    else:
+        # For all other actions (e.g., moving), there is no reward
+        reward = 0.0
+    
+    # The episode is done if the agent exits, otherwise it continues
+    done = action == RockSampleActions.EXIT
+
+    return reward, done
+```
+
+This function should better match the observed behavior in the real world based on the provided samples.

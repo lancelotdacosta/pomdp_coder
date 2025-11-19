@@ -1,0 +1,160 @@
+The distribution of observations conditioned on a state in the MiniGrid environment is determined by the agent's position, direction, and the action it takes. The field of view (FOV) of the agent changes based on its direction and the action it performs. For example, if the agent moves forward, its FOV will shift to include new cells in front of it, and if it turns, its FOV will rotate accordingly.
+
+Given the provided samples, the agent's field of view is a 3x3 grid centered around the agent, with the agent's position always in the center of the grid. The grid values represent different objects in the environment, such as walls, empty spaces, goals, and the agent itself.
+
+The `observation_func` function will use the `get_field_of_view` method to compute the agent's FOV based on its current state and direction. It will then construct the `MinigridObservation` object and return it.
+
+Here is the implementation of the `observation_func` function:
+
+```python
+# type: ignore
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import IntEnum
+from typing import Any, List, Optional, Tuple
+
+import numpy as np
+from numpy.typing import NDArray
+
+AGENT_DIR_TO_STR = {0: ">", 1: "V", 2: "<", 3: "^"}
+DIR_TO_VEC = [
+    # Pointing right (positive X)
+    np.array((1, 0)),
+    # Down (positive Y)
+    np.array((0, 1)),
+    # Pointing left (negative X)
+    np.array((-1, 0)),
+    # Up (negative Y)
+    np.array((0, -1)),
+]
+
+SEE_THROUGH_WALLS = True
+
+
+class ObjectTypes(IntEnum):
+    unseen = 0
+    empty = 1
+    wall = 2
+    open_door = 4
+    closed_door = 5
+    locked_door = 6
+    key = 7
+    ball = 8
+    box = 9
+    goal = 10
+    lava = 11
+    agent = 12
+
+
+class Direction(IntEnum):
+    facing_right = 0
+    facing_down = 1
+    facing_left = 2
+    facing_up = 3
+
+
+class Actions(IntEnum):
+    left = 0  # Turn left
+    right = 1  # Turn right
+    forward = 2  # Move forward
+    pickup = 3  # Pick up an object
+    drop = 4  # Drop an object
+    toggle = 5  # Toggle/activate an object
+    done = 6  # Done completing the task
+
+
+@dataclass
+class MinigridObservation:
+    image: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int] = None
+
+
+@dataclass
+class MinigridState:
+    grid: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int]
+
+    @property
+    def front_pos(self) -> Tuple[int, int]:
+        return (
+            np.array(self.agent_pos) + np.array(DIR_TO_VEC[self.agent_dir])
+        ).tolist()
+
+    @property
+    def width(self) -> int:
+        return self.grid.shape[0]
+
+    @property
+    def height(self) -> int:
+        return self.grid.shape[1]
+
+    def get_type_indices(self, type: int) -> List[Tuple[int, int]]:
+        idxs = np.where(self.grid == type)
+        return list(zip(idxs[0], idxs[1]))
+
+    def get_field_of_view(self, view_size: int) -> NDArray[np.int8]:
+        topX = self.agent_pos[0]
+        topY = self.agent_pos[1] - view_size // 2
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=self.grid.dtype)
+
+        if self.agent_dir == 0:
+            topX = self.agent_pos[0]
+            topY = self.agent_pos[1] - view_size // 2
+        elif self.agent_dir == 1:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1]
+        elif self.agent_dir == 2:
+            topX = self.agent_pos[0] - view_size + 1
+            topY = self.agent_pos[1] - view_size // 2
+        elif self.agent_dir == 3:
+            topX = self.agent_pos[0] - view_size // 2
+            topY = self.agent_pos[1] - view_size + 1
+
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, self.grid.shape[0])
+        gy1 = min(topY + view_size, self.grid.shape[1])
+
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = self.grid[gx0:gx1, gy0:gy1]
+
+        for _ in range(self.agent_dir + 1):
+            fov = np.rot90(fov.T, k=1).T
+
+        return fov
+
+
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    view_size = 3
+    fov = state.get_field_of_view(view_size)
+    
+    # Update the agent's position and direction based on the action
+    if action == Actions.forward:
+        new_pos = state.front_pos
+        if state.grid[new_pos] != ObjectTypes.wall:
+            state.agent_pos = new_pos
+    elif action == Actions.left:
+        state.agent_dir = (state.agent_dir - 1) % 4
+    elif action == Actions.right:
+        state.agent_dir = (state.agent_dir + 1) % 4
+
+    # Create the observation
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    return obs
+```
+
+This implementation ensures that the `observation_func` function correctly models the agent's field of view and updates the agent's position and direction based on the action taken. The `get_field_of_view` method is used to compute the 3x3 grid centered around the agent, taking into account the agent's direction.

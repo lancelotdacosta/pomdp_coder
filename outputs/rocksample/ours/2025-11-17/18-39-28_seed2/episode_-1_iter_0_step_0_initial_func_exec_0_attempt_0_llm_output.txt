@@ -1,0 +1,38 @@
+Based on the provided samples, it appears that the initial state distribution for the RockSample problem has the following characteristics:
+
+1. The agent's initial position `(x, y)` can be any of the provided positions: `(0, 0)`, `(1, 2)`, `(0, 4)`, `(2, 1)`.
+2. The rocks' status (good or bad) is fixed and consistent across all samples. Specifically, the first rock at position `(1, 1)` can be either good or bad, and the second rock at position `(1, 4)` can also be either good or bad.
+
+Given this, we can model the initial state distribution by randomly selecting one of the provided initial positions and assigning the rocks a status based on the observed distribution.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: RockSampleState):
+    """
+    Input:
+        empty_state (RockSampleState): An empty state with only the walls filled into the grid
+    Returns:
+        state (RockSampleState): the initial state of the environment
+    """
+    # List of possible initial positions
+    possible_positions = [(0, 0), (1, 2), (0, 4), (2, 1)]
+    
+    # Randomly select an initial position
+    x, y = random.choice(possible_positions)
+    
+    # Define the possible rock states
+    rock_states = [
+        (False, False),  # (B, B)
+        (True, False),   # (G, B)
+        (False, True),   # (B, G)
+    ]
+    
+    # Randomly select a rock state
+    rocks = random.choice(rock_states)
+    
+    # Create and return the initial state
+    return RockSampleState(x=x, y=y, rocks=rocks)
+```
+
+This function will generate an initial state by randomly selecting one of the provided positions and one of the observed rock states. This should capture the distribution seen in the samples provided.

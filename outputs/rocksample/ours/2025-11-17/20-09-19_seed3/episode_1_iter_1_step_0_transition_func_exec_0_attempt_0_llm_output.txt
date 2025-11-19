@@ -1,0 +1,54 @@
+Based on the discrepancies between the observed distribution and the generated model, it appears that the movement actions are not correctly handling the grid boundaries. Specifically, the agent should not move outside the grid boundaries when performing movement actions. Additionally, the `SAMPLE` action should only change the rock's state if the agent is at a rock position.
+
+Here is the improved `transition_func` function that addresses these issues:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample action changes the rock's state to BAD (B)
+            new_state.rocks = tuple('B' if i == rock_idx else r for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # Exit action does not change the state
+    elif action in CHECK_ACTIONS:
+        pass  # Sensor check actions do not change the state
+    
+    return new_state
+```
+
+### Explanation of the Distribution of Next States Conditioned on Actions and Previous States
+
+1. **Movement Actions**:
+   - **MOVE_NORTH**: The agent moves one step north, but it should not move past the top boundary (y = 1).
+   - **MOVE_SOUTH**: The agent moves one step south, but it should not move past the bottom boundary (y = GRID_SIZE).
+   - **MOVE_EAST**: The agent moves one step east, but it should not move past the right boundary (x = GRID_SIZE).
+   - **MOVE_WEST**: The agent moves one step west, but it should not move past the left boundary (x = 1).
+
+2. **SAMPLE Action**:
+   - If the agent is at a rock position, the `SAMPLE` action changes the rock's state to BAD (B). If the agent is not at a rock position, the state remains unchanged.
+
+3. **EXIT Action**:
+   - The `EXIT` action does not change the state.
+
+4. **CHECK Actions**:
+   - The `CHECK` actions do not change the state; they only provide observations.
+
+By ensuring that the movement actions respect the grid boundaries and that the `SAMPLE` action only affects rocks when the agent is at their positions, the model should more closely match the true distribution of next states.

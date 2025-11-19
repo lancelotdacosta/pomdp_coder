@@ -1,0 +1,57 @@
+The observed discrepancies suggest that the current implementation of the `transition_func` is incorrect in how it handles the grid boundaries. Specifically, the current model wraps around the grid, which is not what is observed in the real world. Instead, the agent should stay within the grid boundaries when moving.
+
+Here's the improved `transition_func` function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y = state.x, state.y
+    rocks = list(state.rocks)
+    
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH,
+                  RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # Calculate new position based on action
+        if action == RockSampleActions.MOVE_NORTH:
+            y = max(0, y - 1)  # Stay within grid boundaries
+        elif action == RockSampleActions.MOVE_SOUTH:
+            y = min(GRID_SIZE - 1, y + 1)  # Stay within grid boundaries
+        elif action == RockSampleActions.MOVE_EAST:
+            x = min(GRID_SIZE - 1, x + 1)  # Stay within grid boundaries
+        elif action == RockSampleActions.MOVE_WEST:
+            x = max(0, x - 1)  # Stay within grid boundaries
+    
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks[rock_idx] = False  # Sample the rock, changing its state to bad
+    
+    elif action == RockSampleActions.EXIT:
+        # Exit action does not change the state
+        pass
+    
+    # Create new state with updated position and rock states
+    new_state = RockSampleState(x, y, tuple(rocks))
+    return new_state
+```
+
+### Explanation of the Improved Model
+
+1. **Boundary Handling**:
+   - **Move North**: The agent should not move beyond the top boundary (y = 0). If the current y is 0, it remains at 0.
+   - **Move South**: The agent should not move beyond the bottom boundary (y = GRID_SIZE - 1). If the current y is GRID_SIZE - 1, it remains at GRID_SIZE - 1.
+   - **Move East**: The agent should not move beyond the right boundary (x = GRID_SIZE - 1). If the current x is GRID_SIZE - 1, it remains at GRID_SIZE - 1.
+   - **Move West**: The agent should not move beyond the left boundary (x = 0). If the current x is 0, it remains at 0.
+
+2. **Sampling**:
+   - When the agent samples a rock, it changes the state of the rock from good to bad if the agent is at the rock's position.
+
+3. **Exit**:
+   - The exit action does not change the state of the environment.
+
+This improved model ensures that the agent stays within the grid boundaries, which matches the observed behavior in the real world.

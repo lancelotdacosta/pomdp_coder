@@ -1,0 +1,35 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(new_state.rocks[:rock_idx] + (False,) + new_state.rocks[rock_idx+1:])
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state for the exit action
+    elif action in CHECK_ACTIONS:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None and action == RockSampleActions.CHECK_ROCK_0 + rock_idx:
+            # Check actions do not change the state
+            pass
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return new_state
+```

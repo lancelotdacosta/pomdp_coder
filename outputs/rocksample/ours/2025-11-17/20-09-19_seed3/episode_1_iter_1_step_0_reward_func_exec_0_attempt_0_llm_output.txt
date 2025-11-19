@@ -1,0 +1,61 @@
+Based on the provided samples and the observed discrepancies, it seems that the reward function should account for the following conditions:
+
+1. **Checking Rock Actions**: When the agent performs a rock check action (e.g., `CHECK_ROCK_0` or `CHECK_ROCK_1`) at a rock position, there is a penalty of -1.0 if the rock is bad. This penalty applies regardless of whether the rock has already been sampled or not.
+
+2. **Sampling Rock Actions**: When the agent samples a rock (using the `SAMPLE` action) and the rock is good, the agent receives a reward of 10.0. If the rock is bad or has already been sampled, the agent receives no reward. Additionally, sampling a rock should mark it as sampled (i.e., set its state to `False`).
+
+3. **Other Actions**: All other actions, including movement and exiting, do not provide any immediate reward.
+
+Given these conditions, let's update the `reward_func` function to better model the true distribution:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent is at a rock position
+    rock_index = state.at_rock()
+    
+    # Check if the action is to sample a rock
+    if action == RockSampleActions.SAMPLE and rock_index is not None:
+        # If the rock was good, the agent gets a reward of 10.0
+        if state.rocks[rock_index] and not next_state.rocks[rock_index]:
+            return 10.0, False
+        # If the rock was bad or already sampled, no reward
+        else:
+            return 0.0, False
+    
+    # Check if the action is to check a rock
+    if action in CHECK_ACTIONS and rock_index is not None:
+        # If the rock is bad, the agent receives a penalty of -1.0
+        if not state.rocks[rock_index]:
+            return -1.0, False
+        # If the rock is good, no penalty
+        else:
+            return 0.0, False
+
+    # For all other actions, the reward is 0.0
+    return 0.0, False
+```
+
+### Explanation:
+1. **Checking Rock Actions**:
+   - If the action is a rock check action (`CHECK_ROCK_0` or `CHECK_ROCK_1`) and the agent is at a rock position, the function checks the state of the rock.
+   - If the rock is bad, a penalty of -1.0 is applied.
+   - If the rock is good, no penalty is applied.
+
+2. **Sampling Rock Actions**:
+   - If the action is to sample a rock (`SAMPLE`) and the agent is at a rock position, the function checks the state of the rock.
+   - If the rock is good and has not been sampled yet, a reward of 10.0 is applied and the rock's state is updated to `False` (sampled).
+   - If the rock is bad or has already been sampled, no reward is applied.
+
+3. **Other Actions**:
+   - For all other actions, including movement and exiting, the reward is 0.0.
+
+This updated `reward_func` should better align with the observed behavior in the real world.

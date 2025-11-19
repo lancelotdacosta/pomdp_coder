@@ -1,0 +1,65 @@
+Based on the provided samples and the discrepancies observed, it seems the current implementation of the `reward_func` function has some issues with the logic for sampling rocks and exiting the grid. Specifically:
+
+1. The `SAMPLE` action should only provide a reward if the rock is sampled at its position and the rock's status (good or bad) matches the next state's rock status.
+2. The `EXIT` action should only provide a reward and mark the episode as done if the agent is actually at the exit position.
+3. The `CHECK` actions should not provide any reward unless the agent is at the correct rock position.
+
+Let's revise the `reward_func` function to better model the true distribution based on this understanding:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        # The exit position is (0, 0)
+        if state.x == 0 and state.y == 0:
+            return 10.0, True
+        else:
+            return -1.0, False
+
+    # Check if the agent is sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            # The rock status should match the next state's rock status
+            if next_state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return -1.0, False
+
+    # Check if the agent is checking a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            return 0.0, False
+        else:
+            return -1.0, False
+
+    # For all other actions (movement), the reward is 0 and the episode is not done
+    return 0.0, False
+```
+
+### Explanation:
+1. **Exit Action**:
+   - The `EXIT` action now checks if the agent is at the exit position `(0, 0)`. If so, it returns a reward of 10.0 and marks the episode as done. Otherwise, it returns a penalty of -1.0 and the episode is not done.
+
+2. **Sample Action**:
+   - The `SAMPLE` action checks if the agent is at a rock position using the `at_rock` method.
+   - If the agent is at a rock position, it compares the rock's status in the next state with its current status.
+   - If the rock is good (True), it returns a reward of 10.0. If the rock is bad (False), it returns a penalty of -10.0. If the agent is not at a rock position, it returns a penalty of -1.0.
+
+3. **Check Actions**:
+   - The `CHECK` actions check if the agent is at the correct rock position.
+   - If the agent is at the correct rock position, it returns a reward of 0.0. Otherwise, it returns a penalty of -1.0.
+
+This revised function should better match the observed distribution of rewards and episode completions in the real world.

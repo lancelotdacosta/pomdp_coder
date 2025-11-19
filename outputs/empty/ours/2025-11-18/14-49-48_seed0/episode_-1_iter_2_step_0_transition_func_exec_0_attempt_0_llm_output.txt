@@ -1,0 +1,110 @@
+Certainly! Let's analyze the problem and improve the `transition_func` to better model the true distribution of next states.
+
+### Explanation
+
+1. **Agent Position and Movement**:
+   - When the agent performs the `forward` action, it should move to the cell in front of it if the cell is empty.
+   - The current implementation correctly checks if the cell in front is within bounds and if it is empty. However, it fails to move the agent to the goal cell when the cell in front is a goal (object type 10).
+
+2. **Agent Direction**:
+   - The `left` and `right` actions are correctly implemented to change the agent's direction.
+
+3. **Pickup and Drop Actions**:
+   - The `pickup` action is correctly implemented to pick up objects if the cell in front contains a key, ball, or box.
+   - The `drop` action is correctly implemented to drop objects if the cell in front is empty and the agent is carrying an object.
+
+4. **Toggle Action**:
+   - The `toggle` action is not implemented in this example, which is fine for now.
+
+### Improved `transition_func`
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state, action):
+    if action == Actions.left:
+        # Turn left
+        new_agent_dir = (state.agent_dir - 1) % 4
+        new_state = MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_agent_dir,
+            carrying=state.carrying
+        )
+    elif action == Actions.right:
+        # Turn right
+        new_agent_dir = (state.agent_dir + 1) % 4
+        new_state = MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_agent_dir,
+            carrying=state.carrying
+        )
+    elif action == Actions.forward:
+        # Move forward
+        front_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            if state.grid[tuple(front_pos)] in [ObjectTypes.empty, ObjectTypes.goal]:
+                new_agent_pos = tuple(front_pos)
+                new_state = MinigridState(
+                    grid=state.grid.copy(),
+                    agent_pos=new_agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=state.carrying
+                )
+            else:
+                new_state = state
+        else:
+            new_state = state
+    elif action == Actions.pickup:
+        # Pick up an object
+        front_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            if state.grid[tuple(front_pos)] in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+                new_grid = state.grid.copy()
+                new_grid[tuple(front_pos)] = ObjectTypes.empty
+                new_state = MinigridState(
+                    grid=new_grid,
+                    agent_pos=state.agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=state.grid[tuple(front_pos)]
+                )
+            else:
+                new_state = state
+        else:
+            new_state = state
+    elif action == Actions.drop:
+        # Drop an object
+        if state.carrying is not None:
+            front_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+            if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+                if state.grid[tuple(front_pos)] == ObjectTypes.empty:
+                    new_grid = state.grid.copy()
+                    new_grid[tuple(front_pos)] = state.carrying
+                    new_state = MinigridState(
+                        grid=new_grid,
+                        agent_pos=state.agent_pos,
+                        agent_dir=state.agent_dir,
+                        carrying=None
+                    )
+                else:
+                    new_state = state
+            else:
+                new_state = state
+        else:
+            new_state = state
+    elif action == Actions.toggle:
+        # Toggle/activate an object (not implemented for this example)
+        new_state = state
+    elif action == Actions.done:
+        # Indicate the task is completed (no change in state)
+        new_state = state
+    return new_state
+```
+
+### Explanation of Changes
+
+1. **Forward Action**:
+   - The `forward` action now checks if the cell in front is either `empty` (1) or `goal` (10). If it is, the agent moves to that cell.
+
+This should better model the true distribution of next states based on the provided examples and the environment description.

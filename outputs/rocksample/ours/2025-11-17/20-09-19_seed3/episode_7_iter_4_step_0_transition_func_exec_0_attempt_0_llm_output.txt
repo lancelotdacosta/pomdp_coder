@@ -1,0 +1,75 @@
+Based on the discrepancies between the real-world samples and the generated samples, it appears that the issue lies in how the `MOVE_NORTH` action is being handled. Specifically, it seems that the agent should not move north if it is already at the top boundary of the grid. Instead, it should stay in the same position.
+
+Here's an improved version of the `transition_func` function to better model the true distribution:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y = state.x, state.y
+    rocks = list(state.rocks)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        if y > 0:
+            y = y - 1
+    elif action == RockSampleActions.MOVE_SOUTH:
+        if y < GRID_SIZE - 1:
+            y = y + 1
+    elif action == RockSampleActions.MOVE_EAST:
+        if x < GRID_SIZE - 1:
+            x = x + 1
+    elif action == RockSampleActions.MOVE_WEST:
+        if x > 0:
+            x = x - 1
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks[rock_idx] = False  # Sample the rock, making it bad
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and rock_idx == action - 6:
+            # Noisy reading with 80% accuracy
+            if random.random() < 0.8:
+                rocks[rock_idx] = state.rocks[rock_idx]
+            else:
+                rocks[rock_idx] = not state.rocks[rock_idx]
+    
+    new_state = RockSampleState(x=x, y=y, rocks=tuple(rocks))
+    return new_state
+```
+
+### Explanation of the Distribution of Next States Conditioned on Actions and Previous States
+
+1. **Move North** (`RockSampleActions.MOVE_NORTH`):
+   - If the agent is not at the top boundary (i.e., `y > 0`), it moves one step north (decreases `y` by 1).
+   - If the agent is already at the top boundary (i.e., `y == 0`), it stays in the same position.
+
+2. **Move South** (`RockSampleActions.MOVE_SOUTH`):
+   - If the agent is not at the bottom boundary (i.e., `y < GRID_SIZE - 1`), it moves one step south (increases `y` by 1).
+   - If the agent is already at the bottom boundary (i.e., `y == GRID_SIZE - 1`), it stays in the same position.
+
+3. **Move East** (`RockSampleActions.MOVE_EAST`):
+   - If the agent is not at the right boundary (i.e., `x < GRID_SIZE - 1`), it moves one step east (increases `x` by 1).
+   - If the agent is already at the right boundary (i.e., `x == GRID_SIZE - 1`), it stays in the same position.
+
+4. **Move West** (`RockSampleActions.MOVE_WEST`):
+   - If the agent is not at the left boundary (i.e., `x > 0`), it moves one step west (decreases `x` by 1).
+   - If the agent is already at the left boundary (i.e., `x == 0`), it stays in the same position.
+
+5. **Sample** (`RockSampleActions.SAMPLE`):
+   - If the agent is at a rock's position, it samples the rock, changing its state to "bad" (False).
+
+6. **Exit** (`RockSampleActions.EXIT`):
+   - No change in state.
+
+7. **Check Rock** (`RockSampleActions.CHECK_ROCK_0` and `RockSampleActions.CHECK_ROCK_1`):
+   - If the agent is at a rock's position and the action corresponds to that rock, it receives a noisy reading with 80% accuracy. The rock's state is updated accordingly.
+
+This updated `transition_func` ensures that the agent does not move beyond the grid boundaries, which should better match the real-world distribution of next states.

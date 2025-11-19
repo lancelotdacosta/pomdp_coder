@@ -1,0 +1,68 @@
+Based on the provided examples, it seems that the reward function should consider the following conditions:
+
+1. **Exiting the Grid**: If the action is `EXIT`, the episode ends with a reward of 0.0.
+2. **Sampling a Rock**: If the action is `SAMPLE` and the agent is at a rock's position:
+   - If the rock's state changes (from good to bad or bad to good), the reward is 10.0.
+   - If the rock's state does not change, the reward is -1.0.
+3. **Checking a Rock**: If the action is `CHECK_ROCK_0` or `CHECK_ROCK_1` and the agent is at the corresponding rock's position:
+   - The reward is 0.0 if the agent is at the rock.
+   - The reward is -1.0 if the agent is not at the rock.
+4. **Moving to a New Position**: If the agent moves to a new position, the reward is 0.0.
+5. **Other Actions**: For any other actions, the reward is 0.0.
+
+However, the provided examples suggest that there might be additional conditions or nuances that need to be considered, such as the specific positions of rocks and the behavior when sampling a bad rock.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        return 0.0, True
+
+    # Check if the agent sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if next_state.rocks[rock_idx] != state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False  # Modified to match the example
+        else:
+            return -1.0, False
+
+    # Check if the agent performed a check action
+    if action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and rock_idx == action - 6:  # Check if the rock index matches the action
+            return 0.0, False
+        else:
+            return -1.0, False
+
+    # Check if the agent moved to a new position
+    if (state.x, state.y) != (next_state.x, next_state.y):
+        return 0.0, False
+
+    # Default reward for other actions
+    return 0.0, False
+```
+
+### Explanation of Changes:
+1. **Sampling a Rock**:
+   - If the rock's state changes, the reward is 10.0.
+   - If the rock's state does not change, the reward is -10.0 to match the example provided.
+2. **Checking a Rock**:
+   - The function now checks if the rock index matches the action (e.g., `CHECK_ROCK_0` corresponds to rock index 0).
+3. **Other Actions**:
+   - No changes were made to the default behavior for other actions.
+
+This should better align with the observed distribution and handle the specific cases you mentioned.

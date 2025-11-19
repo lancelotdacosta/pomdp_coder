@@ -1,0 +1,69 @@
+Certainly! Below is the implementation of the `transition_func` function based on the provided environment samples and the given template.
+
+### Explanation of the Distribution
+
+The next state distribution conditioned on actions and previous states can be described as follows:
+
+1. **Move Actions**:
+   - **MOVE_NORTH (0)**: The agent moves one step north if it's not at the top boundary.
+   - **MOVE_SOUTH (1)**: The agent moves one step south if it's not at the bottom boundary.
+   - **MOVE_EAST (2)**: The agent moves one step east if it's not at the right boundary.
+   - **MOVE_WEST (3)**: The agent moves one step west if it's not at the left boundary.
+   - If the agent is already at a boundary, the action has no effect.
+
+2. **Sample Action (4)**:
+   - If the agent is at a rock's position and takes the SAMPLE action, the rock's state changes to `B` (bad).
+
+3. **Exit Action (5)**:
+   - The EXIT action does not change the state of the environment.
+
+4. **Check Actions (6 and 7)**:
+   - These actions are used to check the state of specific rocks but do not change the state of the environment.
+
+### Implementation of `transition_func`
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)  # Create a deep copy of the current state
+
+    if action == RockSampleActions.MOVE_NORTH:
+        if new_state.y < GRID_SIZE - 1:
+            new_state.y += 1
+    elif action == RockSampleActions.MOVE_SOUTH:
+        if new_state.y > 0:
+            new_state.y -= 1
+    elif action == RockSampleActions.MOVE_EAST:
+        if new_state.x < GRID_SIZE - 1:
+            new_state.x += 1
+    elif action == RockSampleActions.MOVE_WEST:
+        if new_state.x > 0:
+            new_state.x -= 1
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            rocks_list = list(new_state.rocks)
+            rocks_list[rock_idx] = False  # Change the rock to bad (B)
+            new_state.rocks = tuple(rocks_list)
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        pass  # No change in state
+
+    return new_state
+```
+
+### Explanation of the Code
+
+- **Move Actions**: The agent's position is updated based on the action, but it does not move beyond the grid boundaries.
+- **Sample Action**: If the agent is at a rock's position and takes the SAMPLE action, the rock's state is changed to `B` (bad).
+- **Exit Action**: The EXIT action does not change the state.
+- **Check Actions**: These actions do not change the state of the environment.
+
+This implementation ensures that the transition function correctly models the behavior of the environment based on the provided samples and the described distribution.

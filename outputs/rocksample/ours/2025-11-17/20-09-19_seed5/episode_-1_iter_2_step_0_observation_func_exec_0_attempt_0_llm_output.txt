@@ -1,0 +1,62 @@
+Certainly! Let's analyze the current implementation and identify the issues before improving the `observation_func`.
+
+### Analysis
+
+1. **Current Implementation**:
+   - The function correctly handles the position of the agent (`x` and `y`).
+   - For `CHECK_ROCK` actions, it checks if the agent is at the rock position and adds noise to the observation with a 10% probability.
+
+2. **Issues Identified**:
+   - The current implementation returns `None` for `is_good` if the agent is not at the rock position when performing a check action. This is incorrect because the observation should still reflect the rock index and a noisy reading even if the agent is not at the rock.
+   - The noise model might need to be adjusted based on the real-world samples provided.
+
+### Improved Distribution
+
+The distribution of observations conditioned on a state should be as follows:
+- If the agent performs a `CHECK_ROCK` action, it should always return an observation with the rock index and a noisy reading, regardless of whether the agent is at the rock position or not.
+- The noisy reading should have a 10% chance of being incorrect.
+
+### Improved Code
+
+```python
+def observation_func(state: RockSampleState, action: int, empty_obs: RockSampleObservation) -> RockSampleObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    obs = copy.deepcopy(empty_obs)
+    obs.x = state.x
+    obs.y = state.y
+
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        is_good = state.rocks[rock_idx]
+        # Add some noise to the observation
+        if random.random() < 0.1:  # 10% chance of incorrect observation
+            is_good = not is_good
+        obs.rock_idx = rock_idx
+        obs.is_good = is_good
+    else:
+        # For all other actions, the observation is null
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+```
+
+### Explanation of Changes
+
+1. **Consistent Observation for Check Actions**:
+   - The function now always returns an observation with `rock_idx` and a noisy `is_good` reading for `CHECK_ROCK` actions, regardless of the agent's position.
+   - This ensures that the observation distribution is consistent with the real-world samples provided.
+
+2. **Noise Model**:
+   - The noise model remains the same, with a 10% chance of returning an incorrect observation.
+
+This should better model the true distribution of observations conditioned on the state.

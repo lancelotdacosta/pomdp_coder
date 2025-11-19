@@ -1,0 +1,90 @@
+To better model the true distribution of initial states, we need to ensure that the possible initial positions for the agent and the possible rock states cover all the observed cases and are representative of the real-world distribution.
+
+### Explanation of the Distribution:
+
+1. **Agent Positions:**
+   - The agent can start at any position within the grid, but the provided samples suggest that the agent starts only at specific positions. To match the observed distribution, we should include all possible agent starting positions that have been observed:
+     - (2, 1)
+     - (1, 4)
+     - (0, 0)
+     - (0, 4)
+     - (4, 0)
+     - (2, 4)
+     - (1, 2)
+
+2. **Rock States:**
+   - The rocks can be in one of four states: [B, G], [G, B], [G, G], [B, B]. These states cover all the observed cases and are representative of the real-world distribution.
+
+### Improved Code:
+
+```python
+from __future__ import annotations
+
+import random
+from dataclasses import dataclass
+from typing import Tuple
+
+# Assuming RockSampleState is defined as in the provided code
+@dataclass
+class RockSampleState:
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+
+def initial_func(empty_state: RockSampleState):
+    """
+    Input:
+        empty_state (RockSampleState): An empty state with only the walls filled into the grid
+    Returns:
+        state (RockSampleState): the initial state of the environment
+    """
+    # Possible initial positions for the agent
+    possible_positions = [
+        (2, 1),  # Observed
+        (1, 4),  # Observed
+        (0, 0),  # Observed
+        (0, 4),  # Observed
+        (4, 0),  # Observed
+        (2, 4),  # Observed
+        (1, 2),  # Observed
+    ]
+    
+    # Possible rock states
+    possible_rock_states = [
+        (False, True),  # [B, G] - Observed
+        (True, False),  # [G, B] - Observed
+        (True, True),   # [G, G] - Observed
+        (False, False), # [B, B] - Observed
+    ]
+    
+    # Randomly select an initial position for the agent
+    x, y = random.choice(possible_positions)
+    
+    # Randomly select an initial state for the rocks
+    rocks = random.choice(possible_rock_states)
+    
+    # Create and return the initial state
+    initial_state = RockSampleState(x=x, y=y, rocks=rocks)
+    return initial_state
+```
+
+### Explanation of Changes:
+
+1. **Possible Agent Positions:**
+   - Added all observed initial positions to the `possible_positions` list.
+   - This ensures that the agent can start at any of the observed positions.
+
+2. **Possible Rock States:**
+   - Included all four possible rock states: [B, G], [G, B], [G, G], [B, B].
+   - This covers all the observed rock states and ensures a more accurate distribution.
+
+By making these changes, the `initial_func` function should now generate initial states that are more representative of the true distribution observed in the real world.

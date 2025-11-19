@@ -1,0 +1,89 @@
+Certainly! Let's analyze the reward function based on the provided examples and improve it.
+
+### Analysis
+
+1. **Goal Reached**:
+   - If the agent is on the goal square (`ObjectTypes.goal`), the reward is 1 and the episode is done.
+
+2. **Key Pickup**:
+   - If the agent picks up a key (action `Actions.pickup`) and the next state shows the agent carrying the key, the reward is 0.1.
+
+3. **Unlocking a Door**:
+   - If the agent toggles a locked door (action `Actions.toggle`) while carrying a key and the next state shows the door as unlocked (`ObjectTypes.open_door`), the reward is 0.1.
+
+4. **No Reward for Repeated Actions**:
+   - If the agent performs an action that doesn't change the state (e.g., picking up a key when already carrying it, toggling a door that is already open), no reward is given.
+
+### Improved Reward Function
+
+Here's the improved `reward_func` function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    def is_goal_reached(state):
+        # Check if the agent is on the goal square
+        return state.grid[state.agent_pos] == ObjectTypes.goal
+
+    def is_agent_carrying_key(state):
+        # Check if the agent is carrying a key
+        return state.carrying == ObjectTypes.key
+
+    def is_agent_in_front_of_locked_door(state):
+        # Check if the agent is in front of a locked door
+        front_pos = state.front_pos
+        return 0 <= front_pos[0] < state.grid.shape[0] and \
+               0 <= front_pos[1] < state.grid.shape[1] and \
+               state.grid[front_pos] == ObjectTypes.locked_door
+
+    def is_door_unlocked(state, next_state):
+        # Check if the door in front of the agent has been unlocked
+        front_pos = state.front_pos
+        return 0 <= front_pos[0] < state.grid.shape[0] and \
+               0 <= front_pos[1] < state.grid.shape[1] and \
+               state.grid[front_pos] == ObjectTypes.locked_door and \
+               next_state.grid[front_pos] == ObjectTypes.open_door
+
+    reward = 0
+    done = False
+
+    # Check if the goal is reached
+    if is_goal_reached(next_state):
+        reward = 1
+        done = True
+    else:
+        # Check if the agent picked up the key
+        if action == Actions.pickup and next_state.carrying == ObjectTypes.key and state.carrying is None:
+            reward = 0.1
+
+        # Check if the agent toggled (unlocked) a locked door while carrying a key
+        if action == Actions.toggle and is_agent_carrying_key(state) and is_door_unlocked(state, next_state):
+            reward = 0.1
+
+    return reward, done
+```
+
+### Explanation
+
+1. **Goal Reached**:
+   - The function checks if the agent is on the goal square in the next state. If so, it sets the reward to 1 and marks the episode as done.
+
+2. **Key Pickup**:
+   - The function checks if the action is `pickup` and if the agent is not already carrying a key. If the next state shows the agent carrying a key, it sets the reward to 0.1.
+
+3. **Unlocking a Door**:
+   - The function checks if the action is `toggle` and if the agent is in front of a locked door while carrying a key. It also checks if the next state shows the door as unlocked (`ObjectTypes.open_door`). If all conditions are met, it sets the reward to 0.1.
+
+4. **No Reward for Repeated Actions**:
+   - The function ensures that no reward is given if the agent performs an action that doesn't change the state, such as picking up a key when already carrying it or toggling a door that is already open.
+
+This improved function should better model the true distribution based on the provided examples.

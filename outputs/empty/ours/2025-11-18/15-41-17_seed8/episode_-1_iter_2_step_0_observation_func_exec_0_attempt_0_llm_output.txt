@@ -1,0 +1,82 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    
+    def get_field_of_view(state):
+        """Returns the field of view in front of the agent."""
+        view_size = 3
+        
+        # Get the extents of the square set of tiles visible to the agent
+        if state.agent_dir == Direction.facing_right:
+            topX = state.agent_pos[0]
+            topY = state.agent_pos[1] - view_size // 2
+        elif state.agent_dir == Direction.facing_down:
+            topX = state.agent_pos[0] - view_size // 2
+            topY = state.agent_pos[1]
+        elif state.agent_dir == Direction.facing_left:
+            topX = state.agent_pos[0] - view_size + 1
+            topY = state.agent_pos[1] - view_size // 2
+        elif state.agent_dir == Direction.facing_up:
+            topX = state.agent_pos[0] - view_size // 2
+            topY = state.agent_pos[1] - view_size + 1
+        else:
+            assert False, "invalid agent direction"
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=state.grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, state.grid.shape[0])
+        gy1 = min(topY + view_size, state.grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = state.grid[gx0:gx1, gy0:gy1]
+
+        for _ in range(state.agent_dir + 1):
+            # Rotate left
+            fov = np.rot90(fov.T, k=1).T
+
+        return fov
+
+    def update_agent_position(state, action):
+        """Update the agent's position based on the action."""
+        if action == Actions.forward:
+            new_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+            if 0 <= new_pos[0] < state.width and 0 <= new_pos[1] < state.height:
+                if state.grid[tuple(new_pos)] == ObjectTypes.empty:
+                    state.agent_pos = tuple(new_pos)
+
+    def update_agent_direction(state, action):
+        """Update the agent's direction based on the action."""
+        if action == Actions.left:
+            state.agent_dir = (state.agent_dir - 1) % 4
+        elif action == Actions.right:
+            state.agent_dir = (state.agent_dir + 1) % 4
+
+    # Apply the action to update the state
+    update_agent_direction(state, action)
+    update_agent_position(state, action)
+
+    # Get the field of view based on the updated state
+    fov = get_field_of_view(state)
+
+    # Fill the empty observation with the updated state and field of view
+    empty_obs.image = fov
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+
+    return empty_obs
+```

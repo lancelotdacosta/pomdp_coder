@@ -1,0 +1,142 @@
+To better understand the distribution of observations conditioned on a state, let's break down the problem:
+
+1. **State Representation**: The state is represented by the agent's position `(x, y)` and a tuple of booleans indicating whether each rock is good or bad.
+
+2. **Actions**:
+   - `MOVE_NORTH`, `MOVE_SOUTH`, `MOVE_EAST`, `MOVE_WEST`: These actions move the agent in the respective direction.
+   - `SAMPLE`: This action takes a sample, but it is not relevant to the observation function.
+   - `EXIT`: This action exits the environment, but it is not relevant to the observation function.
+   - `CHECK_ROCK_0`, `CHECK_ROCK_1`: These actions check the quality of the rock at the specified index (0 or 1).
+
+3. **Observation**:
+   - The observation always includes the agent's position `(x, y)`.
+   - If the action is a `CHECK` action and the agent is at the rock's position, the observation includes the rock's index and a noisy reading of whether the rock is good or bad.
+
+Given the examples you provided, it seems that the current implementation only provides a reading if the agent is exactly at the rock's position. However, the real world samples suggest that the agent can still provide a reading even if it is not directly on the rock's position.
+
+To improve the model, we need to consider a non-centered field of view where the agent can still detect the rock's quality from nearby positions. We will introduce a small noise to the agent's position to simulate this.
+
+Here is the improved `observation_func`:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+# -----------------------------------------------------------------------------#
+# Observation Function                                                         #
+# -----------------------------------------------------------------------------#
+
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0  # Convert action to rock index
+        rock_pos = ROCK_POSITIONS[rock_idx]
+        
+        # Check if the agent is within a small radius of the rock
+        if abs(state.x - rock_pos[0]) <= 1 and abs(state.y - rock_pos[1]) <= 1:
+            # If the agent is near the rock's position, provide a noisy reading
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.85:  # Assume 85% accuracy for the sensor
+                obs.is_good = is_good
+            else:
+                obs.is_good = not is_good
+            obs.rock_idx = rock_idx
+
+    return obs
+```
+
+### Explanation:
+1. **Non-Centered Field of View**: The agent can now detect the rock's quality if it is within a 1-cell radius of the rock's position. This is implemented by checking if the absolute difference between the agent's coordinates and the rock's coordinates is less than or equal to 1.
+2. **Noisy Reading**: The sensor reading remains noisy, with an 85% chance of providing the correct reading.
+
+This should better model the true distribution of observations conditioned on the state, as it allows the agent to provide readings even when not directly on top of the rock.

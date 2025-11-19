@@ -1,0 +1,71 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current state's position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    # Determine the rock index if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    if action in CHECK_ACTIONS:
+        if rock_idx is not None and action == (RockSampleActions.CHECK_ROCK_0 + rock_idx):
+            # If the agent checks a rock, provide a noisy reading
+            rock_status = state.rocks[rock_idx]
+            # Introduce noise with a small probability
+            if random.random() < 0.1:  # 10% chance of a noisy reading
+                obs.is_good = not rock_status
+            else:
+                obs.is_good = rock_status
+            obs.rock_idx = rock_idx
+        else:
+            # If the agent is not at a rock or checks a non-existent rock, return NULL
+            obs.rock_idx = None
+            obs.is_good = None
+    else:
+        # For all other actions, return NULL
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+```
+
+### Explanation of the Observation Distribution
+
+The observation distribution is conditioned on the state and the action taken by the agent. Here's how it works:
+
+1. **Agent Position**: The observation always includes the agent's current position `(x, y)`.
+
+2. **Rock Check Actions**:
+   - If the agent performs a `CHECK_ROCK` action (e.g., `CHECK_ROCK_0` or `CHECK_ROCK_1`), the observation will provide a noisy reading of the rock status.
+   - The rock status is determined by the `rocks` tuple in the state. For example, if the rock at index 0 is good (`True`), the agent will usually receive a `GOOD` reading.
+   - However, there is a 10% chance that the reading is noisy and incorrect. This introduces uncertainty into the observation.
+
+3. **Other Actions**:
+   - For all other actions (e.g., moving, exiting), the observation will return `NULL` for both `rock_idx` and `is_good`.
+
+4. **Rocks at Agent's Position**:
+   - The function checks if the agent is at a rock position using the `at_rock` method. If the agent is at a rock and performs a `CHECK_ROCK` action for that rock, it will get a reading.
+   - If the agent is not at a rock or performs a `CHECK_ROCK` action for a different rock, the observation will return `NULL`.
+
+This distribution ensures that the agent can get useful but noisy information about the rocks when checking them, while other actions do not provide additional information.

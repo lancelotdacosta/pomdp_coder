@@ -1,0 +1,51 @@
+Based on the discrepancies between the real world samples and the generated model, it appears that the grid boundaries are not being handled correctly. Specifically, the agent should not move outside the grid boundaries (1 to `GRID_SIZE` for both x and y coordinates).
+
+Here's an improved version of the `transition_func` function that addresses these issues:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample action changes the rock's state
+            new_state.rocks = tuple('B' if i == rock_idx else r for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # Exit action does not change the state
+    elif action in CHECK_ACTIONS:
+        pass  # Sensor check actions do not change the state
+    
+    return new_state
+```
+
+### Explanation of the Changes
+
+1. **Boundary Handling**:
+   - For `MOVE_NORTH`, the y-coordinate is decremented but not allowed to go below 1.
+   - For `MOVE_SOUTH`, the y-coordinate is incremented but not allowed to exceed `GRID_SIZE`.
+   - For `MOVE_EAST`, the x-coordinate is incremented but not allowed to exceed `GRID_SIZE`.
+   - For `MOVE_WEST`, the x-coordinate is decremented but not allowed to go below 1.
+
+2. **State Transition for Sampling**:
+   - When the `SAMPLE` action is taken and the agent is at a rock, the rock's state is changed to 'B' (bad).
+
+3. **No Change for Other Actions**:
+   - The `EXIT` action and sensor check actions (`CHECK_ROCK_0` and `CHECK_ROCK_1`) do not change the state.
+
+These changes ensure that the agent's movement is constrained within the grid boundaries, which should align the generated model more closely with the real-world samples.

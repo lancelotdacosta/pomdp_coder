@@ -1,0 +1,90 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the model's predictions to understand the reward structure better.
+
+### Analysis of Discrepancies
+
+1. **Checking Rock Action (CHECK_ROCK_0, CHECK_ROCK_1):**
+   - In the real world, checking a rock (even if it's bad) gives a reward of -1.0.
+   - In the current model, checking a rock gives no reward (0.0).
+
+2. **Sampling Rock Action (SAMPLE):**
+   - In the real world, sampling a rock can sometimes give a reward of 10.0, even if the rock is bad. This suggests that the state transition might be affecting the reward.
+   - In the current model, sampling a rock gives -1.0 if the rock is bad and 0.0 otherwise.
+
+3. **Exiting the Environment (EXIT):**
+   - In the real world, exiting the environment at (GRID_SIZE, 1) gives a reward of 10.0, but it seems to depend on the state of the rocks.
+   - In the current model, exiting the environment at (GRID_SIZE, 1) always gives a reward of 10.0.
+
+### Improved Reward Function
+
+Given the analysis, we need to adjust the reward function to account for the observations from the real world. Specifically:
+- Checking a rock should always give a reward of -1.0.
+- Sampling a rock might give a reward of 10.0 if the rock is bad and the next state reflects a change in the rock's status.
+- Exiting the environment should give a reward of 10.0 only if all rocks are bad.
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Reward and done flags
+    reward = 0.0
+    done = False
+    
+    # Check if the agent is at a rock position
+    rock_idx = state.at_rock()
+    
+    # Define rewards based on actions
+    if action == RockSampleActions.SAMPLE:
+        if rock_idx is not None:
+            # Sampling a rock gives -1 reward if it's bad, otherwise no reward
+            if not state.rocks[rock_idx]:
+                reward = -1.0
+            else:
+                reward = 10.0 if next_state.rocks[rock_idx] != state.rocks[rock_idx] else 0.0
+        else:
+            # Sampling when not at a rock position gives no reward
+            reward = 0.0
+    elif action == RockSampleActions.EXIT:
+        # Exiting the environment gives a positive reward and ends the episode
+        if (state.x, state.y) == (GRID_SIZE, 1):
+            if all(not rock for rock in state.rocks):
+                reward = 10.0
+            else:
+                reward = 0.0
+            done = True
+        else:
+            reward = 0.0
+    elif action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # Moving actions give no reward
+        reward = 0.0
+    elif action in CHECK_ACTIONS:
+        # Checking rock status gives a reward of -1.0
+        reward = -1.0
+    
+    return reward, done
+```
+
+### Explanation
+
+1. **Checking Rock Action:**
+   - Always gives a reward of -1.0.
+
+2. **Sampling Rock Action:**
+   - If the agent is at a rock position and the rock is bad, it gives -1.0.
+   - If the rock is good and the next state shows the rock becoming bad, it gives a reward of 10.0.
+   - Otherwise, it gives 0.0.
+
+3. **Exiting the Environment:**
+   - Gives a reward of 10.0 if the agent is at (GRID_SIZE, 1) and all rocks are bad.
+   - Ends the episode when the agent exits.
+
+This should better align with the observed real-world distribution.

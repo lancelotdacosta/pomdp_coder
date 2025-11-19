@@ -1,0 +1,89 @@
+Certainly! Let's analyze the given discrepancies and refine the `reward_func` to better match the observed behavior.
+
+### Analysis of Discrepancies
+
+1. **Exit Action at Non-Goal Locations:**
+   - **Observed:** The exit action should only give a positive reward if the agent is at a specific goal location (e.g., the boundary of the grid).
+   - **Current Behavior:** The exit action always gives a reward of 10.0 regardless of the agent's position.
+
+2. **Sampling Action:**
+   - **Observed:** Sampling at a rock should only give a positive reward if the rock's state changes, and it should give a negative reward if the rock's state does not change.
+   - **Current Behavior:** Sampling at a rock where the state does not change correctly gives a negative reward, but there might be issues with other conditions.
+
+3. **Check Actions:**
+   - **Observed:** Check actions should give a negative reward if the agent is not at the correct rock position.
+   - **Current Behavior:** This part seems to be working correctly, but let's ensure it is robust.
+
+### Improved `reward_func`
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    # Movement actions do not give rewards
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        reward = 0.0
+
+    # Sampling action
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if next_state.rocks[rock_idx] != state.rocks[rock_idx]:
+                # The rock was sampled and the type changed
+                reward = 10.0
+            else:
+                # The rock was not changed (bad sample)
+                reward = -1.0
+        else:
+            # Sampled at a location with no rock
+            reward = -10.0
+
+    # Exit action
+    elif action == RockSampleActions.EXIT:
+        # Check if the agent is at the boundary of the grid
+        if state.x == 0 or state.x == GRID_SIZE - 1 or state.y == 0 or state.y == GRID_SIZE - 1:
+            reward = 10.0
+            done = True
+        else:
+            reward = 0.0
+
+    # Check actions
+    elif action in [RockSampleActions.CHECK_ROCK_0, RockSampleActions.CHECK_ROCK_1]:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            # At the correct rock position
+            reward = 0.0
+        else:
+            # Not at the correct rock position
+            reward = -1.0
+
+    return reward, done
+```
+
+### Explanation
+
+1. **Exit Action:**
+   - The exit action now checks if the agent is at the boundary of the grid (i.e., `x == 0`, `x == GRID_SIZE - 1`, `y == 0`, or `y == GRID_SIZE - 1`). If the agent is at the boundary, it gives a positive reward of 10.0 and sets `done` to `True`. Otherwise, it gives a reward of 0.0.
+
+2. **Sampling Action:**
+   - If the agent samples at a rock and the rock's state changes, it gives a positive reward of 10.0.
+   - If the agent samples at a rock and the rock's state does not change, it gives a negative reward of -1.0.
+   - If the agent samples at a location with no rock, it gives a negative reward of -10.0.
+
+3. **Check Actions:**
+   - If the agent checks a rock at the correct position, it gives a reward of 0.0.
+   - If the agent checks a rock at an incorrect position, it gives a negative reward of -1.0.
+
+This should better match the observed behavior from the real world.

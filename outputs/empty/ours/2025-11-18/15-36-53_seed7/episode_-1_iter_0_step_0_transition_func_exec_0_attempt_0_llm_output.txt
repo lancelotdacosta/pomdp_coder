@@ -1,0 +1,161 @@
+Certainly! Let's start by explaining the distribution of next states conditioned on actions and previous states.
+
+### Explanation
+
+1. **Action: Turn Left (0)**
+   - The agent rotates counterclockwise by 90 degrees.
+   - The position and grid remain unchanged.
+   - Example: If the agent is facing right (0), it will now face down (1).
+
+2. **Action: Turn Right (1)**
+   - The agent rotates clockwise by 90 degrees.
+   - The position and grid remain unchanged.
+   - Example: If the agent is facing left (2), it will now face up (3).
+
+3. **Action: Move Forward (2)**
+   - The agent moves one cell in the direction it is facing.
+   - If the cell in front of the agent is a wall or out of bounds, the agent remains in its current position.
+   - The grid remains unchanged.
+   - Example: If the agent is at (1, 1) facing right (0), it will move to (2, 1).
+
+4. **Action: Pickup (3)**
+   - The agent attempts to pick up an object from the cell in front of it.
+   - If the cell contains an object and the agent is not carrying anything, the agent picks up the object.
+   - The object is removed from the grid.
+   - Example: If the agent is at (3, 2) facing right (0) and there is a key in front, the agent picks up the key.
+
+5. **Action: Drop (4)**
+   - The agent drops the object it is carrying in the cell in front of it.
+   - If the cell is empty, the object is placed there.
+   - Example: If the agent is at (3, 2) facing right (0) and carrying a key, it drops the key in front.
+
+6. **Action: Toggle (5)**
+   - The agent toggles an object in the cell in front of it.
+   - This can involve opening a door, closing a door, or interacting with other objects.
+   - Example: If the agent is at (3, 2) facing right (0) and there is a closed door in front, it opens the door.
+
+7. **Action: Done (6)**
+   - The agent signals that it has completed its task.
+   - No changes are made to the state.
+   - Example: If the agent is at (1, 1) facing right (0), the state remains unchanged.
+
+### Implementation of `transition_func`
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (MinigridState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (MinigridState): the new state of the environment
+    """
+    def move_forward(state):
+        new_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+        if 0 <= new_pos[0] < state.width and 0 <= new_pos[1] < state.height:
+            if state.grid[tuple(new_pos)] != ObjectTypes.wall:
+                return MinigridState(
+                    grid=state.grid.copy(),
+                    agent_pos=tuple(new_pos),
+                    agent_dir=state.agent_dir,
+                    carrying=state.carrying
+                )
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=state.agent_dir,
+            carrying=state.carrying
+        )
+
+    def turn_left(state):
+        new_dir = (state.agent_dir - 1) % 4
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_dir,
+            carrying=state.carrying
+        )
+
+    def turn_right(state):
+        new_dir = (state.agent_dir + 1) % 4
+        return MinigridState(
+            grid=state.grid.copy(),
+            agent_pos=state.agent_pos,
+            agent_dir=new_dir,
+            carrying=state.carrying
+        )
+
+    def pickup_object(state):
+        if state.carrying is not None:
+            return state
+        front_pos = state.front_pos
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            cell_type = state.grid[front_pos]
+            if cell_type in [ObjectTypes.key, ObjectTypes.ball, ObjectTypes.box]:
+                new_grid = state.grid.copy()
+                new_grid[front_pos] = ObjectTypes.empty
+                return MinigridState(
+                    grid=new_grid,
+                    agent_pos=state.agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=cell_type
+                )
+        return state
+
+    def drop_object(state):
+        if state.carrying is None:
+            return state
+        front_pos = state.front_pos
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            cell_type = state.grid[front_pos]
+            if cell_type == ObjectTypes.empty:
+                new_grid = state.grid.copy()
+                new_grid[front_pos] = state.carrying
+                return MinigridState(
+                    grid=new_grid,
+                    agent_pos=state.agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=None
+                )
+        return state
+
+    def toggle_object(state):
+        front_pos = state.front_pos
+        if 0 <= front_pos[0] < state.width and 0 <= front_pos[1] < state.height:
+            cell_type = state.grid[front_pos]
+            if cell_type in [ObjectTypes.closed_door, ObjectTypes.open_door]:
+                new_grid = state.grid.copy()
+                if cell_type == ObjectTypes.closed_door:
+                    new_grid[front_pos] = ObjectTypes.open_door
+                else:
+                    new_grid[front_pos] = ObjectTypes.closed_door
+                return MinigridState(
+                    grid=new_grid,
+                    agent_pos=state.agent_pos,
+                    agent_dir=state.agent_dir,
+                    carrying=state.carrying
+                )
+        return state
+
+    def done(state):
+        return state
+
+    if action == Actions.left:
+        return turn_left(state)
+    elif action == Actions.right:
+        return turn_right(state)
+    elif action == Actions.forward:
+        return move_forward(state)
+    elif action == Actions.pickup:
+        return pickup_object(state)
+    elif action == Actions.drop:
+        return drop_object(state)
+    elif action == Actions.toggle:
+        return toggle_object(state)
+    elif action == Actions.done:
+        return done(state)
+    else:
+        raise ValueError(f"Invalid action: {action}")
+```
+
+This implementation covers the transition logic for all the actions in the MiniGrid environment, ensuring that the agent's state changes appropriately based on the action taken.

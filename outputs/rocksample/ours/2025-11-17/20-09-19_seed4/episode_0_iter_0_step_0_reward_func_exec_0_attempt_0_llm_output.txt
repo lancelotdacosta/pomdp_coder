@@ -1,0 +1,51 @@
+Certainly! Based on the provided environment samples, it appears that the reward is primarily conditioned on the action taken and the state transition. Here's an English explanation:
+
+1. **Movement Actions** (`MOVE_NORTH`, `MOVE_SOUTH`, `MOVE_EAST`, `MOVE_WEST`): These actions generally do not yield any immediate reward. The primary goal is to navigate the grid without directly earning rewards for movement.
+2. **Sampling Action** (`SAMPLE`): This action also does not yield a reward based on the provided samples. However, it could potentially interact with the rocks, but we don't have enough information to determine if this action has a specific reward condition.
+3. **Exit Action** (`EXIT`): This action is not present in the samples, but it might be used to end the episode and could potentially yield a reward depending on the state of the environment.
+4. **Check Rock Actions** (`CHECK_ROCK_0`, `CHECK_ROCK_1`): These actions do not yield any immediate reward based on the provided samples. They are likely used for gathering information about the quality of the rocks.
+
+Given these observations, the reward function can be implemented as follows:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Default reward and done flag
+    reward = 0.0
+    done = False
+
+    # Handle movement actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # No immediate reward for movement actions
+        pass
+
+    # Handle sampling action
+    elif action == RockSampleActions.SAMPLE:
+        # No immediate reward for sampling action based on provided samples
+        pass
+
+    # Handle exit action (not present in samples, but for completeness)
+    elif action == RockSampleActions.EXIT:
+        # This could be a terminal action with potential reward
+        done = True
+        # Reward could be based on the state of the rocks or other conditions
+        # For now, no specific reward condition is provided
+        pass
+
+    # Handle check rock actions
+    elif action in CHECK_ACTIONS:
+        # No immediate reward for checking rock based on provided samples
+        pass
+
+    return reward, done
+```
+
+This implementation ensures that the reward function is directly runnable and returns the appropriate `reward` and `done` values based on the provided environment samples. The function can be extended as more information becomes available about the specific conditions under which rewards are given and episodes are terminated.

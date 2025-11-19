@@ -1,0 +1,128 @@
+Certainly! Let's start by explaining the distribution of observations conditioned on a state in English:
+
+### Distribution of Observations Conditioned on a State
+
+1. **State Variables**:
+   - The state is defined by the agent's position `(x, y)` and the quality of each rock (`rocks`), which is a tuple of boolean values indicating whether each rock is good or bad.
+
+2. **Actions**:
+   - The agent can perform actions such as moving, checking rocks, sampling, or exiting.
+   - For the `CHECK_ROCK` actions, the agent can check the quality of a specific rock at its current position.
+
+3. **Observations**:
+   - The observation for actions other than `CHECK_ROCK` is always `None` for `rock_idx` and `is_good`.
+   - For `CHECK_ROCK` actions:
+     - If the agent is at the position of the rock it is checking, it will receive an observation with the rock's index (`rock_idx`) and a noisy reading of whether the rock is good (`is_good`).
+     - If the agent is not at the position of the rock it is checking, it will receive an observation with `None` for both `rock_idx` and `is_good`.
+
+### Issue in the Current Code
+
+The current code has a logical issue where it only checks if the agent is at the rock's position when performing a `CHECK_ROCK` action. If the agent is not at the rock's position, it returns an empty observation. However, in the real world, the agent might still believe it is performing a check even if it is not at the correct position.
+
+### Improved Code
+
+To better model the true distribution, we need to account for the possibility that the agent might mistakenly believe it is at a rock's position even when it is not. This can be modeled by introducing a small probability that the agent makes a mistake about its position.
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# Domain parameters (feel free to tweak)
+NUM_ROCKS = 2
+GRID_SIZE = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]  # len == NUM_ROCKS
+
+# Actions
+class RockSampleActions(enum.IntEnum):
+    MOVE_NORTH = 0
+    MOVE_SOUTH = 1
+    MOVE_EAST = 2
+    MOVE_WEST = 3
+    SAMPLE = 4
+    EXIT = 5
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# Observation
+@dataclass
+class RockSampleObservation(Observation):
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# State
+@dataclass
+class RockSampleState(State):
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    def at_rock(self) -> int | None:
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+def observation_func(state, action, empty_obs):
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0  # Convert action to rock index
+        rock_pos = ROCK_POSITIONS[rock_idx]
+
+        # Introduce a small probability of the agent being mistaken about its position
+        if (state.x, state.y) == rock_pos or random.random() < 0.1:  # 10% chance of mistake
+            rock_is_good = state.rocks[rock_idx]
+            if random.random() < 0.9:  # 90% chance of correct reading
+                obs.rock_idx = rock_idx
+                obs.is_good = rock_is_good
+            else:
+                obs.rock_idx = rock_idx
+                obs.is_good = not rock_is_good
+        else:
+            obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+    else:
+        obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    return obs
+```
+
+### Explanation of the Changes
+
+1. **Mistaken Position**:
+   - Added a 10% chance that the agent believes it is at the rock's position even if it is not. This introduces a small probability of error in the agent's position belief.
+
+2. **Noisy Reading**:
+   - The noisy reading for the rock's quality remains the same, with a 90% chance of being correct and a 10% chance of being incorrect.
+
+This improved model should better capture the true distribution of observations conditioned on a state, especially in cases where the agent might be mistaken about its position.

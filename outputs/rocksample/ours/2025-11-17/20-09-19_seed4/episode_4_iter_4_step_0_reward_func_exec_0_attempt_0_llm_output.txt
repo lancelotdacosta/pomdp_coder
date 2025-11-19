@@ -1,0 +1,67 @@
+The reward conditioned on state, action, and next state transition in the RockSample environment can be described as follows:
+
+1. **Exit Action**:
+   - If the agent exits, the episode ends with a reward of 10 if no rocks are bad.
+   - The episode ends with a certain probability (e.g., 80%).
+
+2. **Sample Action**:
+   - If the agent samples a rock, it gets a reward based on the quality of the rock:
+     - 10.0 if the rock is good.
+     - -10.0 if the rock is bad.
+   - The episode might or might not end after sampling (e.g., 50% chance).
+
+3. **Check Rock Actions**:
+   - If the agent performs a check rock action, it receives a small penalty (e.g., -1.0).
+   - The episode does not end.
+
+4. **Move Actions**:
+   - For all other actions (move), there is no immediate reward.
+   - The episode does not end.
+
+From the provided samples, it seems that the episode ending probability for the exit action should be more flexible and that the reward for the exit action should be more consistent with the actual state of the rocks.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the resulting state transition
+    if action == RockSampleActions.EXIT:
+        # If the agent exits, the episode ends with a reward of 10 if no rocks are bad
+        if all(rock for rock in state.rocks):
+            reward = 10.0
+        else:
+            reward = 0.0
+        # Introduce some randomness to match the observed data
+        done = random.random() < 0.8  # 80% chance of ending the episode
+    elif action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock, it gets a reward based on the quality of the rock
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            reward = 10.0 if state.rocks[rock_idx] else -10.0
+            # The episode might or might not end after sampling
+            done = random.random() < 0.5  # 50% chance of ending the episode
+        else:
+            reward = 0.0
+            done = False
+    elif action in CHECK_ACTIONS:
+        # If the agent performs a check rock action, it receives a small penalty
+        reward = -1.0
+        done = False
+    else:
+        # For all other actions (move), there is no immediate reward
+        reward = 0.0
+        done = False
+
+    return reward, done
+```
+
+This function should better match the observed distribution by ensuring that the exit action's reward and episode ending probability are consistent with the provided samples. The sample actions and move actions remain unchanged, as they already match the observed behavior.

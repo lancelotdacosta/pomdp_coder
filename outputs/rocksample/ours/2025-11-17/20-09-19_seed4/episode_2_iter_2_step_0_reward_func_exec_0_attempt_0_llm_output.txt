@@ -1,0 +1,91 @@
+Certainly! Let's first explain the reward structure based on the given environment and the discrepancies observed.
+
+### Reward Structure Explanation
+
+1. **Exit Action (5)**:
+   - The agent should only receive a reward for exiting if it is at a specific exit position. If the agent exits from an incorrect position, it should not receive the reward and the episode should not terminate.
+   - The reward for exiting is calculated based on the number of good rocks sampled.
+
+2. **Sample Action (4)**:
+   - If the agent is at a rock and samples it, the rock's status changes to bad (False).
+   - The reward for sampling a good rock is +10, and for a bad rock is -10.
+
+3. **Check Actions (6, 7)**:
+   - These actions provide a noisy reading of the rock's status.
+   - The sensor is 90% accurate, so it returns the correct rock status with 90% probability and the opposite with 10% probability.
+   - The reward for checking a rock is +1 if the rock is good and -1 if the rock is bad.
+
+4. **Movement Actions (0, 1, 2, 3)**:
+   - No reward for movement actions.
+
+### Improved Reward Function
+
+Let's improve the `reward_func` function to better match the true distribution based on the explanation above:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flag
+    reward = 0.0
+    done = False
+
+    # Exit action
+    if action == RockSampleActions.EXIT:
+        # Only reward for exiting if the agent is at a specific exit position
+        if (state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]:
+            done = True
+            # Reward for exiting depends on the number of good rocks sampled
+            num_good_rocks_sampled = sum(state.rocks)
+            reward = 10.0 * num_good_rocks_sampled - 10.0 * (NUM_ROCKS - num_good_rocks_sampled)
+
+    # Sample action
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rock_status = state.rocks[rock_idx]
+            # If the agent is at a rock and samples it, the rock's status changes to False (bad)
+            next_state_rocks = list(next_state.rocks)
+            next_state_rocks[rock_idx] = False
+            next_state.rocks = tuple(next_state_rocks)
+            # Reward for sampling a good rock
+            if rock_status:
+                reward = 10.0
+            else:
+                reward = -10.0
+
+    # Check actions
+    elif action in CHECK_ACTIONS:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.9:  # 90% accurate
+                reward = 1.0 if is_good else -1.0
+            else:
+                reward = 1.0 if not is_good else -1.0
+
+    return reward, done
+```
+
+### Explanation of Changes
+
+1. **Exit Action**:
+   - Added a condition to check if the agent is at a specific exit position before rewarding and terminating the episode.
+
+2. **Sample Action**:
+   - The sample action logic remains the same as it was already correct.
+
+3. **Check Actions**:
+   - The check actions logic remains the same as it was already correct.
+
+4. **Movement Actions**:
+   - No changes needed as no reward is given for movement actions.
+
+This should better align the generated rewards with the observed distribution from the real world.

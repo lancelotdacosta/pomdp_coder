@@ -1,0 +1,49 @@
+Based on the provided samples and the observed discrepancies, it appears that the real world environment has a different interpretation of the bounds when moving north. Specifically, when the agent is at the top boundary (y=0) and takes the `MOVE_NORTH` action, the agent might wrap around to the bottom boundary (y=GRID_SIZE-1) instead of staying in place or moving to y=0.
+
+To better model this behavior, we need to adjust the transition function to account for this wrapping behavior. Here's the improved `transition_func`:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y = state.x, state.y
+    rocks = list(state.rocks)
+    
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH,
+                  RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # Calculate new position based on action
+        if action == RockSampleActions.MOVE_NORTH:
+            y = (y - 1) % GRID_SIZE  # Wrap around the grid
+        elif action == RockSampleActions.MOVE_SOUTH:
+            y = (y + 1) % GRID_SIZE  # Wrap around the grid
+        elif action == RockSampleActions.MOVE_EAST:
+            x = (x + 1) % GRID_SIZE  # Wrap around the grid
+        elif action == RockSampleActions.MOVE_WEST:
+            x = (x - 1) % GRID_SIZE  # Wrap around the grid
+    
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks[rock_idx] = False  # Sample the rock, changing its state to bad
+    
+    elif action == RockSampleActions.EXIT:
+        # Exit action does not change the state
+        pass
+    
+    # Create new state with updated position and rock states
+    new_state = RockSampleState(x, y, tuple(rocks))
+    return new_state
+```
+
+### Explanation of the Changes
+
+1. **Wrapping Behavior**: The key change is in the way the agent's position is updated when it moves north, south, east, or west. Instead of clamping the position to the grid boundaries, we use the modulo operator (`%`) to wrap around the grid. This ensures that if the agent moves north from the top boundary (y=0), it will appear at the bottom boundary (y=GRID_SIZE-1).
+
+2. **Generalization**: The changes are applied to all movement actions (north, south, east, and west) to ensure consistent behavior across all directions.
+
+This should better model the true distribution of next states in the real world environment.

@@ -1,0 +1,40 @@
+Based on the provided samples, it appears that the discrepancy lies in the way the robot's position is updated when performing the `MOVE_NORTH` action. Specifically, the robot should move north (i.e., decrease its y-coordinate) unless it is already at the top boundary of the grid (y=1). However, the current implementation is incorrectly clamping the y-coordinate to a minimum of 1 instead of allowing it to increase when it is already at the top boundary.
+
+To better model the true distribution, the `transition_func` function needs to be adjusted to correctly handle the `MOVE_NORTH` action. Specifically, the y-coordinate should be decreased by 1 unless the robot is already at the top boundary (y=1).
+
+Here is the improved `transition_func` function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sampling the rock changes its state with some probability
+            if random.random() < 0.5:  # 50% chance to change state
+                new_state.rocks = new_state.rocks[:rock_idx] + (not new_state.rocks[rock_idx],) + new_state.rocks[rock_idx+1:]
+    elif action == RockSampleActions.EXIT:
+        pass  # The agent stays in the same position
+    elif action in CHECK_ACTIONS:
+        pass  # Checking a rock does not change the state
+
+    return new_state
+```
+
+The key change is in the `MOVE_NORTH` action, where the y-coordinate is correctly clamped to a minimum of 1. This ensures that the robot does not move above the top boundary of the grid. This adjustment should align the model's behavior more closely with the observed samples from the real world.

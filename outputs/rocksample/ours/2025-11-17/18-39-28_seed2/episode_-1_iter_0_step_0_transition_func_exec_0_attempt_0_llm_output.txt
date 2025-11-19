@@ -1,0 +1,52 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(0, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(0, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample the rock and change its state
+            new_state.rocks = new_state.rocks[:rock_idx] + (False,) + new_state.rocks[rock_idx + 1:]
+    elif action == RockSampleActions.EXIT:
+        # No change in state
+        pass
+    elif action in CHECK_ACTIONS:
+        # Checking a rock does not change the state
+        pass
+    
+    return new_state
+```
+
+### Explanation of the Distribution of Next States Conditioned on Actions and Previous States
+
+1. **Movement Actions**:
+   - **MOVE_NORTH**: The agent moves one step north, but it cannot move beyond the grid boundary (y=0).
+   - **MOVE_SOUTH**: The agent moves one step south, but it cannot move beyond the grid boundary (y=GRID_SIZE-1).
+   - **MOVE_EAST**: The agent moves one step east, but it cannot move beyond the grid boundary (x=GRID_SIZE-1).
+   - **MOVE_WEST**: The agent moves one step west, but it cannot move beyond the grid boundary (x=0).
+
+2. **Sample Action**:
+   - If the agent is at a rock's position, sampling the rock changes its state from good (True) to bad (False). The rock's index is determined by checking if the agent's current position matches any rock position in `ROCK_POSITIONS`.
+
+3. **Exit Action**:
+   - The EXIT action does not change the state of the environment.
+
+4. **Check Actions**:
+   - CHECK_ROCK_0 and CHECK_ROCK_1 actions do not change the state of the environment. They are used for observations, which are not relevant to the state transition.
+
+This implementation ensures that the transition function correctly models the next state based on the given action and the current state of the environment.

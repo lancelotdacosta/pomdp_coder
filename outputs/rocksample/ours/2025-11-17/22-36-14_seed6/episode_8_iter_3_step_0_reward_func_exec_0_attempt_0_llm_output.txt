@@ -1,0 +1,113 @@
+Certainly! Let's break down the reward function and then improve it based on the observed discrepancies.
+
+### Explanation of Reward Function
+
+1. **Sampling a Rock**:
+   - If the agent is at a rock location and samples it, the reward depends on whether the rock is good or bad.
+   - A good rock gives a reward of +10.
+   - A bad rock gives a reward of -10.
+   - The rock state is updated to bad after sampling, but this does not affect the next state in the reward function.
+   - Sampling does not end the episode.
+
+2. **Exiting the Environment**:
+   - If the agent is at the exit position (0, 0) and exits, the episode ends.
+   - No specific reward is given for exiting, but the episode terminates.
+
+3. **Checking a Rock**:
+   - If the agent checks a rock, a small negative reward of -1 is given.
+
+4. **Moving**:
+   - If the agent moves, no reward is given unless it tries to move out of bounds.
+   - Trying to move out of bounds results in a small penalty of -1.
+
+5. **No Action**:
+   - If the action does not fit any of the above categories, no reward is given.
+
+### Observed Discrepancies
+
+1. **Sampling at (4, 1)**:
+   - Real world: Reward = 10.0, Done = True
+   - Your code: Reward = 0.0, Done = False
+   - Issue: The position (4, 1) is not a rock position, so the agent should not be able to sample a rock there. This suggests a potential issue with rock positions or the logic for sampling.
+
+2. **Moving at (4, 0)**:
+   - Real world: Reward = 0.0, Done = False
+   - Your code: Reward = -1.0, Done = False
+   - Issue: Moving out of bounds gives a penalty, but (4, 0) is within bounds, so no penalty should be given.
+
+3. **Exiting at (0, 0)**:
+   - Real world: Reward = 0.0, Done = False
+   - Your code: Reward = 0.0, Done = True
+   - Issue: Exiting at (0, 0) does not end the episode in the real world.
+
+4. **Moving at (0, 2)**:
+   - Real world: Reward = 0.0, Done = False
+   - Your code: Reward = -1.0, Done = False
+   - Issue: Moving out of bounds gives a penalty, but (0, 2) is within bounds, so no penalty should be given.
+
+5. **Sampling at (4, 2)**:
+   - Real world: Reward = 10.0, Done = True
+   - Your code: Reward = 0.0, Done = False
+   - Issue: The position (4, 2) is not a rock position, so the agent should not be able to sample a rock there. This suggests a potential issue with rock positions or the logic for sampling.
+
+### Improved Code
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    reward = 0.0
+    done = False
+
+    if action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock
+        rock_idx = state.at_rock()
+        if rock_idx is not None and rock_idx < NUM_ROCKS:
+            if state.rocks[rock_idx]:  # Good rock
+                reward = 10.0
+            else:  # Bad rock
+                reward = -10.0
+            # Update rock state to bad after sampling
+            next_rocks = list(next_state.rocks)
+            next_rocks[rock_idx] = False
+            next_state.rocks = tuple(next_rocks)
+            done = False  # Episode does not end after sampling
+
+    if action == RockSampleActions.EXIT:
+        # If the agent exits the environment
+        if state.x == 0 and state.y == 0:  # Assuming (0, 0) is the exit position
+            done = False  # Episode does not end in the real world
+
+    if action in CHECK_ACTIONS:
+        # If the agent checks a rock, give a small negative reward
+        reward = -1.0
+
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # If the agent moves, no reward is given unless it tries to move out of bounds
+        if state.x != next_state.x or state.y != next_state.y:
+            reward = 0.0
+        else:
+            reward = -1.0  # Smaller penalty for trying to move out of bounds
+
+    return reward, done
+```
+
+### Summary of Changes
+
+1. **Sampling Logic**:
+   - Added a check to ensure the rock index is within the valid range (`rock_idx < NUM_ROCKS`).
+
+2. **Exiting Logic**:
+   - Changed `done` to `False` when the agent exits at (0, 0) to match the real world behavior.
+
+3. **Movement Logic**:
+   - Ensured that moving within bounds does not give a penalty.
+
+These changes should bring the reward function closer to the true distribution observed in the real world.

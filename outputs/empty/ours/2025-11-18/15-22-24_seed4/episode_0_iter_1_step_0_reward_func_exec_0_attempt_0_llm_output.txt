@@ -1,0 +1,89 @@
+Certainly! Let's analyze the discrepancies between the observed real-world behavior and the current model.
+
+### Analysis of Discrepancies:
+
+1. **Turning In Place**:
+   - If the agent turns in place (left or right), and no other significant changes occur, the reward should be `0` and the episode should not be done. Your current model was giving `-0.1` for these cases.
+
+2. **Moving into an Object**:
+   - If the agent moves forward (`forward` action) into an object that is not a wall (e.g., a goal, key, ball, etc.), the reward should be `0` and the episode should not be done. Your current model was giving `-1` for these cases.
+
+3. **Moving into an Empty Cell**:
+   - If the agent moves forward into an empty cell, the reward should be `0` and the episode should not be done. Your current model was giving `-1` for these cases.
+
+4. **Dropping an Object**:
+   - If the agent drops an object and it lands on an empty cell or another object, the reward should be `0` and the episode should not be done. Your current model was giving `-1` for these cases.
+
+5. **Picking Up an Object**:
+   - If the agent picks up an object and it is a valid action (i.e., the object is in front of the agent), the reward should be `0` and the episode should not be done. Your current model was giving `-1` for these cases.
+
+### Improved Reward Function:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent has reached the goal
+    goal_pos = next_state.get_type_indices(ObjectTypes.goal)
+    if goal_pos and next_state.agent_pos in goal_pos:
+        return 1, True
+
+    # Check if the agent has moved into a wall
+    front_pos = next_state.front_pos
+    if state.grid[front_pos] == ObjectTypes.wall:
+        return -1, False
+
+    # Check if the agent has taken an action that does not change its position
+    if state.agent_pos == next_state.agent_pos and action != Actions.done:
+        # Only penalize if the agent is not turning in place
+        if action not in [Actions.left, Actions.right]:
+            return -0.1, False
+        else:
+            return 0, False
+
+    # Check if the agent has moved forward into an object or empty cell
+    if action == Actions.forward and state.agent_pos != next_state.agent_pos:
+        front_pos = next_state.agent_pos
+        if state.grid[front_pos] != ObjectTypes.wall:
+            return 0, False
+
+    # Check if the agent has dropped an object on an empty cell or another object
+    if action == Actions.drop and state.carrying is not None and next_state.carrying is None:
+        return 0, False
+
+    # Check if the agent has picked up an object
+    if action == Actions.pickup and state.carrying is None and next_state.carrying is not None:
+        return 0, False
+
+    # If none of the above conditions are met, the reward is 0 and the episode is not done
+    return 0, False
+```
+
+### Explanation:
+
+1. **Goal Reached**:
+   - If the agent reaches the goal, the reward is `1` and the episode is done.
+
+2. **Moving into a Wall**:
+   - If the agent moves forward into a wall, the reward is `-1` and the episode continues.
+
+3. **Turning In Place**:
+   - If the agent turns in place (left or right), the reward is `0` and the episode continues.
+
+4. **Moving into an Object or Empty Cell**:
+   - If the agent moves forward into an object or an empty cell, the reward is `0` and the episode continues.
+
+5. **Dropping an Object**:
+   - If the agent drops an object, the reward is `0` and the episode continues.
+
+6. **Picking Up an Object**:
+   - If the agent picks up an object, the reward is `0` and the episode continues.
+
+This should better align with the observed real-world behavior and improve the accuracy of your model.

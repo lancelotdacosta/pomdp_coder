@@ -1,0 +1,78 @@
+Certainly! Let's analyze the discrepancies and correct the `reward_func` function to better model the true distribution.
+
+### Analysis of Discrepancies
+
+1. **Exiting the Grid**:
+   - The exit action should only provide a reward if the agent is at the exit position `(0, 0)`.
+   - Your current implementation correctly handles this case.
+
+2. **Sampling a Rock**:
+   - If the agent samples a rock, it should receive a reward based on whether the rock is good or bad.
+   - Your current implementation correctly handles this case.
+
+3. **Checking a Rock**:
+   - If the agent checks a rock but is not at the rock's position, it should receive a penalty.
+   - Your current implementation correctly handles this case.
+
+4. **Exit Action**:
+   - The exit action should provide a reward of 10.0 and mark the episode as done if the agent is at any position in the grid.
+   - This is a discrepancy in your current implementation. The exit action should always provide a reward of 10.0 and mark the episode as done, regardless of the agent's position.
+
+### Corrected `reward_func` Function
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        return 10.0, True
+
+    # Check if the agent is sampling a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:  # Good rock
+                return 10.0, False
+            else:  # Bad rock
+                return -10.0, False
+        else:
+            return -1.0, False  # Sampling but not at a rock
+
+    # Check if the agent is checking a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (state.x, state.y) == ROCK_POSITIONS[rock_idx]:
+            return 0.0, False
+        else:
+            return -1.0, False  # Checking but not at a rock
+
+    # Default reward for moving actions
+    return 0.0, False
+```
+
+### Explanation
+
+1. **Exiting the Grid**:
+   - The exit action now always provides a reward of 10.0 and marks the episode as done, regardless of the agent's position.
+
+2. **Sampling a Rock**:
+   - The logic remains the same: if the agent is at a rock and samples it, the reward depends on whether the rock is good or bad. If the agent samples but is not at a rock, a penalty of -1.0 is given.
+
+3. **Checking a Rock**:
+   - The logic remains the same: if the agent checks a rock but is not at its position, a penalty of -1.0 is given.
+
+4. **Moving Actions**:
+   - For all other actions (moving actions), the default reward is 0.0 and the episode is not marked as done.
+
+This should better align with the observed distribution from the real world.

@@ -1,0 +1,73 @@
+Certainly! Let's analyze the discrepancies between the observed real-world samples and the outputs from your current model. This will help us understand how to improve the `reward_func` function.
+
+### Analysis of Discrepancies
+
+1. **Sampling at a Rock**:
+   - In the real world, sampling a rock can give a positive reward if the rock is bad (i.e., `rocks[rock_idx] == False`), and a negative reward if the rock is good (i.e., `rocks[rock_idx] == True`).
+   - Your current model correctly handles this, but it seems to have issues with the transition of the state's rock quality.
+
+2. **Exiting the Grid**:
+   - The real world only gives a reward of 10.0 and sets `done` to `True` if the agent exits from the correct positions: `(0, 0)` or `(GRID_SIZE - 1, GRID_SIZE - 1)`.
+   - Your model incorrectly gives a reward of 10.0 if the agent exits from any position, regardless of its coordinates.
+
+3. **Checking Rocks**:
+   - The real world consistently gives a small negative reward of -1.0 for checking rocks, which your model correctly handles.
+
+### Improved `reward_func`
+
+To address these issues, we need to ensure that:
+- The reward for sampling a rock is based on the true state of the rock, and the state should not change after sampling.
+- The reward for exiting the grid is only given when the agent exits from the correct positions.
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state-action-next_state transition
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid from the correct position
+    if action == RockSampleActions.EXIT:
+        if (state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return -10.0, False  # Sampling a good rock gives negative reward
+            else:
+                return 10.0, False   # Sampling a bad rock gives positive reward
+        else:
+            return -10.0, False      # Sampling an empty cell gives negative reward
+
+    # Check if the agent performed a CHECK_ROCK action
+    if action in CHECK_ACTIONS:
+        return -1.0, False  # Small negative reward for checking rocks
+
+    # For other actions (move), no reward is given
+    return 0.0, False
+```
+
+### Explanation of Changes
+
+1. **Exiting the Grid**:
+   - The condition `(state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]` ensures that the reward of 10.0 and `done` set to `True` is only given when the agent exits from the correct positions.
+
+2. **Sampling a Rock**:
+   - The reward is based on the true state of the rock (`state.rocks[rock_idx]`), and the state does not change after sampling. This ensures that the transition to `next_state` does not affect the reward calculation.
+
+3. **Checking Rocks**:
+   - The reward for checking rocks remains consistent with the real-world behavior, giving a small negative reward of -1.0.
+
+This improved function should better align with the observed real-world samples and provide more accurate rewards and termination conditions.

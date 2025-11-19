@@ -1,0 +1,71 @@
+Certainly! Let's analyze the issue and then improve the `reward_func` function.
+
+### Analysis
+1. **Exit Action**:
+   - The exit action should only provide a reward of 10.0 and terminate the episode if the agent is at one of the valid exit positions: (0, 0) or (4, 4).
+   - The current code correctly checks for these positions, but it seems there are other positions from which the agent can exit the grid in the real world.
+
+2. **Sampling Action**:
+   - The sampling action should provide a reward based on the type of rock at the current position.
+   - The current implementation is correct for this part.
+
+3. **Check Actions**:
+   - Check actions should always provide a reward of -1.0, regardless of the agent's position.
+   - The current implementation is correct for this part.
+
+### Improvements
+To better model the true distribution, we need to account for the fact that the agent can exit the grid from any position along the boundary, not just (0, 0) and (4, 4).
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        # The agent can exit the grid from any position along the boundary
+        if state.x in [0, GRID_SIZE - 1] or state.y in [0, GRID_SIZE - 1]:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return 0.0, False
+
+    # Check if the agent has performed a CHECK action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        return -1.0, False
+
+    # For all other actions, no reward is given
+    return 0.0, False
+```
+
+### Explanation
+1. **Exit Action**:
+   - The agent can now exit the grid from any position along the boundary, i.e., where `state.x` or `state.y` is either 0 or `GRID_SIZE - 1`. This change allows the agent to exit from any valid boundary position.
+
+2. **Sampling Action**:
+   - The sampling action logic remains unchanged. It checks if the agent is at a rock and provides a reward based on the type of rock (good or bad).
+
+3. **Check Actions**:
+   - The check actions logic remains unchanged. They always provide a reward of -1.0, regardless of the agent's position.
+
+This improved function should better model the true distribution of rewards in the environment.

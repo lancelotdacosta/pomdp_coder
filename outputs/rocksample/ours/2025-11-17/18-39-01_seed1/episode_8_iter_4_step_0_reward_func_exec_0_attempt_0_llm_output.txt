@@ -1,0 +1,64 @@
+Certainly! Let's first understand the reward conditioned on the state, action, and next state transition in English:
+
+1. **Exit Action**:
+   - If the agent performs the `EXIT` action and is at one of the specific exit locations `(0, 0)` or `(GRID_SIZE - 1, GRID_SIZE - 1)`, it receives a reward of `10.0` and the episode ends (`done = True`).
+   - If the agent performs the `EXIT` action but is not at one of the specific exit locations, it receives a reward of `0.0` and the episode does not end (`done = False`).
+
+2. **Sample Action**:
+   - If the agent performs the `SAMPLE` action and is at a rock location, it receives a reward based on the quality of the rock:
+     - `10.0` if the rock is good.
+     - `-10.0` if the rock is bad.
+   - If the agent performs the `SAMPLE` action but is not at a rock location, it receives a reward of `0.0` and the episode does not end.
+
+3. **Check Rock Actions**:
+   - If the agent performs a `CHECK_ROCK` action and is at the corresponding rock location, it receives a reward of `-1.0` and the episode does not end.
+   - If the agent performs a `CHECK_ROCK` action but is not at the corresponding rock location, it receives a reward of `0.0` and the episode does not end.
+
+4. **Other Actions**:
+   - For all other actions (e.g., moving), the agent receives a reward of `0.0` and the episode does not end.
+
+Now, let's improve the `reward_func` function to better model the true distribution:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent exits the grid
+    if action == RockSampleActions.EXIT:
+        # Only provide a reward if the agent is at a specific exit location
+        if (state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent samples a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return 0.0, False
+
+    # Check if the agent checks a rock
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if state.at_rock() == rock_idx:
+            return -1.0, False
+        else:
+            return 0.0, False
+
+    # For all other actions, there is no reward
+    return 0.0, False
+```
+
+This updated `reward_func` function should better align with the observed distribution from the real world. It correctly handles the cases where the agent performs the `CHECK_ROCK` action at a non-rock location and the `EXIT` action at a non-exit location.

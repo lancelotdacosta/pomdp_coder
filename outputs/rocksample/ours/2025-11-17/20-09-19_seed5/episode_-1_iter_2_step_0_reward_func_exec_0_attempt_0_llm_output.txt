@@ -1,0 +1,63 @@
+Certainly! Let's analyze the discrepancies between the real-world samples and the current model.
+
+### Analysis
+
+1. **Check Actions (CHECK_ROCK_0, CHECK_ROCK_1)**:
+   - The real world seems to give a reward of `-1.0` for check actions when the agent is not at the rock's position.
+   - The current model gives a reward of `0.0` for these actions regardless of the agent's position.
+
+2. **Exit Action (EXIT)**:
+   - The real world gives a reward of `10.0` and ends the episode only if the agent is at the exit location `(0, 0)`.
+   - The current model gives a reward of `10.0` and ends the episode regardless of the agent's position.
+
+### Improved Reward Function
+
+Based on the analysis, we need to adjust the reward function to match the real-world behavior:
+
+1. For check actions, give a reward of `-1.0` if the agent is not at the rock's position.
+2. For the exit action, give a reward of `10.0` and end the episode only if the agent is at the exit location `(0, 0)`.
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent has reached the exit location (0, 0)
+    if action == RockSampleActions.EXIT:
+        if next_state.x == 0 and next_state.y == 0:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent samples a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None and state.rocks[rock_idx]:
+            return 10.0, False
+        else:
+            return -10.0, False
+
+    # Check if the agent performs a check action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if rock_idx < len(state.rocks):
+            if state.at_rock() == rock_idx:
+                return 0.0, False
+            else:
+                return -1.0, False
+        else:
+            raise ValueError("Invalid check action index")
+
+    # For all other actions, the reward is 0.0 and the episode is not done
+    return 0.0, False
+```
+
+This updated `reward_func` should better match the observed behavior from the real world.

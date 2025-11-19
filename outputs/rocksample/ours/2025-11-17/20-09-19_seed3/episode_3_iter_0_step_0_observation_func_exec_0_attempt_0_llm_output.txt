@@ -1,0 +1,51 @@
+Based on the provided samples, it appears that the observations are primarily determined by the state and the action taken. Specifically, the `RockSampleObservation` object always contains the current position `(x, y)` of the agent. For actions that check the quality of rocks (`CHECK_ROCK_0` and `CHECK_ROCK_1`), the observation also includes the index of the rock being checked and a noisy reading indicating whether the rock is good or bad. For all other actions (including movement actions and the `SAMPLE` action), the `rock_idx` and `is_good` fields are set to `None`.
+
+Here is the implementation of the `observation_func` function based on this understanding:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current position
+    obs = copy.deepcopy(empty_obs)
+    obs.x = state.x
+    obs.y = state.y
+
+    # Determine if the action is a check rock action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        rock_pos = ROCK_POSITIONS[rock_idx]
+        
+        # Check if the agent is at the rock's position
+        if (state.x, state.y) == rock_pos:
+            # Generate a noisy reading of the rock's quality
+            is_good = state.rocks[rock_idx]
+            if random.random() < 0.1:  # 10% chance of a false reading
+                is_good = not is_good
+            obs.rock_idx = rock_idx
+            obs.is_good = is_good
+
+    return obs
+```
+
+This implementation ensures that for actions that check the quality of rocks, the observation includes the index of the rock and a potentially noisy reading of its quality. For all other actions, the `rock_idx` and `is_good` fields are set to `None`. The current position `(x, y)` of the agent is always included in the observation.

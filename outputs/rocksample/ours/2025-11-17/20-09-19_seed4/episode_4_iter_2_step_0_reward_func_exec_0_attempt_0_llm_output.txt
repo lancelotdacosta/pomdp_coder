@@ -1,0 +1,58 @@
+Based on the provided samples, it seems that the reward and termination conditions are dependent on the following:
+
+1. **Exit Action**: The `EXIT` action should terminate the episode (`done = True`). However, the reward is only 10.0 if all rocks are good (`state.rocks` contains all `True` values). Otherwise, the reward is 0.0.
+
+2. **Sample Action**: The `SAMPLE` action should provide a reward based on the quality of the rock at the current position. If the agent is at a rock position:
+   - If the rock is good (`rock_idx` is valid and `state.rocks[rock_idx] == True`), the reward is 10.0.
+   - If the rock is bad (`rock_idx` is valid and `state.rocks[rock_idx] == False`), the reward is -10.0.
+   - If the agent is not at a rock position, the reward is 0.0.
+
+3. **Check Rock Actions**: The `CHECK_ROCK_0` and `CHECK_ROCK_1` actions should provide a small penalty of -1.0 and should not terminate the episode.
+
+4. **Move Actions**: All other actions (move actions) should provide no immediate reward (0.0) and should not terminate the episode.
+
+The main issue in the provided code is that the `EXIT` action incorrectly terminates the episode with a reward of 0.0 when there are bad rocks present. This needs to be corrected to match the observed behavior.
+
+Here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the resulting state transition
+    if action == RockSampleActions.EXIT:
+        # If the agent exits, the episode ends with a reward of 10 if no rocks are bad
+        if all(rock for rock in state.rocks):
+            reward = 10.0
+        else:
+            reward = 0.0
+        done = True
+    elif action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock, it gets a reward based on the quality of the rock
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            reward = 10.0 if state.rocks[rock_idx] else -10.0
+            done = False
+        else:
+            reward = 0.0
+            done = False
+    elif action in CHECK_ACTIONS:
+        # If the agent performs a check rock action, it receives a small penalty
+        reward = -1.0
+        done = False
+    else:
+        # For all other actions (move), there is no immediate reward
+        reward = 0.0
+        done = False
+
+    return reward, done
+```
+
+This function should now correctly model the reward and termination conditions based on the provided samples and the described behavior.

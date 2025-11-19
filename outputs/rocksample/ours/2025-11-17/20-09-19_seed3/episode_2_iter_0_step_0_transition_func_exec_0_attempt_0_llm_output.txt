@@ -1,0 +1,51 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(0, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(0, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(r if i != rock_idx else False for i, r in enumerate(new_state.rocks))
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+    elif action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if (new_state.x, new_state.y) == ROCK_POSITIONS[rock_idx]:
+            # Simulate a noisy sensor reading
+            if random.random() < 0.9:  # 90% accurate
+                new_state.rocks = tuple(r if i != rock_idx else not r for i, r in enumerate(new_state.rocks))
+    
+    return new_state
+```
+
+### Explanation of the Distribution of Next States Conditioned on Actions and Previous States
+
+1. **Movement Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST)**:
+   - The agent moves one step in the specified direction, but it cannot move outside the grid boundaries. If the move would take it out of bounds, the position remains unchanged.
+   
+2. **Sample Action (SAMPLE)**:
+   - The agent can sample a rock if it is at the same position as the rock. Sampling a rock sets its state to `False` (bad rock), regardless of its previous state. If the agent is not at a rock's position, the state remains unchanged.
+   
+3. **Exit Action (EXIT)**:
+   - The agent does nothing and the state remains unchanged.
+   
+4. **Check Rock Actions (CHECK_ROCK_0, CHECK_ROCK_1)**:
+   - The agent checks the rock at the specified position. If the agent is at the rock's position, it simulates a noisy sensor reading with 90% accuracy. This means there is a 10% chance that the rock's state will be flipped (good to bad or bad to good).
+   - If the agent is not at the rock's position, the state remains unchanged.
+
+This transition function models the environment's dynamics based on the provided samples and generalizes to other possible states and actions.

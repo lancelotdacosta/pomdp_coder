@@ -1,0 +1,59 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Define the reward for each type of action
+    if action == RockSampleActions.EXIT:
+        # If the agent exits the grid, check if all rocks have been sampled
+        if all(rock == 'G' for rock in state.rocks):
+            return 10.0, True
+        else:
+            return -10.0, True
+    
+    elif action == RockSampleActions.SAMPLE:
+        # If the agent samples a rock, check if it is good or bad
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx] == 'G':
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return -1.0, False
+    
+    elif action in CHECK_ACTIONS:
+        # If the agent checks a rock, there is no immediate reward
+        return 0.0, False
+    
+    else:
+        # For movement actions, there is a small negative reward for each step
+        return -1.0, False
+```
+
+### Explanation of the Reward Function
+
+1. **Exit Action (EXIT)**:
+   - If the agent exits the grid and all rocks have been sampled as good (`'G'`), it receives a positive reward of `10.0` and the episode ends.
+   - If any rock is bad (`'B'`), the agent receives a negative reward of `-10.0` and the episode ends.
+
+2. **Sample Action (SAMPLE)**:
+   - If the agent samples a rock, it checks if the rock at its current position is good (`'G'`) or bad (`'B'`).
+   - If the rock is good, it receives a positive reward of `10.0`.
+   - If the rock is bad, it receives a negative reward of `-10.0`.
+   - If the agent tries to sample but is not at a rock, it receives a small negative reward of `-1.0`.
+
+3. **Check Actions (CHECK_ROCK_0, CHECK_ROCK_1)**:
+   - There is no immediate reward for checking a rock. The reward for these actions is `0.0`.
+
+4. **Movement Actions (MOVE_NORTH, MOVE_SOUTH, MOVE_EAST, MOVE_WEST)**:
+   - For movement actions, the agent receives a small negative reward of `-1.0` to encourage efficient navigation.
+
+This reward function aims to guide the agent to efficiently navigate the grid, sample good rocks, and exit the grid when all rocks have been sampled correctly.

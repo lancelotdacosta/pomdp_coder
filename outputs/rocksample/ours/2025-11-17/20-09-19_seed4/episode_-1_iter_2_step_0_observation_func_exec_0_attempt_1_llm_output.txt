@@ -1,0 +1,148 @@
+It looks like the `enum` module is not being imported, which is causing the `NameError`. Let's ensure that the `enum` module is imported correctly.
+
+Here is the corrected code with the necessary import statement included:
+
+```python
+from __future__ import annotations
+
+import copy
+import random
+import enum
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+# -----------------------------------------------------------------------------#
+# Domain parameters (feel free to tweak)                                       #
+# -----------------------------------------------------------------------------#
+NUM_ROCKS   = 2
+GRID_SIZE   = 5
+ROCK_POSITIONS = [(1, 1), (1, 4)]   # len == NUM_ROCKS
+
+# -----------------------------------------------------------------------------#
+# Actions                                                                      #
+# -----------------------------------------------------------------------------#
+class RockSampleActions(enum.IntEnum):
+    """They can be added directly to the state position."""
+    MOVE_NORTH  = 0
+    MOVE_SOUTH  = 1
+    MOVE_EAST   = 2
+    MOVE_WEST   = 3
+    SAMPLE      = 4
+    EXIT        = 5
+
+    CHECK_ROCK_0 = 6
+    CHECK_ROCK_1 = 7
+
+
+CHECK_ACTIONS: List[int] = [
+    RockSampleActions.CHECK_ROCK_0,
+    RockSampleActions.CHECK_ROCK_1,
+]
+
+# -----------------------------------------------------------------------------#
+# Observation                                                                  #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleObservation(Observation):
+    """Observation after an action.
+
+    Always embeds the rover pose (x, y).  
+    For sensor actions:
+        * ``rock_idx``  – index of inspected rock
+        * ``is_good``   – noisy reading (True = GOOD, False = BAD)
+    For all other actions both fields are ``None``.
+    """
+    x: int
+    y: int
+    rock_idx: int | None
+    is_good: bool | None
+
+# -----------------------------------------------------------------------------#
+# State                                                                        #
+# -----------------------------------------------------------------------------#
+@dataclass
+class RockSampleState(State):
+    """Full underlying state (fully observable to the simulator)."""
+    x: int
+    y: int
+    rocks: Tuple[bool, ...]   # immutable tuple of good/bad flags
+
+    # --- Equality / hashing --------------------------------------------------
+    def __eq__(self, other: object) -> bool:                  # type: ignore[override]
+        return (
+            isinstance(other, RockSampleState)
+            and self.x == other.x
+            and self.y == other.y
+            and self.rocks == other.rocks
+        )
+
+    # Convenience -------------------------------------------------------------
+    def at_rock(self) -> int | None:
+        """Return the index of the rock at the agent's (x,y) or ``None``."""
+        try:
+            return ROCK_POSITIONS.index((self.x, self.y))
+        except ValueError:
+            return None
+
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current state's position
+    obs = copy.deepcopy(empty_obs)
+    obs.x = state.x
+    obs.y = state.y
+
+    # Determine the rock index if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    # Handle different actions
+    if action in CHECK_ACTIONS:
+        # If the action is a check action, determine the rock index
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        if rock_idx < len(state.rocks):
+            # Simulate a noisy reading (75% chance of correct reading)
+            rock_status = state.rocks[rock_idx]
+            if rock_status:  # GOOD rock
+                is_good = random.random() < 0.75
+            else:  # BAD rock
+                is_good = random.random() < 0.25
+            obs.rock_idx = rock_idx
+            obs.is_good = is_good
+    else:
+        # For all other actions, the rock index and is_good fields are None
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+```
+
+This should resolve the `NameError` by ensuring that the `enum` module is imported correctly. The `RockSampleActions` class should now work as intended.

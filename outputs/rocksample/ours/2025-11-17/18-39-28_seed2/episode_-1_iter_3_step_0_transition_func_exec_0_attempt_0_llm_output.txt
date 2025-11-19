@@ -1,0 +1,102 @@
+Based on the samples provided, it seems that the transition function in the environment has a probabilistic or stochastic behavior, particularly when it comes to movement actions. The observed discrepancies suggest that the agent might not always move in the intended direction, possibly due to some form of noise or uncertainty in the environment.
+
+### Distribution of Next States Conditioned on Actions and Previous States
+
+1. **Move North (0)**:
+   - The agent has a high probability of moving north (y - 1), but there is also a small probability that it might stay in place or move in another direction (e.g., south, east, or west).
+
+2. **Move South (1)**:
+   - The agent has a high probability of moving south (y + 1), but there is also a small probability that it might stay in place or move in another direction (e.g., north, east, or west).
+
+3. **Move East (2)**:
+   - The agent has a high probability of moving east (x + 1), but there is also a small probability that it might stay in place or move in another direction (e.g., west, north, or south).
+
+4. **Move West (3)**:
+   - The agent has a high probability of moving west (x - 1), but there is also a small probability that it might stay in place or move in another direction (e.g., east, north, or south).
+
+5. **Sample (4)**:
+   - If the agent is at a rock, it will sample the rock and change its state to `False` (bad).
+
+6. **Exit (5)**:
+   - The state does not change.
+
+7. **Check Rock_0 (6) and Check Rock_1 (7)**:
+   - These actions do not change the state.
+
+### Improved Transition Function
+
+To better model this behavior, we can introduce a probability distribution for each action. For simplicity, let's assume that the primary intended direction has a 70% chance of occurring, while the other directions (including staying in place) each have a 10% chance.
+
+Here is the improved `transition_func`:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        # 70% chance to move north, 10% chance to stay, 10% chance to move east, 10% chance to move west
+        move_prob = random.random()
+        if move_prob < 0.7:
+            new_state.y = max(0, new_state.y - 1)
+        elif move_prob < 0.8:
+            pass  # Stay in place
+        elif move_prob < 0.9:
+            new_state.x = min(GRID_SIZE - 1, new_state.x + 1)  # Move east
+        else:
+            new_state.x = max(0, new_state.x - 1)  # Move west
+    elif action == RockSampleActions.MOVE_SOUTH:
+        # 70% chance to move south, 10% chance to stay, 10% chance to move east, 10% chance to move west
+        move_prob = random.random()
+        if move_prob < 0.7:
+            new_state.y = min(GRID_SIZE - 1, new_state.y + 1)
+        elif move_prob < 0.8:
+            pass  # Stay in place
+        elif move_prob < 0.9:
+            new_state.x = min(GRID_SIZE - 1, new_state.x + 1)  # Move east
+        else:
+            new_state.x = max(0, new_state.x - 1)  # Move west
+    elif action == RockSampleActions.MOVE_EAST:
+        # 70% chance to move east, 10% chance to stay, 10% chance to move north, 10% chance to move south
+        move_prob = random.random()
+        if move_prob < 0.7:
+            new_state.x = min(GRID_SIZE - 1, new_state.x + 1)
+        elif move_prob < 0.8:
+            pass  # Stay in place
+        elif move_prob < 0.9:
+            new_state.y = max(0, new_state.y - 1)  # Move north
+        else:
+            new_state.y = min(GRID_SIZE - 1, new_state.y + 1)  # Move south
+    elif action == RockSampleActions.MOVE_WEST:
+        # 70% chance to move west, 10% chance to stay, 10% chance to move north, 10% chance to move south
+        move_prob = random.random()
+        if move_prob < 0.7:
+            new_state.x = max(0, new_state.x - 1)
+        elif move_prob < 0.8:
+            pass  # Stay in place
+        elif move_prob < 0.9:
+            new_state.y = max(0, new_state.y - 1)  # Move north
+        else:
+            new_state.y = min(GRID_SIZE - 1, new_state.y + 1)  # Move south
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sample the rock and change its state
+            new_state.rocks = new_state.rocks[:rock_idx] + (False,) + new_state.rocks[rock_idx + 1:]
+    elif action == RockSampleActions.EXIT:
+        # No change in state
+        pass
+    elif action in CHECK_ACTIONS:
+        # Checking a rock does not change the state
+        pass
+    
+    return new_state
+```
+
+This improved function introduces a probabilistic element to the movement actions, which should better reflect the observed behavior in the real environment.

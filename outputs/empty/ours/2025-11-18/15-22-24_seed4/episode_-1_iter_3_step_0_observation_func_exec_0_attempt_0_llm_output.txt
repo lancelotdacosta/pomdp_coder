@@ -1,0 +1,107 @@
+Certainly! Let's start by explaining the distribution of observations conditioned on a state.
+
+### Distribution of Observations Conditioned on a State
+
+1. **Agent's Position and Direction**:
+   - The agent's position and direction are critical for determining what the agent can see.
+   - The field of view (FOV) is centered around the agent's current position and aligned with the agent's direction.
+
+2. **Field of View**:
+   - The FOV is a square grid of a fixed size (e.g., 3x3) that represents the area in front of the agent.
+   - The FOV is rotated based on the agent's direction to match the agent's perspective.
+   - The FOV is padded with walls if it extends beyond the grid boundaries.
+
+3. **Action Effects**:
+   - Actions like moving forward, turning left, or turning right update the agent's position and direction.
+   - The FOV is updated after the action to reflect the new state.
+
+4. **Carrying Objects**:
+   - If the agent is carrying an object, this information is included in the observation.
+
+### Issues in the Current Code
+
+1. **Agent Position Update**:
+   - The agent's position is not being correctly updated in the `observation_func` function.
+   - The new position should be computed before generating the FOV.
+
+2. **Field of View Rotation**:
+   - The rotation of the FOV is not correctly aligned with the agent's direction.
+   - The agent should be placed at the correct position in the FOV.
+
+3. **Wall Padding**:
+   - The FOV should be padded with walls if it extends beyond the grid boundaries.
+
+### Improved `observation_func`
+
+Here is the improved `observation_func` function:
+
+```python
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    # Update agent's position and direction based on the action
+    if action == Actions.forward:
+        new_pos = np.array(state.agent_pos) + DIR_TO_VEC[state.agent_dir]
+        if 0 <= new_pos[0] < state.width and 0 <= new_pos[1] < state.height:
+            if state.grid[new_pos[0], new_pos[1]] != ObjectTypes.wall:
+                state.agent_pos = tuple(new_pos)
+
+    elif action == Actions.left:
+        state.agent_dir = (state.agent_dir - 1) % 4
+
+    elif action == Actions.right:
+        state.agent_dir = (state.agent_dir + 1) % 4
+
+    # Get the field of view
+    view_size = 3
+    fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=np.int8)
+
+    # Get the extents of the square set of tiles visible to the agent
+    topX = max(state.agent_pos[0] - view_size // 2, 0)
+    topY = max(state.agent_pos[1] - view_size // 2, 0)
+    botX = min(state.agent_pos[0] + view_size // 2 + 1, state.width)
+    botY = min(state.agent_pos[1] + view_size // 2 + 1, state.height)
+
+    # Compute the overlapping region in the grid.
+    px0 = max(0, -(state.agent_pos[0] - view_size // 2))
+    py0 = max(0, -(state.agent_pos[1] - view_size // 2))
+
+    # Copy the overlapping slice.
+    fov[px0 : px0 + (botX - topX), py0 : py0 + (botY - topY)] = state.grid[topX:botX, topY:botY]
+
+    # Rotate the FOV to match the agent's direction
+    for _ in range(state.agent_dir):
+        fov = np.rot90(fov, k=1)
+
+    # Place the agent in the FOV
+    agent_pos_in_fov = (view_size // 2, view_size // 2)
+    fov[agent_pos_in_fov] = ObjectTypes.agent
+
+    # Fill the empty observation
+    empty_obs.image = fov
+    empty_obs.agent_pos = state.agent_pos
+    empty_obs.agent_dir = state.agent_dir
+    empty_obs.carrying = state.carrying
+
+    return empty_obs
+```
+
+### Explanation of Improvements
+
+1. **Agent Position Update**:
+   - The new position is computed and updated before generating the FOV to ensure the FOV reflects the correct state.
+
+2. **Field of View Rotation**:
+   - The FOV is rotated based on the agent's direction to align with the agent's perspective.
+   - The agent is placed at the center of the FOV.
+
+3. **Wall Padding**:
+   - The FOV is padded with walls if it extends beyond the grid boundaries.
+
+This should better model the true distribution of observations conditioned on a state.

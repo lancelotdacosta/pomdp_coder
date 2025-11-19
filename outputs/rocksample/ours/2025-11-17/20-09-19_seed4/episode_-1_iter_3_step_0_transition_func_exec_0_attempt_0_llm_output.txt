@@ -1,0 +1,54 @@
+Based on the provided samples, it appears that the environment is wrapping around the grid, but there are some inconsistencies in how the wrapping is handled. Specifically, the correct behavior seems to be that when the agent moves off one edge of the grid, it re-enters from the opposite edge, maintaining the same x or y coordinate as appropriate.
+
+To better model the true distribution, we need to ensure that the wrapping behavior is consistent for all actions. Here's the improved `transition_func`:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    x, y = state.x, state.y
+    rocks = list(state.rocks)
+    
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH,
+                  RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        # Calculate new position based on action
+        if action == RockSampleActions.MOVE_NORTH:
+            y = (y - 1) % GRID_SIZE  # Wrap around the grid
+        elif action == RockSampleActions.MOVE_SOUTH:
+            y = (y + 1) % GRID_SIZE  # Wrap around the grid
+        elif action == RockSampleActions.MOVE_EAST:
+            x = (x + 1) % GRID_SIZE  # Wrap around the grid
+        elif action == RockSampleActions.MOVE_WEST:
+            x = (x - 1) % GRID_SIZE  # Wrap around the grid
+    
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            rocks[rock_idx] = False  # Sample the rock, changing its state to bad
+    
+    elif action == RockSampleActions.EXIT:
+        # Exit action does not change the state
+        pass
+    
+    # Create new state with updated position and rock states
+    new_state = RockSampleState(x, y, tuple(rocks))
+    return new_state
+```
+
+### Explanation of the Changes
+
+1. **Wrapping Behavior Consistency**:
+   - The wrapping behavior for all move actions (`MOVE_NORTH`, `MOVE_SOUTH`, `MOVE_EAST`, `MOVE_WEST`) is consistent and uses the modulo operator to ensure the agent re-enters the grid from the opposite edge.
+   - The `y` coordinate wraps around the grid height (`GRID_SIZE`) when moving north or south.
+   - The `x` coordinate wraps around the grid width (`GRID_SIZE`) when moving east or west.
+
+2. **No Changes to Other Actions**:
+   - The `SAMPLE` action correctly updates the rock state if the agent is at a rock.
+   - The `EXIT` action does not change the state, as expected.
+
+This implementation should now accurately model the true distribution of next states conditioned on actions and previous states, based on the provided samples and the environment description.

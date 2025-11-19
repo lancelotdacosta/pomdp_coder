@@ -1,0 +1,32 @@
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done flags
+    reward = 0.0
+    done = False
+
+    # Check if the agent has taken the exit action
+    if action == RockSampleActions.EXIT:
+        done = True
+        reward = 10.0  # Reward for successfully exiting
+
+    # Check if the agent has sampled a rock
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if next_state.rocks[rock_idx]:
+                reward = 10.0  # Reward for sampling a good rock
+            else:
+                reward = -10.0  # Penalty for sampling a bad rock
+    
+    # No specific reward for movement or checking actions
+    return reward, done
+```

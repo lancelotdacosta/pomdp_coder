@@ -1,0 +1,72 @@
+Certainly! Let's analyze the discrepancies and then improve the `reward_func` function.
+
+### Analysis of Discrepancies
+
+1. **EXIT Action (Action 5)**:
+   - The real world samples show that the agent receives a reward of 0.0 and the episode is not done when the agent is at a position where it cannot exit the grid.
+   - In your model, the agent always receives a reward of 10.0 and the episode is done when the EXIT action is performed, regardless of the agent's position.
+
+2. **SAMPLE Action (Action 4)**:
+   - The real world samples show that the agent receives a reward of 10.0 when sampling a good rock and -10.0 when sampling a bad rock.
+   - However, the next state should reflect the change in the rock's status after sampling it. This means the rock should be marked as sampled, which can be represented by changing its state to `False`.
+
+3. **CHECK Actions (Actions 6 and 7)**:
+   - The real world samples show that the agent receives a penalty of -1.0 when performing a CHECK action on a rock, and no reward otherwise.
+   - In your model, the agent only receives a penalty if it is at the rock's position, but it should always receive a penalty for performing a CHECK action.
+
+### Improved `reward_func` Function
+
+Based on the analysis, here is the improved `reward_func` function:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        # The agent can only exit the grid from a specific position
+        if (state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return 0.0, False
+
+    # Check if the agent has performed a CHECK action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        return -1.0, False
+
+    # For all other actions, no reward is given
+    return 0.0, False
+```
+
+### Explanation
+
+1. **EXIT Action**:
+   - The agent can only exit the grid from specific positions (e.g., (0, 0) or (GRID_SIZE - 1, GRID_SIZE - 1)). If the agent tries to exit from any other position, it receives a reward of 0.0 and the episode is not done.
+
+2. **SAMPLE Action**:
+   - The agent receives a reward of 10.0 for sampling a good rock and -10.0 for sampling a bad rock. The next state should reflect the change in the rock's status, but this is handled outside the `reward_func` function.
+
+3. **CHECK Actions**:
+   - The agent always receives a penalty of -1.0 when performing a CHECK action, regardless of its position.
+
+This should better model the true distribution and align with the real-world samples provided.

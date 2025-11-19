@@ -1,0 +1,57 @@
+Certainly! Based on the provided examples, it appears that the reward function should consider several key aspects:
+
+1. **Reaching the Goal**: If the agent reaches the goal, it should receive a positive reward and the episode should be marked as done.
+2. **Hitting Walls**: If the agent tries to move into a wall (or an object it cannot pass through), it should receive a negative reward.
+3. **Ineffective Actions**: If the agent performs an action that does not change its position (e.g., moving into a wall or turning in place), it should receive a small negative reward to discourage unnecessary actions.
+4. **Effective Actions**: If the agent moves forward into an empty cell or an object that can be interacted with, it should receive no reward (neutral).
+
+Given these points, let's improve the `reward_func` to better model the true distribution:
+
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the action to be executed
+        next_state (MinigridState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Check if the agent has reached the goal
+    goal_pos = next_state.get_type_indices(ObjectTypes.goal)
+    if goal_pos and next_state.agent_pos in goal_pos:
+        return 1, True
+
+    # Check if the agent has moved into a wall
+    front_pos = next_state.front_pos
+    if next_state.grid[front_pos] == ObjectTypes.wall and action == Actions.forward:
+        return -1, False
+
+    # Check if the agent has taken an action that does not change its position
+    if state.agent_pos == next_state.agent_pos and action != Actions.done:
+        # Only penalize if the agent is not turning in place
+        if action not in [Actions.left, Actions.right]:
+            return -0.1, False
+        else:
+            return 0, False
+
+    # Check if the agent has dropped an object on an empty cell or another object
+    if action == Actions.drop and state.carrying is not None and next_state.carrying is None:
+        return 0, False
+
+    # Check if the agent has picked up an object
+    if action == Actions.pickup and state.carrying is None and next_state.carrying is not None:
+        return 0, False
+
+    # If none of the above conditions are met, the reward is 0 and the episode is not done
+    return 0, False
+```
+
+### Explanation:
+1. **Reaching the Goal**: The function checks if the agent's new position is on a goal cell. If so, it returns a reward of 1 and marks the episode as done.
+2. **Hitting Walls**: The function checks if the agent's action was to move forward and if the next position is a wall. If so, it returns a negative reward of -1.
+3. **Ineffective Actions**: The function checks if the agent's position did not change and the action was not "done" or a turn (left/right). If so, it returns a small negative reward of -0.1 to discourage unnecessary actions.
+4. **Effective Actions**: For all other actions that result in a valid transition (e.g., moving forward into an empty cell or interacting with objects), the function returns a neutral reward of 0.
+
+This should better align with the observed distribution from the real world.

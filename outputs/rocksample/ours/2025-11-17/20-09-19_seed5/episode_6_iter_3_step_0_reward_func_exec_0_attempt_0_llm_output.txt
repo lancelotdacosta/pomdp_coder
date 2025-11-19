@@ -1,0 +1,49 @@
+Based on the observed samples and the initial implementation, it appears that the reward function needs to account for the following conditions:
+
+1. The agent receives a reward of 10 if it samples a rock and the rock is good, regardless of the state of other rocks.
+2. The agent receives a reward of -10 if it samples a rock and the rock is bad, again regardless of the state of other rocks.
+3. The agent receives a reward of -1 if it performs a check action (e.g., CHECK_ROCK_0 or CHECK_ROCK_1).
+4. The agent receives a reward of 0 for all other actions.
+5. The episode ends when the agent exits.
+
+The issue in the initial implementation was that the `reward_func` did not correctly handle the scenario where the agent samples a rock and the rock's state changes. Additionally, the check actions were not properly rewarded.
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # The reward is 10 if the agent samples a good rock
+    if action == RockSampleActions.SAMPLE and state.at_rock() is not None:
+        rock_idx = state.at_rock()
+        if state.rocks[rock_idx] and not next_state.rocks[rock_idx]:
+            return 10.0, False
+        if not state.rocks[rock_idx] and not next_state.rocks[rock_idx]:
+            return -10.0, False
+    
+    # The reward is -1 for check actions
+    if action in CHECK_ACTIONS:
+        return -1.0, False
+    
+    # The reward is 0 for all other actions
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False
+    
+    # The episode ends when the agent exits
+    if action == RockSampleActions.EXIT:
+        return 0.0, True
+    
+    # Default case: no reward, episode not done
+    return 0.0, False
+```
+
+This function now correctly handles the sampling of rocks and the check actions, ensuring that the observed samples from the real world are possible under the model.

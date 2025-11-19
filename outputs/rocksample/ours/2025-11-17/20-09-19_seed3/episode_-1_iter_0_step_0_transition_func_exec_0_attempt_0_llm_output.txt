@@ -1,0 +1,58 @@
+Certainly! Let's start by explaining the distribution of next states conditioned on actions and previous states:
+
+### Explanation of the Transition Model
+
+1. **Movement Actions (0, 1, 2, 3)**:
+   - **MOVE_NORTH (0)**: The agent moves one cell north (decreases y by 1).
+   - **MOVE_SOUTH (1)**: The agent moves one cell south (increases y by 1).
+   - **MOVE_EAST (2)**: The agent moves one cell east (increases x by 1).
+   - **MOVE_WEST (3)**: The agent moves one cell west (decreases x by 1).
+   - If the movement would take the agent out of the grid, the agent stays in the same position.
+
+2. **Sample Action (4)**:
+   - If the agent is at a rock's position, it samples the rock.
+   - The rock's state (GOOD/BAD) remains unchanged.
+   - If the agent is not at a rock's position, the action has no effect.
+
+3. **Exit Action (5)**:
+   - The agent does nothing and remains in the same position.
+
+4. **Check Rock Actions (6, 7)**:
+   - These actions are used to check the state of a specific rock.
+   - They do not change the state of the environment, so the agent stays in the same position.
+
+Now, let's implement the `transition_func` function:
+
+```python
+def transition_func(state: RockSampleState, action: int) -> RockSampleState:
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+    
+    if action == RockSampleActions.MOVE_NORTH:
+        new_state.y = max(1, new_state.y - 1)
+    elif action == RockSampleActions.MOVE_SOUTH:
+        new_state.y = min(GRID_SIZE, new_state.y + 1)
+    elif action == RockSampleActions.MOVE_EAST:
+        new_state.x = min(GRID_SIZE, new_state.x + 1)
+    elif action == RockSampleActions.MOVE_WEST:
+        new_state.x = max(1, new_state.x - 1)
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            # Sampling the rock does not change its state
+            pass
+    elif action == RockSampleActions.EXIT:
+        pass  # The agent stays in the same position
+    elif action in CHECK_ACTIONS:
+        pass  # Checking a rock does not change the state
+
+    return new_state
+```
+
+This function correctly models the transitions based on the actions and the current state of the environment. It ensures that the agent's movements are constrained within the grid and handles the sampling and exit actions appropriately.

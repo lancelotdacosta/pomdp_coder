@@ -1,0 +1,72 @@
+Certainly! Let's first describe the distribution of observations conditioned on a state in English, and then we'll improve the `observation_func` function accordingly.
+
+### Distribution of Observations Conditioned on a State
+
+1. **Position Observations**: The agent always observes its current position `(x, y)` regardless of the action taken.
+2. **Rock Inspection**:
+   - If the agent performs a `CHECK_ROCK` action at a rock position, it should observe the rock index and a noisy reading of the rock's status (GOOD or BAD).
+   - The noise introduces a 10% chance that the observed reading is incorrect.
+   - If the agent is not at a rock position or performs a `CHECK_ROCK` action on a non-existent rock, the observation should return `NULL` for both `rock_idx` and `is_good`.
+
+### Improved `observation_func` Function
+
+Based on the above description, let's improve the `observation_func` function to better model the true distribution of observations.
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (RockSampleObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (RockSampleObservation): observation of the agent
+    """
+    # Initialize the observation with the current state's position
+    obs = RockSampleObservation(x=state.x, y=state.y, rock_idx=None, is_good=None)
+
+    # Determine the rock index if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    if action in CHECK_ACTIONS:
+        # Check if the action corresponds to the rock at the current position
+        if rock_idx is not None and action == (RockSampleActions.CHECK_ROCK_0 + rock_idx):
+            # If the agent checks a rock, provide a noisy reading
+            rock_status = state.rocks[rock_idx]
+            # Introduce noise with a small probability
+            if random.random() < 0.1:  # 10% chance of a noisy reading
+                obs.is_good = not rock_status
+            else:
+                obs.is_good = rock_status
+            obs.rock_idx = rock_idx
+        else:
+            # If the agent is not at a rock or checks a non-existent rock, return NULL
+            obs.rock_idx = None
+            obs.is_good = None
+    else:
+        # For all other actions, return NULL
+        obs.rock_idx = None
+        obs.is_good = None
+
+    return obs
+```
+
+### Explanation of Changes
+
+1. **Check Action Validation**: We added a condition to ensure that the action corresponds to the rock at the current position. This ensures that the observation is only generated when the agent is performing a valid `CHECK_ROCK` action.
+2. **Noisy Reading**: The noisy reading logic remains the same, introducing a 10% chance of an incorrect observation.
+3. **NULL Handling**: If the agent is not at a rock or performs a `CHECK_ROCK` action on a non-existent rock, the observation fields `rock_idx` and `is_good` are set to `None`.
+
+This should better match the true distribution of observations in the environment.

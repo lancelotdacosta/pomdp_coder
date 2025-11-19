@@ -1,0 +1,82 @@
+Certainly! Let's analyze the problem and correct the `reward_func` function to better match the observed behavior from the real world.
+
+### Explanation of Reward Function Behavior
+
+1. **Sampling a Rock:**
+   - If the agent is at a rock position and samples it (`SAMPLE` action):
+     - If the rock is good, the reward is +10 and the episode continues.
+     - If the rock is bad, the reward is -10 and the episode continues.
+   - If the agent is not at a rock position and samples it:
+     - The reward is -1 and the episode continues.
+
+2. **Exiting the Environment:**
+   - If the agent exits the environment (`EXIT` action):
+     - If the agent is at a rock position:
+       - If the rock is bad, the reward is +10 and the episode ends.
+       - If the rock is good, the reward is 0 and the episode ends.
+     - If the agent is not at a rock position:
+       - The reward is 0 and the episode ends.
+
+3. **Checking a Rock:**
+   - If the agent checks a rock (`CHECK_ROCK_*` actions):
+     - If the agent is at the correct rock position:
+       - The reward is 0 and the episode continues.
+     - If the agent is not at the correct rock position:
+       - The reward is -1 and the episode continues.
+
+4. **Movement Actions:**
+   - For movement actions (`MOVE_NORTH`, `MOVE_SOUTH`, `MOVE_EAST`, `MOVE_WEST`):
+     - The reward is 0 and the episode continues, regardless of whether the agent moves or stays in the same position.
+
+### Improved `reward_func` Function
+
+Let's implement the corrected `reward_func` function based on the above analysis:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Determine if the agent is at a rock position
+    rock_idx = state.at_rock()
+
+    if action == RockSampleActions.SAMPLE:
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:  # Good rock
+                return 10.0, False
+            else:  # Bad rock
+                return -10.0, False
+        else:
+            return -1.0, False  # No rock to sample
+
+    if action == RockSampleActions.EXIT:
+        if rock_idx is not None:
+            if not state.rocks[rock_idx]:  # Bad rock
+                return 10.0, True
+            else:  # Good rock
+                return 0.0, True
+        else:
+            return 0.0, True  # Not at a rock position
+
+    if action in CHECK_ACTIONS:
+        if (action == RockSampleActions.CHECK_ROCK_0 and rock_idx != 0) or (action == RockSampleActions.CHECK_ROCK_1 and rock_idx != 1):
+            return -1.0, False  # Checking a rock that is not present at the position
+        else:
+            return 0.0, False  # Valid check
+
+    if action in [RockSampleActions.MOVE_NORTH, RockSampleActions.MOVE_SOUTH, RockSampleActions.MOVE_EAST, RockSampleActions.MOVE_WEST]:
+        return 0.0, False  # Movement reward
+
+    return 0.0, False  # Default case
+```
+
+This function should now better match the observed behavior from the real world. The key changes are:
+- Ensuring that the `EXIT` action only provides a reward when at a rock position and correctly ends the episode.
+- Ensuring that `CHECK_ROCK_*` actions provide the correct reward based on the agent's position relative to the rock being checked.
+- Ensuring that `SAMPLE` actions provide the correct reward based on the presence and quality of the rock.

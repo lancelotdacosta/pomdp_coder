@@ -1,0 +1,47 @@
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (RockSampleState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (RockSampleState): the new state of the environment
+    """
+    new_state = copy.deepcopy(state)
+
+    if action == RockSampleActions.MOVE_NORTH and new_state.y < GRID_SIZE - 1:
+        new_state.y += 1
+    elif action == RockSampleActions.MOVE_SOUTH and new_state.y > 0:
+        new_state.y -= 1
+    elif action == RockSampleActions.MOVE_EAST and new_state.x < GRID_SIZE - 1:
+        new_state.x += 1
+    elif action == RockSampleActions.MOVE_WEST and new_state.x > 0:
+        new_state.x -= 1
+    elif action == RockSampleActions.SAMPLE:
+        rock_idx = new_state.at_rock()
+        if rock_idx is not None:
+            new_state.rocks = tuple(new_state.rocks[i] if i != rock_idx else False for i in range(NUM_ROCKS))
+    elif action == RockSampleActions.EXIT:
+        pass  # No change in state
+
+    return new_state
+```
+
+### Explanation of the Distribution of Next States Conditioned on Actions and Previous States:
+
+1. **Move Actions (North, South, East, West)**:
+   - The agent can move one step in the specified direction if it does not exceed the grid boundaries.
+   - If the move would take the agent out of bounds, the state remains unchanged.
+
+2. **Sample Action**:
+   - If the agent is at a rock's position, it can sample the rock.
+   - Sampling a rock changes the rock's state from good to bad (True to False).
+   - If the agent is not at a rock's position, the state remains unchanged.
+
+3. **Exit Action**:
+   - The exit action does not change the state.
+
+4. **Check Rock Actions**:
+   - These actions are not implemented in the provided transition function as they do not change the state but rather produce observations. They can be added similarly if needed.
+
+The transition function ensures that the agent's movements and actions are handled correctly within the grid and with respect to the rocks' states. The function effectively models the environment's dynamics based on the provided samples and the given action space.

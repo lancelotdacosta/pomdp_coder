@@ -1,0 +1,60 @@
+Based on the provided samples from the real world and the discrepancies with your current model, it appears that the reward function is not correctly handling the conditions for the `EXIT` action. Specifically, the `EXIT` action should only provide a reward of 10.0 and terminate the episode if the agent is at one of the designated exit positions: (0, 0) or (GRID_SIZE - 1, GRID_SIZE - 1). For any other position, the `EXIT` action should not provide any reward and should not terminate the episode.
+
+Here's the improved `reward_func` function to better model the true distribution:
+
+```python
+def reward_func(state: RockSampleState, action: int, next_state: RockSampleState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (RockSampleState): the state of the environment
+        action (int): the action to be executed
+        next_state (RockSampleState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Check if the agent has exited the grid
+    if action == RockSampleActions.EXIT:
+        # The agent can only exit the grid from specific positions
+        if (state.x, state.y) in [(0, 0), (GRID_SIZE - 1, GRID_SIZE - 1)]:
+            return 10.0, True
+        else:
+            return 0.0, False
+
+    # Check if the agent has sampled a rock
+    if action == RockSampleActions.SAMPLE:
+        rock_idx = state.at_rock()
+        if rock_idx is not None:
+            if state.rocks[rock_idx]:
+                return 10.0, False
+            else:
+                return -10.0, False
+        else:
+            return 0.0, False
+
+    # Check if the agent has performed a CHECK action
+    if action in CHECK_ACTIONS:
+        rock_idx = action - RockSampleActions.CHECK_ROCK_0
+        return -1.0, False
+
+    # For all other actions, no reward is given
+    return 0.0, False
+```
+
+### Explanation:
+1. **EXIT Action**:
+   - The `EXIT` action should only provide a reward of 10.0 and terminate the episode if the agent is at one of the designated exit positions: (0, 0) or (GRID_SIZE - 1, GRID_SIZE - 1).
+   - For any other position, the `EXIT` action should not provide any reward and should not terminate the episode.
+
+2. **SAMPLE Action**:
+   - If the agent performs the `SAMPLE` action at a rock's position, it should receive a reward of 10.0 if the rock is good and -10.0 if the rock is bad.
+   - If the agent performs the `SAMPLE` action at a position where there is no rock, no reward is given.
+
+3. **CHECK Actions**:
+   - Performing a `CHECK` action always results in a reward of -1.0, regardless of the rock's status.
+
+4. **Other Actions**:
+   - For all other actions, no reward is given.
+
+This improved function should now correctly model the reward conditioned on state, action, and next state transitions as observed in the real world.
