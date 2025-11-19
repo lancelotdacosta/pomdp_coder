@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import dotenv
 import hydra
 import requests  # type: ignore
+import httpx
 
 from openai import OpenAI
 
@@ -19,7 +20,8 @@ log = logging.getLogger(__name__)
 
 env_file = os.path.join(pathlib.Path(__file__).parent.parent, ".env")
 dotenv.load_dotenv(env_file, override=True)
-openrouter_api_key = "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"
+openrouter_api_key = os.environ.get("OPEN_ROUTER_KEY")
+
 PROJECT_ROOT = os.path.dirname(__file__)
 
 
@@ -89,12 +91,13 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 # ENGINE = "qwen-32k"
 # ENGINE = "llama33-largecontext"
 ENGINE_ollama = "qwen25-largecontext"
-ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct:free"
+ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
 
 # Add Ollama client:
 ollama_client = OpenAI(
     base_url="http://localhost:11434/v1",
-    api_key="ollama"
+    api_key="ollama",
+    http_client=httpx.Client(),
 )
 
 
@@ -150,9 +153,14 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5, use_openroute
                     url="https://openrouter.ai/api/v1/chat/completions",
                     headers={
                         "Authorization": f"Bearer {openrouter_api_key}",
+                        "Content-Type": "application/json",
                     },
-                    data=json.dumps({"model": ENGINE_openrouter, "messages": message}),
+                    data=json.dumps({
+                        "model": ENGINE_openrouter, 
+                        "messages": message
+                        }),
                 )
+                log.info(f"Response status code: {response.status_code}")
                 response_json = response.json()
                 content = str(response_json["choices"][0]["message"]["content"])
                 
