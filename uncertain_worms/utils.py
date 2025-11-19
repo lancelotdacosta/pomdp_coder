@@ -19,8 +19,7 @@ log = logging.getLogger(__name__)
 
 env_file = os.path.join(pathlib.Path(__file__).parent.parent, ".env")
 dotenv.load_dotenv(env_file, override=True)
-# openrouter_api_key = os.environ.get("OPEN_ROUTER_KEY")
-
+openrouter_api_key = "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"
 PROJECT_ROOT = os.path.dirname(__file__)
 
 
@@ -89,7 +88,8 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 # ENGINE = "deepseek-r1-large"
 # ENGINE = "qwen-32k"
 # ENGINE = "llama33-largecontext"
-ENGINE = "qwen25-largecontext"
+ENGINE_ollama = "qwen25-largecontext"
+ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct:free"
 
 # Add Ollama client:
 ollama_client = OpenAI(
@@ -124,77 +124,65 @@ def discounted_reward(rewards: List[float], gamma: float) -> float:
     return rewards[0]  # Total discounted return for the episode
 
 
-# def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str, float]:
-#     retry_count = 0
-#     backoff_factor = 60
-#     while True:
-#         try:
-#             st = time.time()
-# 
-#             response = requests.post(
-#                 url="https://openrouter.ai/api/v1/chat/completions",
-#                 headers={
-#                     "Authorization": "Bearer {}".format(openrouter_api_key),
-#                 },
-#                 data=json.dumps({"model": ENGINE, "messages": message}),
-#             )
-#             response_json = response.json()
-#             return (
-#                 str(response_json["choices"][0]["message"]["content"]),
-#                 time.time() - st,
-#             )
-#         except Exception as e:
-#             retry_count += 1
-#             if retry_count > max_retries:
-#                 raise e
-#             sleep_time = backoff_factor * (2**retry_count)
-#             log.info(f"Rate limit exceeded. Retrying in {sleep_time} seconds...")
-#             time.sleep(sleep_time)
-
-def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str, float]:
-    """Query local Ollama instead of OpenRouter"""
+def query_llm(message: List[Dict[str, str]], max_retries: int = 5, use_openrouter: bool = False) -> Tuple[str, float]:
+    """Query local Ollama or OpenRouter based on configuration"""
     retry_count = 0
-    backoff_factor = 2
+    backoff_factor = 60 if use_openrouter else 2
     
-    # Token tracking setup
-    token_log_path = os.path.join(get_log_dir(), "token_usage.json")
+    # # Token tracking setup
+    # token_log_path = os.path.join(get_log_dir(), "token_usage.json")
     
-    if os.path.exists(token_log_path):
-            with open(token_log_path, "r") as f:
-                token_data = json.load(f)
-    else:
-            token_data = {}
+    # if os.path.exists(token_log_path):
+    #     with open(token_log_path, "r") as f:
+    #         token_data = json.load(f)
+    # else:
+    #     token_data = {}
     
-    # Find next key number
-    next_key = str(max([int(k) for k in token_data.keys()], default=-1) + 1)
+    # # Find next key number
+    # next_key = str(max([int(k) for k in token_data.keys()], default=-1) + 1)
     
     while True:
         try:
             st = time.time()
             
-            # Use OpenAI client with Ollama
-            response = ollama_client.chat.completions.create(
-                model=ENGINE,
-                messages=message
-            )
+            if use_openrouter:
+                response = requests.post(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openrouter_api_key}",
+                    },
+                    data=json.dumps({"model": ENGINE_openrouter, "messages": message}),
+                )
+                response_json = response.json()
+                content = str(response_json["choices"][0]["message"]["content"])
+                
+                # # Extract token usage if available
+                # if "usage" in response_json:
+                #     input_tokens = response_json["usage"].get("prompt_tokens", 0)
+                #     output_tokens = response_json["usage"].get("completion_tokens", 0)
+                # else:
+                #     input_tokens = output_tokens = 0
+            else:
+                # Use OpenAI client with Ollama
+                response = ollama_client.chat.completions.create(
+                    model=ENGINE_ollama,
+                    messages=message
+                )
+                content = response.choices[0].message.content
+                # input_tokens = response.usage.prompt_tokens
+                # output_tokens = response.usage.completion_tokens
             
-            # Extract token usage
-            input_tokens = response.usage.prompt_tokens
-            output_tokens = response.usage.completion_tokens
+            # # Store token data
+            # token_data[next_key] = {
+            #     "input_tokens": input_tokens,
+            #     "output_tokens": output_tokens
+            # }
             
-            # Store token data
-            token_data[next_key] = {
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens
-            }
+            # # Save to JSON file
+            # with open(token_log_path, "w") as f:
+            #     json.dump(token_data, f, indent=2)
             
-            # Save to JSON file
-            with open(token_log_path, "w") as f:
-                json.dump(token_data, f, indent=2)
-            
-            log.info(f"Tokens Info - Input: {input_tokens}, Output: {output_tokens}")
-            
-            content = response.choices[0].message.content
+            # log.info(f"Tokens Info - Input: {input_tokens}, Output: {output_tokens}")
             
             return (content, time.time() - st)
             
