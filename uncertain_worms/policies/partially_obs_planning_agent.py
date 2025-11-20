@@ -731,6 +731,7 @@ class LLMPartiallyObsPlanningAgent(
             exec_attempt,
             replay_path=self.replay_path,
             episode=episode,
+            use_openrouter=self.use_openrouter,
         )
 
         if code_str is not None:

@@ -44,12 +44,14 @@ class Policy(ABC, Generic[StateType, ActType, ObsType]):
         writer: SummaryWriter,
         max_steps: int = -1,
         replay_path: Optional[str] = None,
+        use_openrouter: bool = False,
     ):
         self.actions = actions
         self.fully_obs = fully_obs
         self.writer = writer
         self.max_steps = max_steps
         self.replay_path = replay_path
+        self.use_openrouter = use_openrouter
         self.type_tuple: Optional[TypeTuple] = None
 
     def online_update_models(self, replay_buffer: ReplayBuffer, episode: int) -> None:
@@ -131,10 +133,11 @@ def requery(
     iter_num: int,
     exec_attempt: int,
     step_num: int = 0,
-    max_attempts: int = 5,
+    max_attempts: int = 20,
     replay_path: Optional[str] = None,
     api: Optional[str] = None,
-    episode:int = 0
+    episode: int = 0,
+    use_openrouter: bool = False,
 ) -> Tuple[Optional[str], Dict[str, Any]]:
     """Persistent querying until the code parses and executes without error
     Returns the code string if successful, and None otherwise."""
@@ -161,7 +164,7 @@ def requery(
                     code = file.read()
 
         if code is None:
-            code, _ = query_llm(messages)
+            code, _ = query_llm(messages, use_openrouter=use_openrouter)
 
         save_log(output_fn, code)
 

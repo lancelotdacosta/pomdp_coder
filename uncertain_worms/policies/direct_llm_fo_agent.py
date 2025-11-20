@@ -85,6 +85,7 @@ class DirectLLMFullyObsPolicy(Policy[StateType, ActType, ObsType]):
             exec_attempt=0,
             step_num=len(self.action_history),
             replay_path=self.replay_path,
+            use_openrouter=self.use_openrouter,
         )
         if (
             code_str is not None
