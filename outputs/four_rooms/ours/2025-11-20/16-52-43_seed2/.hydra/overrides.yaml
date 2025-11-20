@@ -1,0 +1,3 @@
+- seed=2
+- agent.use_openrouter=true
+- save_log=true

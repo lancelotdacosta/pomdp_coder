@@ -84,14 +84,14 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 
 # ENGINE = "gpt-3.5-turbo-0125"
 # ENGINE = "openai/gpt-4-turbo"
-ENGINE_openrouter = "openai/gpt-4o"
+# ENGINE_openrouter = "openai/gpt-4o"
 # ENGINE = "openai/o1"
 # ENGINE = "codellama:34b-instruct-q5_K_M"
 # ENGINE = "deepseek-r1-large"
 # ENGINE = "qwen-32k"
 # ENGINE = "llama33-largecontext"
-# ENGINE_ollama = "qwen25-largecontext"
-# ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
+ENGINE_ollama = "qwen25-largecontext"
+ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
 
 # Add Ollama client:
 # ollama_client = OpenAI(

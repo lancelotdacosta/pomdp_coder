@@ -4,6 +4,10 @@
 **.egg-info
 outputs/2025*
 *.gif
+outputs/**/*.txt
+outputs/**/*.log
+outputs/**/*.html
+outputs/**/*.pkl
 
 .env
 main.log
@@ -17,4 +21,3 @@ lib
 checkpoints
 venv/
 .ipynb_checkpoints/
-outputs/

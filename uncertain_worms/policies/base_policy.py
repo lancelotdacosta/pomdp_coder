@@ -133,7 +133,7 @@ def requery(
     iter_num: int,
     exec_attempt: int,
     step_num: int = 0,
-    max_attempts: int = 5,
+    max_attempts: int = 20,
     replay_path: Optional[str] = None,
     api: Optional[str] = None,
     episode: int = 0,
