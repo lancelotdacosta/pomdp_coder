@@ -1,12 +1,13 @@
-Certainly! The distribution of observations conditioned on a state in MiniGrid can be described as follows:
+The distribution of observations conditioned on a state in the Minigrid environment is determined by the agent's position, direction, and the contents of the grid. The agent's field of view (FoV) is a subset of the grid that is directly in front of the agent, and it is influenced by the agent's direction. The FoV is a small square (typically 3x3) that captures the cells the agent can see.
 
-1. **Agent Position and Direction**: The agent's position and direction are directly observed and do not change based on the action taken (assuming no movement or rotation actions).
+Given a state, the agent's observation is a partial view of the grid centered around the agent's current position and direction. The observation includes:
+- The agent's position (`agent_pos`).
+- The agent's direction (`agent_dir`).
+- The grid cells that are within the agent's field of view, with the agent's position marked as `12` (agent) in the FoV.
 
-2. **Field of View**: The agent's field of view is determined by its position, direction, and a fixed size (e.g., 3x3 grid). The field of view is a subset of the environment grid that lies in front of the agent, rotated to match the agent's current orientation.
+The observation does not change based on the action taken, as the action only affects the state for the next observation. The function `observation_func` will generate the observation based on the current state and the agent's field of view.
 
-3. **Carrying Object**: If the agent is carrying an object, it will be included in the observation.
-
-Given this understanding, the `observation_func` function can be implemented as follows:
+Here is the implementation of the `observation_func`:
 
 ```python
 # type: ignore
@@ -67,7 +68,7 @@ class Actions(IntEnum):
 
 
 @dataclass
-class MinigridObservation(Observation):
+class MinigridObservation:
     """
     Args:
         `image`: field of view in front of the agent.
@@ -86,7 +87,7 @@ class MinigridObservation(Observation):
 
 
 @dataclass
-class MinigridState(State):
+class MinigridState:
     """An agent exists in an indoor multi-room environment represented by a
     grid."""
 
@@ -114,7 +115,6 @@ class MinigridState(State):
     def get_type_indices(self, type: int) -> List[Tuple[int, int]]:
         idxs = np.where(self.grid == type)  # Returns (row_indices, col_indices)
         return list(zip(idxs[0], idxs[1]))  # Combine row and column indices
-
 
     def get_field_of_view(self, view_size: int) -> NDArray[np.int8]:
         """Returns the field of view in front of the agent.
@@ -168,7 +168,7 @@ class MinigridState(State):
 
         return fov
 
-def observation_func(state, action, empty_obs):
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
     """
     Args:
         state (MinigridState): the state of the environment
@@ -177,11 +177,14 @@ def observation_func(state, action, empty_obs):
     Returns:
         obs (MinigridObservation): observation of the agent
     """
-    # Get the field of view of the agent based on its position and direction
-    view_size = 3  # Typical view size in MiniGrid
+    view_size = 3  # Typically, the view size is 3x3 in Minigrid
     fov = state.get_field_of_view(view_size)
 
-    # Create the observation with the field of view and other relevant information
+    # Mark the agent's position in the FoV
+    agent_row, agent_col = view_size // 2, view_size - 1
+    fov[agent_row, agent_col] = ObjectTypes.agent
+
+    # Create the observation
     obs = MinigridObservation(
         image=fov,
         agent_pos=state.agent_pos,
@@ -192,4 +195,4 @@ def observation_func(state, action, empty_obs):
     return obs
 ```
 
-This implementation of `observation_func` extracts the field of view based on the agent's position and direction, and constructs the `MinigridObservation` object accordingly. The function is directly runnable and returns a valid observation.
+This function `observation_func` takes a `MinigridState`, an `action`, and an `empty_obs` and returns a `MinigridObservation` based on the agent's field of view. The `get_field_of_view` method is used to generate the field of view, and the agent's position is marked in the observation. The function is designed to be directly runnable and follows the provided template.

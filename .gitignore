@@ -10,6 +10,7 @@ outputs/**/*.html
 outputs/**/*.pkl
 
 .env
+*.swp
 main.log
 .vscode
 build/

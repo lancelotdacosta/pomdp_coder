@@ -33,6 +33,8 @@ from uncertain_worms.structs import (
     StateType,
 )
 from uncertain_worms.utils import PROJECT_ROOT, get_log_dir
+import time
+import signal
 
 log = logging.getLogger(__name__)
 
@@ -207,13 +209,20 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             (): [(e.previous_states[0],) for e in replay_buffer.episodes]
         }
         model_initials = defaultdict(list)
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Initial model sampling does not finish in reasonable time, perhaps an infinite loop?")
+        signal.signal(signal.SIGALRM, timeout_handler)
         try:
-            # Compute a model distribution from the current estimated initial state distribution
-            model_initials[()] = [
-                (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
-                for _ in range(self.num_initial_model_samples)
-            ]
+            log.warning(f"Compute a model distribution from the current estimated initial state distribution with {self.num_initial_model_samples} samples")
+            for _ in range(self.num_initial_model_samples):
+                signal.alarm(60)  # 60 second timeout per sample
+                sample = (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+                signal.alarm(0)  # Cancel the alarm
+                model_initials[()].append(sample)
+            else:
+                log.warning("Finished sampling initial model")
         except Exception:
+            signal.alarm(0)
             log.info("Bug during initial state evaluation")
             err_str = str(traceback.format_exc())
             log.info(err_str)
@@ -910,11 +919,13 @@ class LLMPartiallyObsPlanningAgent(
             test_replay_buffer = replay_buffer
 
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, total_replay_buffer
             )
-            assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            if error is not None:
+                log.warning(f"Error evaluating model {model_name}: {error}")
+                continue
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             log.info(f"Previous Total Model {model_name} Coverage: {coverage:.4f}")
 
             eps = 0.001
@@ -947,11 +958,13 @@ class LLMPartiallyObsPlanningAgent(
 
         self.reset()
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, total_replay_buffer
             )
-            assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            if error is not None:
+                log.warning(f"Error evaluating model {model_name}: {error}")
+                continue
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             self.previous_coverage[model_name] = coverage
             log.info(f"Total Model {model_name} Coverage: {coverage:.4f}")
             self.writer.add_scalar(
@@ -998,11 +1011,11 @@ class LLMPartiallyObsPlanningAgent(
 
         self.reset()
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, self.offline_replay_buffer
             )
             assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             self.previous_coverage[model_name] = coverage
             log.info(f"Total Model {model_name} Coverage: {coverage:.4f}")
             self.writer.add_scalar(
