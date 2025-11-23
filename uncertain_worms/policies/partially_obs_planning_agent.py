@@ -209,10 +209,12 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
         model_initials = defaultdict(list)
         try:
             # Compute a model distribution from the current estimated initial state distribution
+            log.warning("Compute a model distribution from the current estimated initial state distribution")
             model_initials[()] = [
                 (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
                 for _ in range(self.num_initial_model_samples)
             ]
+            log.warning("Finished")
         except Exception:
             log.info("Bug during initial state evaluation")
             err_str = str(traceback.format_exc())
