@@ -922,11 +922,13 @@ class LLMPartiallyObsPlanningAgent(
             test_replay_buffer = replay_buffer
 
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, total_replay_buffer
             )
-            assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            if error is not None:
+                log.warning(f"Error evaluating model {model_name}: {error}")
+                continue
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             log.info(f"Previous Total Model {model_name} Coverage: {coverage:.4f}")
 
             eps = 0.001
@@ -959,11 +961,13 @@ class LLMPartiallyObsPlanningAgent(
 
         self.reset()
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, total_replay_buffer
             )
-            assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            if error is not None:
+                log.warning(f"Error evaluating model {model_name}: {error}")
+                continue
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             self.previous_coverage[model_name] = coverage
             log.info(f"Total Model {model_name} Coverage: {coverage:.4f}")
             self.writer.add_scalar(
@@ -1010,11 +1014,11 @@ class LLMPartiallyObsPlanningAgent(
 
         self.reset()
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, self.offline_replay_buffer
             )
             assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             self.previous_coverage[model_name] = coverage
             log.info(f"Total Model {model_name} Coverage: {coverage:.4f}")
             self.writer.add_scalar(
