@@ -1,3 +1,13 @@
+Certainly! The reward conditioned on state, action, and next state transition in this environment seems to be as follows:
+
+- If the agent moves forward (`Actions.forward`), and the next state shows the agent on a goal cell (`ObjectTypes.goal`), the agent receives a reward of 1 and the episode is marked as done.
+- If the agent moves forward and the next state shows the agent on any cell other than a goal cell, the agent receives a reward of 0 and the episode is not done.
+- For any other action (e.g., turning left, turning right, picking up an object, etc.), the agent receives a reward of 0 and the episode is not done.
+
+However, the issue in the provided code is that it only checks the front position of the agent in the current state, rather than the position of the agent in the next state. The front position of the agent in the next state should be checked to determine if the agent has moved onto a goal cell.
+
+Here is the improved `reward_func` function:
+
 ```python
 def reward_func(state, action, next_state):
     """
@@ -9,19 +19,20 @@ def reward_func(state, action, next_state):
         reward (float): the reward of that state
         done (bool): whether the episode is done
     """
-
-    # Check if the agent has moved onto a goal cell
-    if next_state.grid[next_state.agent_pos] == ObjectTypes.goal:
-        return 1, True
-
-    # Check if the agent has moved onto a wall or out of bounds
-    if next_state.grid[next_state.agent_pos] == ObjectTypes.wall:
-        return -1, False
-
-    # Check if the agent's position has changed
-    if state.agent_pos != next_state.agent_pos:
-        return 0, False
-
-    # If none of the above conditions are met, the agent did not move and no reward is given
-    return 0, False
+    # Check if the action is a forward move
+    if action == Actions.forward:
+        # Get the position of the agent in the next state
+        next_agent_pos = next_state.agent_pos
+        # Get the object type at the agent's position in the next state
+        agent_obj = next_state.grid[next_agent_pos[0], next_agent_pos[1]]
+        
+        # If the agent lands on a goal cell
+        if agent_obj == ObjectTypes.goal:
+            return 1, True  # Reward of 1 and episode is done
+        else:
+            return 0, False  # No reward and episode is not done
+    else:
+        return 0, False  # No reward and episode is not done
 ```
+
+This function now correctly checks the position of the agent in the next state to determine if the agent has moved onto a goal cell, which should better model the true distribution.

@@ -11,18 +11,18 @@ echo "────────────────────────�
 DELAY=10
 
 ## Same as range; will take 0, 1, 2, 3
-for SEED in {1..4}
+for SEED in {2..4}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
-    LOG_DIR="outputs/four_rooms/ours/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_seed${SEED}"
+    LOG_DIR="outputs/lava/ours/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_seed${SEED}"
 
     # Print the directory it's going to use
     echo -e "➤ Output directory: ${LOG_DIR}"
 
     python main.py \
         --config-dir=uncertain_worms/config/approaches/ours \
-        --config-name=four_rooms_llm_TROI_po_planning_agent.yaml \
+        --config-name=lava_llm_TROI_po_planning_agent.yaml \
         seed=$SEED \
         agent.use_openrouter=true \
         save_log=true \
