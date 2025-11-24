@@ -33,6 +33,7 @@ from uncertain_worms.structs import (
     StateType,
 )
 from uncertain_worms.utils import PROJECT_ROOT, get_log_dir
+import time
 
 log = logging.getLogger(__name__)
 
@@ -208,23 +209,20 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
         }
         model_initials = defaultdict(list)
         try:
-            # Compute a model distribution from the current estimated initial state distribution
-            # Original code (when fixed, restore this):
-            # log.warning(f"Compute a model distribution from the current estimated initial state distribution with {self.num_initial_model_samples} samples")
-            # model_initials[()] = [
-            #     (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
-            #     for _ in range(self.num_initial_model_samples)
-            # ]
-            # log.warning("Finished")
-            
-            # Temporary per-sample logging:
             log.warning(f"Compute a model distribution from the current estimated initial state distribution with {self.num_initial_model_samples} samples")
+            start_time = time.time()
             for i in range(self.num_initial_model_samples):
-                if i % 1000 == 0:
-                    log.info(f"Generated {i}/{self.num_initial_model_samples} initial model samples")
+                # Check timeout for every sample
+                elapsed = time.time() - start_time
+                if elapsed > 60:
+                    err_str = "Initial model sampling does not finish in reasonable time, perhaps an infinite loop?"
+                    log.error(err_str)
+                    break
+                
                 sample = (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
                 model_initials[()].append(sample)
-            log.warning("Finished")
+            else:
+                log.warning("Finished")
         except Exception:
             log.info("Bug during initial state evaluation")
             err_str = str(traceback.format_exc())
