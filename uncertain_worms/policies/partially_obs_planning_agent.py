@@ -7,6 +7,7 @@ import math
 import os
 import random
 import traceback
+import signal
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
@@ -33,8 +34,6 @@ from uncertain_worms.structs import (
     StateType,
 )
 from uncertain_worms.utils import PROJECT_ROOT, get_log_dir
-import time
-import signal
 
 log = logging.getLogger(__name__)
 
