@@ -34,6 +34,7 @@ from uncertain_worms.structs import (
 )
 from uncertain_worms.utils import PROJECT_ROOT, get_log_dir
 import time
+import signal
 
 log = logging.getLogger(__name__)
 
@@ -208,22 +209,20 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             (): [(e.previous_states[0],) for e in replay_buffer.episodes]
         }
         model_initials = defaultdict(list)
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Initial model sampling does not finish in reasonable time, perhaps an infinite loop?")
+        signal.signal(signal.SIGALRM, timeout_handler)
         try:
             log.warning(f"Compute a model distribution from the current estimated initial state distribution with {self.num_initial_model_samples} samples")
-            start_time = time.time()
-            for i in range(self.num_initial_model_samples):
-                # Check timeout for every sample
-                elapsed = time.time() - start_time
-                if elapsed > 60:
-                    err_str = "Initial model sampling does not finish in reasonable time, perhaps an infinite loop?"
-                    log.error(err_str)
-                    break
-                
+            for _ in range(self.num_initial_model_samples):
+                signal.alarm(60)  # 60 second timeout per sample
                 sample = (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+                signal.alarm(0)  # Cancel the alarm
                 model_initials[()].append(sample)
             else:
-                log.warning("Finished")
+                log.warning("Finished sampling initial model")
         except Exception:
+            signal.alarm(0)
             log.info("Bug during initial state evaluation")
             err_str = str(traceback.format_exc())
             log.info(err_str)
