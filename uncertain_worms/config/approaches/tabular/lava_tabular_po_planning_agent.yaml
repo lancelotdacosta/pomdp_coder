@@ -18,11 +18,12 @@ env:
   env_name: ${env_name}
 
 agent:
-  _target_: uncertain_worms.policies.partially_obs_planning_agent.PartiallyObsPlanningAgent
-  max_attempts: 250000
-  num_particles: 100
+  _target_: uncertain_worms.policies.tabular_learners.Tabular_I_PartiallyObsPlanningAgent
   fully_obs: false
   actions: *actions
+  num_particles: 100
+  max_attempts: 100000
+  dataset_path: "environments/minigrid/trajectory_data/${env_name}.pkl"
 
   empty_state:
     _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_state_gen
@@ -30,24 +31,22 @@ agent:
 
   empty_observation:
     _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen
-    
+
   planner:
     _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
     actions: *actions
 
-    max_expansions: 5000
-    lambda_coeff: 0.0
-    entropy_coeff: 0.0
+    max_expansions: 500
 
     empty_observation:
       _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen
       
     initial_model: 
-      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_initial_model_gen
-      env_name: ${env_name}
+      _target_: uncertain_worms.structs.empty_initial_model_gen
     transition_model: 
       _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_transition_model_gen
     reward_model:
       _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_reward_model_gen
     observation_model:
       _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_observation_model_gen
+
