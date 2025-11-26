@@ -21,8 +21,8 @@ agent:
   _target_: uncertain_worms.policies.tabular_learners.Tabular_I_PartiallyObsPlanningAgent
   fully_obs: false
   actions: *actions
-  num_particles: 100
-  max_attempts: 100000
+  num_particles: 5000
+  max_attempts: 250000
   dataset_path: "environments/minigrid/trajectory_data/${env_name}.pkl"
 
   empty_state:
