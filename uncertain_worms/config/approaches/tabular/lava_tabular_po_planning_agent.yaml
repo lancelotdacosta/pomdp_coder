@@ -18,7 +18,7 @@ env:
   env_name: ${env_name}
 
 agent:
-  _target_: uncertain_worms.policies.tabular_learners.Tabular_I_PartiallyObsPlanningAgent
+  _target_: uncertain_worms.policies.tabular_learners.Tabular_TROI_PartiallyObsPlanningAgent
   fully_obs: false
   actions: *actions
   num_particles: 100
