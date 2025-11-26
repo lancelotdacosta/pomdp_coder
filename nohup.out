@@ -1,0 +1,9 @@
+──────────────────────────────────────────────
+    Launching Multi-Seed Experiment Runner    
+──────────────────────────────────────────────
+▶ Starting run for seed 0}
+➤ Output directory: outputs/rocksample/tabular/${now:%Y-%m-%d}/${now:%H-%M-%S}_seed0
+✔ Started seed 0 in background
+Waiting 10s before next seed...
+🛑 CTRL+C pressed → stopping all experiments…
+kill: sending signal to 278734 failed: No such process
