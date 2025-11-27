@@ -48,7 +48,7 @@ agent:
     _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
     actions: *actions
 
-    max_expansions: 100
+    max_expansions: 5000
 
     empty_observation:
       _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen
