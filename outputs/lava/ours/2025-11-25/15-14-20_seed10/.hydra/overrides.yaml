@@ -1,3 +1,0 @@
-- agent.use_openrouter=true
-- seed=10
-- agent.planner.max_expansions=1000
