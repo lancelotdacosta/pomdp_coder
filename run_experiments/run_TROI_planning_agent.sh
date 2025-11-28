@@ -25,6 +25,7 @@ do
         --config-dir=uncertain_worms/config/approaches/ours \
         --config-name=four_rooms_llm_TROI_po_planning_agent.yaml \
         seed=$SEED \
+        agent.use_openrouter=true \
         save_log=true \
         "hydra.run.dir=${LOG_DIR}" &
 
