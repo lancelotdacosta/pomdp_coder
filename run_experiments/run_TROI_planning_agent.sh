@@ -11,7 +11,7 @@ echo "────────────────────────�
 DELAY=10
 
 ## Same as range; will take 0, 1, 2, 3
-for SEED in {0..9}
+for SEED in {2..9}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
@@ -25,6 +25,7 @@ do
         --config-dir=uncertain_worms/config/approaches/tabular \
         --config-name=four_rooms_tabular_po_planning_agent.yaml \
         seed=$SEED \
+        agent.use_openrouter=true \
         save_log=true \
         "hydra.run.dir=${LOG_DIR}" &
 
