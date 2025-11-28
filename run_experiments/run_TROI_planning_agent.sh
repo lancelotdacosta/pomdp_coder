@@ -11,7 +11,7 @@ echo "────────────────────────�
 DELAY=10
 
 ## Same as range; will take 0, 1, 2, 3
-for SEED in {0..9}
+for SEED in {2..9}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
