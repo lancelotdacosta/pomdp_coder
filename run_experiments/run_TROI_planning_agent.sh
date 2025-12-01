@@ -15,7 +15,7 @@ for SEED in {0..9}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
-    LOG_DIR="outputs/corners/tabular/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_seed${SEED}"
+    LOG_DIR="outputs/unlock/tabular/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_seed${SEED}"
 
     # Print the directory it's going to use
     echo -e "➤ Output directory: ${LOG_DIR}"
@@ -23,7 +23,7 @@ do
     # add if using llm: agent.use_openrouter=true \
     python main.py \
         --config-dir=uncertain_worms/config/approaches/tabular \
-        --config-name=corners_tabular_po_planning_agent.yaml \
+        --config-name=unlock_tabular_po_planning_agent.yaml \
         seed=$SEED \
         save_log=true \
         "hydra.run.dir=${LOG_DIR}" &
