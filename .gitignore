@@ -9,6 +9,8 @@ outputs/**/*.log
 outputs/**/*.html
 outputs/**/*.pkl
 
+nohup.out
+
 .env
 *.swp
 main.log
