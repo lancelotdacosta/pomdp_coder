@@ -23,7 +23,7 @@ do
     # add if using llm: agent.use_openrouter=true \
     python main.py \
         --config-dir=uncertain_worms/config/approaches/tabular \
-        --config-name=tabular_TROI_po_planning_agent.yaml \
+        --config-name=four_rooms_tabular_po_planning_agent.yaml \
         seed=$SEED \
         save_log=true \
         "hydra.run.dir=${LOG_DIR}" &
