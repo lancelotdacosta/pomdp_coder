@@ -18,7 +18,7 @@ env:
   env_name: ${env_name}
 
 agent:
-  _target_: uncertain_worms.policies.tabular_learners.Tabular_I_PartiallyObsPlanningAgent
+  _target_: uncertain_worms.policies.tabular_learners.Tabular_TROI_PartiallyObsPlanningAgent
   fully_obs: false
   actions: *actions
   num_particles: 100
@@ -36,7 +36,7 @@ agent:
     _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
     actions: *actions
 
-    max_expansions: 100
+    max_expansions: 5000
 
     empty_observation:
       _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen
@@ -44,9 +44,8 @@ agent:
     initial_model: 
       _target_: uncertain_worms.structs.empty_initial_model_gen
     transition_model: 
-      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_transition_model_gen
+      _target_: uncertain_worms.structs.empty_transition_model_gen
     reward_model:
-      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_reward_model_gen
+      _target_: uncertain_worms.structs.empty_reward_model_gen
     observation_model:
-      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_hardcoded_observation_model_gen
-
+      _target_: uncertain_worms.structs.empty_observation_model_gen
