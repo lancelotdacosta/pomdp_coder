@@ -11,21 +11,20 @@ echo "────────────────────────�
 DELAY=10
 
 ## Same as range; will take 0, 1, 2, 3
-for SEED in {2..9}
+for SEED in {0..9}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
-    LOG_DIR="outputs/four_rooms/ours/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_seed${SEED}"
+    LOG_DIR="outputs/four_rooms/tabular/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_seed${SEED}"
 
     # Print the directory it's going to use
     echo -e "➤ Output directory: ${LOG_DIR}"
 
     # add if using llm: agent.use_openrouter=true \
     python main.py \
-        --config-dir=uncertain_worms/config/approaches/ours \
-        --config-name=four_rooms_llm_TROI_po_planning_agent.yaml \
+        --config-dir=uncertain_worms/config/approaches/tabular \
+        --config-name=tabular_TROI_po_planning_agent.yaml \
         seed=$SEED \
-        agent.use_openrouter=true \
         save_log=true \
         "hydra.run.dir=${LOG_DIR}" &
 
