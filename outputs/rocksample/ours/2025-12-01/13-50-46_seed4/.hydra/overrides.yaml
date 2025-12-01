@@ -1,3 +1,2 @@
-- seed=4
 - agent.use_openrouter=true
-- save_log=true
+- seed=4

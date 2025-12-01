@@ -2,7 +2,7 @@ max_steps: 40
 num_episodes: 10
 seed: 4
 gamma: 0.98
-save_log: true
+save_log: false
 replay_path: None
 actions:
 - 0
