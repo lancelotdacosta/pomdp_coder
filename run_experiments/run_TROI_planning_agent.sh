@@ -9,14 +9,14 @@ echo "────────────────────────�
 
 # Delay in seconds between launches
 DELAY=10
-ATTEMPTS=10
+ATTEMPTS=15
 
 ## Same as range; will take 0, 1, 2, 3
-for SEED in {1..9}
+for SEED in 0
 do
     echo -e "▶ Starting run for seed $SEED}"
 
-    LOG_DIR="outputs/rocksample/ours/${now:%Y-%m-%d}/${now:%H-%M-%S}_${ATTEMPTS}_seed${SEED}"
+    LOG_DIR="outputs/rocksample/ours/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_attempts${ATTEMPTS}_seed${SEED}"
 
     # Print the directory it's going to use
     echo -e "➤ Output directory: ${LOG_DIR}"
@@ -27,7 +27,7 @@ do
         --config-name=rocksample_llm_TROI_po_planning_agent.yaml \
         agent.use_openrouter=true \
         agent.num_model_attempts=$ATTEMPTS \
-        agent.num_online_model_attempts=10 \ 
+        agent.num_online_model_attempts=$ATTEMPTS \
         seed=$SEED \
         save_log=true \
         "hydra.run.dir=${LOG_DIR}" &
