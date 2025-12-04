@@ -32,6 +32,7 @@ agent:
   learn_observation: true
   use_online: true
   use_offline: true
+  use_openrouter: false
 
   dataset_path: "environments/tiger/trajectory_data/tiger_data.pkl"
   env_description: ""
