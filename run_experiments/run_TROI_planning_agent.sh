@@ -9,14 +9,14 @@ echo "────────────────────────�
 
 # Delay in seconds between launches
 DELAY=10
-ATTEMPTS=15
+ATTEMPTS=5
 
 ## Same as range; will take 0, 1, 2, 3
-for SEED in 0
+for SEED in {0..9}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
-    LOG_DIR="outputs/rocksample/ours/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_attempts${ATTEMPTS}_seed${SEED}"
+    LOG_DIR="outputs/rocksample/ours/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_modelqwen3_attempts${ATTEMPTS}_seed${SEED}"
 
     # Print the directory it's going to use
     echo -e "➤ Output directory: ${LOG_DIR}"
