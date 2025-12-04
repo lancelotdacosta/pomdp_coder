@@ -91,7 +91,8 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 # ENGINE = "qwen-32k"
 # ENGINE = "llama33-largecontext"
 ENGINE_ollama = "qwen25-largecontext"
-ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
+# ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
+ENGINE_openrouter = "qwen/qwen3-235b-a22b-2507"
 
 # Add Ollama client:
 # ollama_client = OpenAI(
