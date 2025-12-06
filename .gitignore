@@ -8,6 +8,9 @@ outputs/**/*.txt
 outputs/**/*.log
 outputs/**/*.html
 outputs/**/*.pkl
+outputs/**/*.wandb
+outputs/**/*.json
+outputs/**/*.yaml
 
 nohup.out
 
