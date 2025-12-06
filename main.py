@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import dataclasses
 import logging
 import os
 import random
@@ -10,11 +11,14 @@ from typing import Any, Dict, Optional
 
 import hydra
 import numpy as np
+from omegaconf import OmegaConf
 from torch.utils.tensorboard import SummaryWriter
 
 from uncertain_worms.policies import Policy
 from uncertain_worms.structs import Environment, Observation, ReplayBuffer, State
-from uncertain_worms.utils import discounted_reward, get_log_dir
+from uncertain_worms.utils import discounted_reward, get_log_dir, ENGINE
+
+import wandb
 
 log = logging.getLogger(__name__)
 
@@ -95,6 +99,17 @@ def run_app(cfg: Config) -> None:
     agent: Policy = hydra.utils.instantiate(
         cfg.agent, writer=writer, max_steps=cfg.max_steps, replay_path=cfg.replay_path
     )
+        
+    # TODO W&B logging
+    config_dict = OmegaConf.to_container(cfg, resolve=True)
+    config_dict["llm_engine"] = ENGINE if cfg.extras.approach == "ours" else None
+    wandb.init(
+        project="pomdp_coder_test",
+        config=config_dict,
+        # name=f"seed_{cfg.seed}",
+        # group=f"seed_{cfg.seed}",
+        dir=get_log_dir()
+    )
 
     # Evaluate
     eval_replay_buffer = ReplayBuffer[State, int, Observation]()
@@ -109,7 +124,7 @@ def run_app(cfg: Config) -> None:
         terminated = False
         step = 0
         while not terminated:
-            log.info(f"   Step {step}")
+            log.info(f" Step {step}")
             if agent.fully_obs:
                 action = agent.get_next_action(previous_state)
             else:
@@ -159,11 +174,15 @@ def run_app(cfg: Config) -> None:
         log.info("Episode reward: " + str(ep_reward))
 
         writer.add_scalar("Episode Reward", ep_reward, episode)  # type: ignore
+        wandb.log({f"Episode {episode} Reward": ep_reward}) # type: ignore
 
     writer.close()  # type: ignore
     eval_replay_buffer.save_to_file(os.path.join(get_log_dir(), "replay_buffer.pkl"))  # type: ignore
     writer.add_scalar("Average Episode Reward", np.mean(episode_rewards), 0)  # type: ignore
-    log.info(" Average Episode Reward: " + str(np.mean(episode_rewards)))
+    wandb.log({"Average Episode Reward": np.mean(episode_rewards)})  # type: ignore
+    wandb.save("replay_buffer.pkl")  # type: ignore
+    wandb.finish()  # type: ignore
+    log.info("Average Episode Reward: " + str(np.mean(episode_rewards)))
 
 
 @hydra.main(

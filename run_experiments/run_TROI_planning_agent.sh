@@ -10,24 +10,29 @@ echo "────────────────────────�
 # Delay in seconds between launches
 DELAY=10
 ATTEMPTS=5
+APPROACH="ours"
 
 ## Same as range; will take 0, 1, 2, 3
-for SEED in 1
+for SEED in {0..3}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
-    LOG_DIR="outputs/unlock/ours/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_modelqwen3_attempts${ATTEMPTS}_seed${SEED}"
+    LOG_DIR="outputs/wandb_test/tiger/${APPROACH}/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_modelqwen3_attempts${ATTEMPTS}_seed${SEED}"
 
     # Print the directory it's going to use
     echo -e "➤ Output directory: ${LOG_DIR}"
 
-    # add if using llm: agent.use_openrouter=true \
+    # add if using llm: 
+    # agent.use_openrouter=true \
+    # agent.num_model_attempts=$ATTEMPTS \
+    # agent.num_online_model_attempts=$ATTEMPTS \
     python main.py \
-        --config-dir=uncertain_worms/config/approaches/ours \
-        --config-name=unlock_llm_TROI_po_planning_agent.yaml \
+        --config-dir=uncertain_worms/config/approaches/$APPROACH \
+        --config-name=tiger_llm_TROI_po_planning_agent.yaml \
         agent.use_openrouter=true \
         agent.num_model_attempts=$ATTEMPTS \
         agent.num_online_model_attempts=$ATTEMPTS \
+        +extras.approach=$APPROACH \
         seed=$SEED \
         save_log=true \
         "hydra.run.dir=${LOG_DIR}" &

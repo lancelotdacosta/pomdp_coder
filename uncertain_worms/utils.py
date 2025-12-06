@@ -15,6 +15,7 @@ import requests  # type: ignore
 import httpx
 
 from openai import OpenAI
+import wandb
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ def write_prompt(path: str, entries: List[Dict[str, Any]]) -> None:
 
 
 def save_log(path: str, text: str) -> None:
-    with open(os.path.join(get_log_dir(), path), "w") as f:
+    with open(os.path.join(get_log_dir(), path), "w", encoding="utf-8") as f:
         f.write(text)
 
 
@@ -92,7 +93,7 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 # ENGINE = "llama33-largecontext"
 ENGINE_ollama = "qwen25-largecontext"
 # ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
-ENGINE_openrouter = "qwen/qwen3-235b-a22b-2507"
+ENGINE = "qwen/qwen3-235b-a22b-2507"
 
 # Add Ollama client:
 # ollama_client = OpenAI(
@@ -157,20 +158,27 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5, use_openroute
                         "Content-Type": "application/json",
                     },
                     data=json.dumps({
-                        "model": ENGINE_openrouter, 
+                        "model": ENGINE, 
                         "messages": message
                         }),
                 )
                 log.info(f"Response status code: {response.status_code}")
                 response_json = response.json()
                 content = str(response_json["choices"][0]["message"]["content"])
-                
-                # # Extract token usage if available
+                # Extract token usage if available
                 # if "usage" in response_json:
                 #     input_tokens = response_json["usage"].get("prompt_tokens", 0)
                 #     output_tokens = response_json["usage"].get("completion_tokens", 0)
                 # else:
                 #     input_tokens = output_tokens = 0
+
+                # if wandb.run:
+                #     wandb.log({
+                #         "input_tokens": input_tokens,
+                #         "output_tokens": output_tokens,
+                #         "total_tokens": input_tokens + output_tokens
+                #         })
+
             else:
                 print("NO OLLAMA!")
                 # Use OpenAI client with Ollama
@@ -193,7 +201,7 @@ def query_llm(message: List[Dict[str, str]], max_retries: int = 5, use_openroute
             #     json.dump(token_data, f, indent=2)
             
             # log.info(f"Tokens Info - Input: {input_tokens}, Output: {output_tokens}")
-            
+
             return (content, time.time() - st)
             
         except Exception as e:
