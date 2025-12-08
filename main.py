@@ -106,7 +106,7 @@ def run_app(cfg: Config) -> None:
     wandb.init(
         project="pomdp_coder_test",
         config=config_dict,
-        # name=f"seed_{cfg.seed}",
+        name=f"{cfg.extras.environment}_{cfg.extras.approach}_seed_{cfg.seed}",
         # group=f"seed_{cfg.seed}",
         dir=get_log_dir()
     )
