@@ -1,3 +1,0 @@
-FROM deepseek-r1:70b
-PARAMETER num_ctx 16384
-PARAMETER temperature 0.1

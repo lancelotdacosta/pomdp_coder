@@ -104,9 +104,9 @@ def run_app(cfg: Config) -> None:
     config_dict = OmegaConf.to_container(cfg, resolve=True)
     config_dict["llm_engine"] = ENGINE if cfg.extras.approach == "ours" else None
     wandb.init(
-        project="pomdp_coder_test",
+        project="pomdp_coder",
         config=config_dict,
-        name=f"{cfg.extras.environment}_{cfg.extras.approach}_seed_{cfg.seed}",
+        name=f"{cfg.extras.environment}_{cfg.extras.approach}_seed{cfg.seed}",
         # group=f"seed_{cfg.seed}",
         dir=get_log_dir()
     )
