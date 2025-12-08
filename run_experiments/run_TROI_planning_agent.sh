@@ -26,7 +26,7 @@ do
     cmd_args=(
         python main.py
         --config-dir="uncertain_worms/config/approaches/$APPROACH"
-        --config-name="tiger_llm_TROI_po_planning_agent.yaml"
+        --config-name="${ENVIRONMENT}_${APPROACH}.yaml"
         "+extras.environment=$ENVIRONMENT"
         "+extras.approach=$APPROACH"
         "seed=$SEED"
