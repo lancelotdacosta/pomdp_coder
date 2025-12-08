@@ -10,6 +10,7 @@ echo "────────────────────────�
 # Delay in seconds between launches
 DELAY=10
 ATTEMPTS=5
+ENVIRONMENT="tiger"
 APPROACH="ours"
 
 ## Same as range; will take 0, 1, 2, 3
@@ -17,7 +18,7 @@ for SEED in {0..3}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
-    LOG_DIR="outputs/wandb_test/tiger/${APPROACH}/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_modelqwen3_attempts${ATTEMPTS}_seed${SEED}"
+    LOG_DIR="outputs/wandb_test/${ENVIRONMENT}/${APPROACH}/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_modelqwen3_attempts${ATTEMPTS}_seed${SEED}"
 
     # Print the directory it's going to use
     echo -e "➤ Output directory: ${LOG_DIR}"
@@ -26,16 +27,44 @@ do
     # agent.use_openrouter=true \
     # agent.num_model_attempts=$ATTEMPTS \
     # agent.num_online_model_attempts=$ATTEMPTS \
-    python main.py \
-        --config-dir=uncertain_worms/config/approaches/$APPROACH \
-        --config-name=tiger_llm_TROI_po_planning_agent.yaml \
-        agent.use_openrouter=true \
-        agent.num_model_attempts=$ATTEMPTS \
-        agent.num_online_model_attempts=$ATTEMPTS \
-        +extras.approach=$APPROACH \
-        seed=$SEED \
-        save_log=true \
-        "hydra.run.dir=${LOG_DIR}" &
+    # python main.py \
+    #     --config-dir=uncertain_worms/config/approaches/$APPROACH \
+    #     --config-name=tiger_llm_TROI_po_planning_agent.yaml \
+    #     agent.use_openrouter=true \
+    #     agent.num_model_attempts=$ATTEMPTS \
+    #     agent.num_online_model_attempts=$ATTEMPTS \
+    #     +extras.environment=$ENVIRONMENT \
+    #     +extras.approach=$APPROACH \
+    #     seed=$SEED \
+    #     save_log=true \
+    #     "hydra.run.dir=${LOG_DIR}" &
+    
+    # 1. Start building the command arguments array
+    #    (Put all the arguments that are ALWAYS needed here)
+    cmd_args=(
+        python main.py
+        --config-dir="uncertain_worms/config/approaches/$APPROACH"
+        --config-name="tiger_llm_TROI_po_planning_agent.yaml"
+        "+extras.environment=$ENVIRONMENT"
+        "+extras.approach=$APPROACH"
+        "seed=$SEED"
+        "save_log=true"
+        "hydra.run.dir=${LOG_DIR}"
+    )
+
+    # 2. Conditionally append arguments if APPROACH is "ours"
+    if [ "$APPROACH" == "ours" ]; then
+        cmd_args+=(
+            "agent.use_openrouter=true"
+            "agent.num_model_attempts=$ATTEMPTS"
+            "agent.num_online_model_attempts=$ATTEMPTS"
+        )
+    fi
+
+    # 3. Execute the command using the array
+    #    "${cmd_args[@]}" expands to the list of arguments exactly as defined
+    "${cmd_args[@]}" &
+
 
     echo -e "✔ Started seed $SEED in background"
 
