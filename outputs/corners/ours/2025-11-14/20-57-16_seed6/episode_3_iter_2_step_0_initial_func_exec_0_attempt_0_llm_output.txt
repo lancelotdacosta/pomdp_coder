@@ -1,0 +1,56 @@
+Based on the provided samples, the distribution of initial states seems to have the following properties:
+
+1. **Agent Position**: The agent can appear in any open cell within the grid, excluding the wall cells.
+2. **Agent Direction**: The agent's direction is uniformly random.
+3. **Goal Position**: The goal can appear in any open cell within the grid, excluding the wall cells and the cell where the agent is placed.
+
+However, the key observation from the real-world samples is that the goal and the agent can be in the same row or column, but they are not always aligned in this way. This indicates that the placement of the goal and the agent should be more flexible and not restricted to specific patterns.
+
+To improve the `initial_func` function to better model the true distribution, we need to ensure that the goal and the agent can be placed in any valid open cell independently of each other, with the only constraint being that they do not occupy the same cell.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Find all open cells (excluding walls)
+    open_cells = [(x, y) for x in range(1, width-1) for y in range(1, height-1) if grid[x, y] == ObjectTypes.empty]
+
+    # Randomly place the goal cell
+    goal_pos_idx = np.random.choice(len(open_cells))
+    goal_x, goal_y = open_cells[goal_pos_idx]
+    grid[goal_x, goal_y] = ObjectTypes.goal
+
+    # Remove the goal cell from the list of open cells
+    del open_cells[goal_pos_idx]
+
+    # Randomly place the agent in one of the remaining open cells
+    agent_pos_idx = np.random.choice(len(open_cells))
+    agent_x, agent_y = open_cells[agent_pos_idx]
+    agent_dir = np.random.randint(0, 4)
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=(agent_x, agent_y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This function ensures that:
+1. The goal is placed in a random open cell.
+2. The agent is placed in a different random open cell.
+3. Both the goal and the agent can be in any valid open cell, and their positions are independent of each other.
+
+This should better match the distribution of initial states observed in the real world.

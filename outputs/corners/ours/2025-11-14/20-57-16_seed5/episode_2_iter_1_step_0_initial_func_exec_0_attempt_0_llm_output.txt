@@ -1,0 +1,55 @@
+To better model the true distribution of initial states, we need to ensure that the agent's position and the goal's position are more representative of the observed samples. The key points to address are:
+
+1. **Agent Position**: The agent should be placed in a way that it can be in various positions within the grid.
+2. **Goal Position**: The goal should be placed in a way that it can be in various positions within the grid, but it should not overlap with the agent's position.
+
+Based on the observed samples, it seems that the agent and the goal are often placed in the middle or lower part of the grid. Therefore, we will adjust the code to favor these areas while still allowing for some randomness.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get all open positions (not walls)
+    open_positions = np.argwhere(grid == ObjectTypes.empty)
+
+    # Create a probability distribution that favors the middle and lower parts of the grid
+    probabilities = np.ones(len(open_positions))
+    for i, pos in enumerate(open_positions):
+        # Favor positions in the middle and lower part of the grid
+        probabilities[i] *= (1 + 0.5 * (pos[0] / height + pos[1] / width))
+
+    probabilities /= probabilities.sum()
+
+    # Randomly select an open position for the agent with the weighted probability
+    agent_pos = tuple(open_positions[np.random.choice(len(open_positions), p=probabilities)])
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Select a random open position for the goal object (ensure it's not the same as the agent's position)
+    goal_pos = agent_pos
+    while goal_pos == agent_pos:
+        goal_pos = tuple(open_positions[np.random.choice(len(open_positions))])
+
+    # Place the goal object in the grid
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    return MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+```
+
+### Explanation:
+1. **Probability Distribution**: We create a probability distribution that favors the middle and lower parts of the grid. This is done by multiplying the base probability (which is 1 for all positions) by a factor that increases as the position moves towards the middle and lower part of the grid. The factor is calculated as `1 + 0.5 * (pos[0] / height + pos[1] / width)`, which gives higher values to positions closer to the center and bottom.
+2. **Agent Position**: The agent's position is selected using the weighted probability distribution.
+3. **Goal Position**: The goal's position is selected from the remaining open positions, ensuring it does not overlap with the agent's position.
+
+This approach should better model the true distribution of initial states based on the observed samples.

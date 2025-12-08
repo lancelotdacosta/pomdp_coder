@@ -1,0 +1,52 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    def random_agent_position(grid):
+        """Randomly place the agent in an open cell."""
+        open_cells = np.where(grid == ObjectTypes.empty)
+        open_cells = list(zip(open_cells[0], open_cells[1]))
+        agent_pos = open_cells[np.random.choice(len(open_cells))]
+        return agent_pos
+
+    def random_agent_direction():
+        """Randomly choose the agent's direction."""
+        return np.random.choice(list(Direction))
+
+    # Place the goal object in a random open cell
+    open_cells = np.where(empty_state.grid == ObjectTypes.empty)
+    open_cells = list(zip(open_cells[0], open_cells[1]))
+    goal_pos = open_cells[np.random.choice(len(open_cells))]
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent in a random open cell
+    agent_pos = random_agent_position(empty_state.grid)
+    agent_dir = random_agent_direction()
+
+    # Ensure the agent is not placed on the goal
+    while agent_pos == goal_pos:
+        agent_pos = random_agent_position(empty_state.grid)
+
+    return MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation of the Distribution of Initial States
+
+The distribution of initial states in this environment is characterized by:
+
+1. **Grid Layout**: The grid has walls around the perimeter, and the interior cells are mostly empty except for one goal object.
+2. **Agent Position**: The agent can be placed in any open cell (i.e., a cell that is not a wall or the goal).
+3. **Agent Direction**: The agent's direction (facing right, down, left, or up) is chosen randomly.
+4. **Goal Object**: The goal object is placed in a random open cell.
+
+The provided samples show that the agent can start at various positions within the grid and face different directions. The goal object is also placed in different locations, ensuring that the environment is diverse and the agent must explore to find the goal.

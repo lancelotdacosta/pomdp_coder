@@ -1,0 +1,44 @@
+Based on the provided samples, it appears that the initial state distribution is as follows:
+
+1. The agent can start at various positions within the grid, but it seems confined to certain rows (3 and 4) and columns (2, 3, 5, 6).
+2. The agent's direction (`agent_dir`) is uniformly distributed across all four possible directions (0: right, 1: down, 2: left, 3: up).
+3. The agent does not carry any objects initially (`carrying=None`).
+4. There is a fixed goal object positioned at (9, 8) in the grid.
+
+Given this understanding, we can implement the `initial_func` function to sample initial states according to this distribution.
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Possible starting positions for the agent
+    possible_positions = [(2, 3), (3, 3), (5, 3), (6, 2), (6, 4)]
+
+    # Randomly select a starting position for the agent
+    agent_pos = np.random.choice(possible_positions)
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # The agent is not carrying any object initially
+    carrying = None
+
+    # Set the goal object at a fixed position (9, 8)
+    empty_state.grid[9, 8] = ObjectTypes.goal
+
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=carrying
+    )
+
+    return state
+```
+
+This function initializes the environment by randomly selecting a starting position and direction for the agent from the observed distribution. It also ensures that the goal object is placed at the fixed position (9, 8) in the grid.

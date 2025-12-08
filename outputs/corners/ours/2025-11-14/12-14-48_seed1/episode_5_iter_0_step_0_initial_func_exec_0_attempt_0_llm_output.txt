@@ -1,0 +1,40 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible positions and directions for the agent
+    possible_agent_positions = [
+        (6, 8), (8, 5), (3, 3), (6, 7), (5, 3)
+    ]
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Randomly select an agent position and direction
+    agent_pos = possible_agent_positions[np.random.choice(len(possible_agent_positions))]
+    agent_dir = np.random.choice(possible_agent_directions)
+
+    # Ensure the grid is correctly initialized with the walls
+    grid = empty_state.grid.copy()
+
+    # Place the goal object in a random position within the grid, avoiding walls
+    possible_goal_positions = [
+        (i, j) for i in range(1, grid.shape[0] - 1) 
+        for j in range(1, grid.shape[1] - 1) 
+        if grid[i, j] == ObjectTypes.empty
+    ]
+    goal_pos = possible_goal_positions[np.random.choice(len(possible_goal_positions))]
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```

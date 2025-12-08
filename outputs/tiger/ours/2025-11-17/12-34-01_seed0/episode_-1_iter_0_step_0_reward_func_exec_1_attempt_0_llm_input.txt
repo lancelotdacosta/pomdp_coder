@@ -1,0 +1,223 @@
+#define system
+You are a robot exploring its environment. 
+
+Environment Description: 
+Goal Description: 
+
+Your goal is to model the the reward conditioned on state, action, next state transition. 
+You need to implement the python code to model the world, as seen in the provided experiences. 
+Please follow the template to implement the code. 
+The code needs to be directly runnable (state, action, next_state) and return (reward, done). 
+
+
+Below are a few samples from the environment distribution. These are only samples from a larger distribution that your should model.
+
+Input TigerState: TigerState(tiger_location=LEFT)
+Input int: 2
+Input TigerState: TigerState(tiger_location=LEFT)
+Output float: 0.0
+Output bool: False
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 0
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 1.0
+Output bool: True
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 0.0
+Output bool: False
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 0
+Input TigerState: TigerState(tiger_location=RIGHT)
+Output float: 1.0
+Output bool: True
+
+
+Input TigerState: TigerState(tiger_location=LEFT)
+Input int: 2
+Input TigerState: TigerState(tiger_location=LEFT)
+Output float: 0.0
+Output bool: False
+
+
+
+
+Here is the template for the reward_func function. Please implement
+the reward function following the template. The code needs to be directly
+runnable.
+
+‘‘‘
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    raise NotImplementedError
+‘‘‘
+
+Explain what you believe is the the reward conditioned on state, action, next state transition in english.
+Additionally, please implement code to model the logic of the world. Please implement the 
+code following the template. Only output the definition for ‘ reward_func ‘. 
+You must implement the ‘ reward_func ‘ function.
+Create any helper function inside the scope of ‘ reward_func ‘. 
+Do not create any helper function outside the scope of ‘ reward_func ‘.
+Do not output examples usage. 
+Do not create any new classes.
+Do not rewrite existing classes. 
+Do not import any new modules from anywhere.
+Do not overfit to the specific samples.
+Put the ‘ reward_func ‘ function in a python code block.
+#define assistant
+```python
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done based on the state, action, and next state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == LEFT:
+            reward = -1.0  # Opening left door when tiger is behind it
+        else:
+            reward = 1.0  # Opening left door when tiger is behind right door
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == RIGHT:
+            reward = -1.0  # Opening right door when tiger is behind it
+        else:
+            reward = 1.0  # Opening right door when tiger is behind left door
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # No reward for listening
+        done = False  # Episode continues after listening
+
+    return reward, done
+```
+
+### Explanation
+- **Opening the Left Door (Action 0)**:
+  - If the tiger is behind the left door, the agent receives a reward of -1.0 and the episode ends.
+  - If the tiger is behind the right door, the agent receives a reward of 1.0 and the episode ends.
+- **Opening the Right Door (Action 1)**:
+  - If the tiger is behind the right door, the agent receives a reward of -1.0 and the episode ends.
+  - If the tiger is behind the left door, the agent receives a reward of 1.0 and the episode ends.
+- **Listening (Action 2)**:
+  - The agent receives no reward (0.0) for listening.
+  - The episode continues after listening.
+
+This logic ensures that the agent is penalized for making a wrong decision (opening the door with the tiger) and rewarded for making the correct decision (opening the door without the tiger). Listening does not affect the state or end the episode but provides information to the agent.
+#define assistant
+
+
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward and done based on the state, action, and next state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == LEFT:
+            reward = -1.0  # Opening left door when tiger is behind it
+        else:
+            reward = 1.0  # Opening left door when tiger is behind right door
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == RIGHT:
+            reward = -1.0  # Opening right door when tiger is behind it
+        else:
+            reward = 1.0  # Opening right door when tiger is behind left door
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # No reward for listening
+        done = False  # Episode continues after listening
+
+    return reward, done
+
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 280, in evaluate_reward_model
+    pred_reward, pred_terminated = self.planner.reward_model(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 107, in reward_model
+    reward, done = locals()[func_name](
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_reward_func000.py", line 15, in reward_func
+    if state.tiger_location == LEFT:
+                               ^^^^
+NameError: name 'LEFT' is not defined
+
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 280, in evaluate_reward_model
+    pred_reward, pred_terminated = self.planner.reward_model(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 107, in reward_model
+    reward, done = locals()[func_name](
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_reward_func000.py", line 15, in reward_func
+    if state.tiger_location == LEFT:
+                               ^^^^
+NameError: name 'LEFT' is not defined
+

@@ -1,0 +1,56 @@
+Based on the provided samples, it appears that the initial states are distributed such that:
+
+1. The grid is a 10x10 grid with walls around the perimeter (2s).
+2. The agent can start at various positions within the grid, but always in an open cell (1s).
+3. The agent's direction (0: right, 1: down, 2: left, 3: up) is also varied.
+4. There is a single goal object (10) located at a random position within the grid, but not on the walls or where the agent starts.
+5. The agent is not carrying any object initially.
+
+Given this understanding, we can implement the `initial_func` function to sample from this distribution.
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def is_valid_pos(pos, grid):
+        """Check if the position is valid (not a wall and not already occupied)."""
+        x, y = pos
+        return 0 < x < 9 and 0 < y < 9 and grid[x, y] == 1
+    
+    # Flatten the grid to get all open positions
+    open_positions = np.argwhere(empty_state.grid == 1)
+    
+    # Randomly select a position for the goal
+    goal_pos = tuple(open_positions[np.random.choice(len(open_positions))])
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal position from the list of open positions
+    open_positions = open_positions[~np.all(open_positions == goal_pos, axis=1)]
+    
+    # Randomly select a position for the agent
+    agent_pos = tuple(open_positions[np.random.choice(len(open_positions))])
+    
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Update the state with the new agent position and direction
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+This function ensures that:
+- The goal is placed at a random open position.
+- The agent starts at a different random open position.
+- The agent's direction is chosen randomly.
+- The state is returned with the updated grid, agent position, and direction.

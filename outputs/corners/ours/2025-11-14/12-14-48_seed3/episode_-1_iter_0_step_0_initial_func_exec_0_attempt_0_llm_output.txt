@@ -1,0 +1,57 @@
+Based on the provided samples, it appears that the initial state distribution is as follows:
+
+1. **Agent Position and Direction**:
+   - The agent can start at various positions on the grid, typically within the empty (1) cells.
+   - The agent's direction (0: right, 1: down, 2: left, 3: up) seems to be largely random but with a slight bias towards certain directions.
+
+2. **Grid Configuration**:
+   - The grid has walls (2) around the perimeter.
+   - There are empty (1) cells where the agent can move.
+   - There is a single goal (10) cell, which can appear in different locations within the grid.
+
+Given this distribution, we can implement the `initial_func` to randomly place the agent in an empty cell and set its direction, while ensuring that the grid configuration includes a goal cell in a random position.
+
+Here is the implementation of `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Ensure the grid has the correct dimensions
+    width, height = empty_state.grid.shape
+
+    # Find all empty cells in the grid
+    empty_cells = np.argwhere(empty_state.grid == 1)
+
+    # Randomly select one of the empty cells for the agent's initial position
+    agent_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+
+    # Randomly select the agent's initial direction
+    agent_dir = np.random.choice([0, 1, 2, 3])
+
+    # Place the goal cell in a random empty cell (excluding the agent's initial position)
+    remaining_empty_cells = np.delete(empty_cells, np.where((empty_cells == agent_pos).all(axis=1)), axis=0)
+    goal_pos = tuple(remaining_empty_cells[np.random.choice(len(remaining_empty_cells))])
+    empty_state.grid[goal_pos] = 10
+
+    # Initialize the state with the agent's position, direction, and the updated grid
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+This function:
+1. Finds all empty cells in the grid.
+2. Randomly selects one of these empty cells for the agent's initial position.
+3. Randomly selects a direction for the agent.
+4. Randomly places a goal cell in one of the remaining empty cells.
+5. Returns the initial state with the updated grid and agent information.

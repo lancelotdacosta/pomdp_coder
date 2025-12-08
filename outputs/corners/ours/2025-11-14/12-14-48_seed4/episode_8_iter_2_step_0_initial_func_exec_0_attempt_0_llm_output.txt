@@ -1,0 +1,50 @@
+To better model the true distribution of initial states, we need to ensure that the agent and the goal object can be placed in any valid empty cell within the grid. The current implementation sometimes places the goal object in a way that conflicts with the agent's position or other objects, which might not reflect the true distribution of initial states.
+
+Here is an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid dimensions
+    width, height = empty_state.width, empty_state.height
+
+    # List of all empty positions in the grid
+    empty_positions = np.argwhere(empty_state.grid == ObjectTypes.empty).tolist()
+
+    # Place the goal object in a random empty location within the grid
+    goal_pos = tuple(empty_positions[np.random.randint(len(empty_positions))])
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Remove the goal position from the list of empty positions
+    empty_positions.remove(goal_pos)
+
+    # Place the agent in a random empty location within the grid
+    agent_pos = tuple(empty_positions[np.random.randint(len(empty_positions))])
+
+    # Randomly select the agent's direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation:
+1. **Empty Positions**: We first identify all the empty positions in the grid using `np.argwhere(empty_state.grid == ObjectTypes.empty)`. This gives us a list of all valid positions where the goal and the agent can be placed.
+2. **Place Goal**: We randomly select one of these empty positions for the goal object and update the grid accordingly. We then remove this position from the list of empty positions to ensure it cannot be reused.
+3. **Place Agent**: We randomly select another empty position for the agent from the remaining empty positions.
+4. **Agent Direction**: The agent's direction is chosen randomly from the possible directions.
+5. **Create Initial State**: Finally, we create and return the initial state with the updated grid, agent position, and agent direction.
+
+This approach ensures that the agent and the goal object are always placed in valid empty cells, which should better reflect the true distribution of initial states.

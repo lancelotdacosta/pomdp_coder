@@ -1,0 +1,56 @@
+Based on the provided samples, it seems that the initial states have the following characteristics:
+
+1. **Grid Dimensions**: The grid is always 10x10 with walls around the boundary.
+2. **Agent Position**: The agent can be placed in any of the inner 8x8 grid cells (positions (1,1) to (8,8)).
+3. **Agent Direction**: The agent can face in any of the four directions (right, down, left, up).
+4. **Goal Position**: The goal object can be placed in any of the inner 8x8 grid cells (positions (1,1) to (8,8)).
+
+The key difference between the real world samples and the generated samples is that in the real world, the agent and goal positions can overlap, but in the generated samples, they are always distinct. This means the generated model is missing the possibility of the agent and goal being in the same cell.
+
+To improve the code, we need to allow for the possibility of the agent and goal being in the same cell. We will modify the `initial_func` function accordingly.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    def is_valid_position(pos: Tuple[int, int], grid: NDArray[np.int8]) -> bool:
+        """Check if the position is valid (not a wall or already occupied)."""
+        x, y = pos
+        return 1 <= x < 9 and 1 <= y < 9 and grid[x, y] == ObjectTypes.empty
+
+    # Randomly place the goal object
+    goal_pos = None
+    while goal_pos is None or not is_valid_position(goal_pos, empty_state.grid):
+        goal_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Randomly place the agent
+    agent_pos = None
+    while agent_pos is None or not is_valid_position(agent_pos, empty_state.grid) and agent_pos != goal_pos:
+        agent_pos = (np.random.randint(1, 9), np.random.randint(1, 9))
+    
+    # If the agent position is the same as the goal position, set the agent_pos to goal_pos
+    if agent_pos == goal_pos:
+        empty_state.grid[agent_pos] = ObjectTypes.goal  # Ensure the goal is still marked
+    else:
+        empty_state.grid[agent_pos] = ObjectTypes.agent
+
+    empty_state.agent_pos = agent_pos
+
+    # Randomly set the agent's direction
+    empty_state.agent_dir = np.random.choice(list(Direction))
+
+    return empty_state
+```
+
+### Explanation of Changes:
+1. **Agent and Goal Placement**: The agent and goal can now be placed in the same cell. If they are placed in the same cell, the grid will show the goal at that position (since the goal is the object that is actually present in the cell).
+2. **Validation**: The validation for the agent's position ensures that it is not a wall and is within the inner 8x8 grid. However, it no longer checks if the agent position is distinct from the goal position.
+
+This should better match the distribution of initial states observed in the real world samples.

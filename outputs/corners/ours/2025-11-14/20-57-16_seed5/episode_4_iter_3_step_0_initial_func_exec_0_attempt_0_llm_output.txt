@@ -1,0 +1,53 @@
+Based on the provided samples from the real world, it appears that the initial states have the following characteristics:
+
+1. **Agent Position**: The agent can start at any open cell (i.e., where the grid value is 1) within the grid.
+2. **Agent Direction**: The agent can start facing any of the four directions (0: right, 1: down, 2: left, 3: up).
+3. **Goal Position**: The goal object (value 10) can be placed in any open cell, but it must not be the same as the agent's initial position.
+4. **Carrying**: The agent starts without carrying any object.
+
+The current `initial_func` function seems to be mostly correct, but there are a few improvements that can be made to better model the true distribution:
+
+1. **Ensure the agent and goal do not overlap**: This is already implemented, but we should ensure it works correctly.
+2. **Randomly select from all possible positions**: Ensure that the agent and goal positions are chosen uniformly from all available cells.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Create a copy of the empty state to avoid modifying the original
+    state = MinigridState(
+        grid=np.copy(empty_state.grid),
+        agent_pos=empty_state.agent_pos,
+        agent_dir=empty_state.agent_dir,
+        carrying=empty_state.carrying
+    )
+
+    # Get all positions within the grid that are not walls
+    open_cells = np.where(state.grid == ObjectTypes.empty)
+    open_cells = list(zip(open_cells[0], open_cells[1]))
+
+    # Randomly select an open cell for the agent's initial position
+    state.agent_pos = open_cells[np.random.randint(len(open_cells))]
+
+    # Randomly select a direction for the agent
+    state.agent_dir = np.random.randint(4)
+
+    # Randomly place a goal object in an open cell, ensuring it is not the same as the agent's position
+    goal_pos = open_cells[np.random.randint(len(open_cells))]
+    while goal_pos == state.agent_pos:
+        goal_pos = open_cells[np.random.randint(len(open_cells))]
+    state.grid[goal_pos] = ObjectTypes.goal
+
+    # The agent is not carrying any object initially
+    state.carrying = None
+
+    return state
+```
+
+This function ensures that the agent and goal are placed randomly and independently in open cells, and that they do not overlap. The agent's initial direction is also chosen uniformly at random. This should better match the true distribution of initial states observed in the real world.

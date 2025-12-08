@@ -1,0 +1,43 @@
+To better model the true distribution of initial states, we need to ensure that the agent's position and the goal's position are appropriately distributed within the grid. Based on the provided samples, it seems that the agent and the goal can be placed in various positions within the grid, but they should avoid walls and each other.
+
+Here is an improved version of the `initial_func` function that better models the true distribution:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the goal position randomly within the grid, avoiding walls
+    while True:
+        goal_x, goal_y = np.random.randint(1, 9), np.random.randint(1, 9)
+        if empty_state.grid[goal_x, goal_y] == ObjectTypes.empty:
+            break
+    empty_state.grid[goal_x, goal_y] = ObjectTypes.goal
+
+    # Define the agent's initial position and direction, ensuring it doesn't overlap with the goal
+    while True:
+        agent_x, agent_y = np.random.randint(1, 9), np.random.randint(1, 9)
+        if empty_state.grid[agent_x, agent_y] == ObjectTypes.empty:
+            break
+    agent_dir = np.random.randint(4)
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(agent_x, agent_y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of the Distribution:
+1. **Goal Positioning**: The goal can be placed anywhere within the grid (excluding the walls) and should not overlap with the agent's position.
+2. **Agent Positioning**: The agent can also be placed anywhere within the grid (excluding the walls) and should not overlap with the goal's position.
+3. **Direction**: The agent's direction is chosen randomly from the four possible directions (0: right, 1: down, 2: left, 3: up).
+
+This function ensures that both the goal and the agent are placed in valid positions, avoiding overlap and walls, which should better match the observed distribution in the real world.

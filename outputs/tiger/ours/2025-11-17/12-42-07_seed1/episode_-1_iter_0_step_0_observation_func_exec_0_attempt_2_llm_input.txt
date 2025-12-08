@@ -1,0 +1,319 @@
+#define system
+You are a robot exploring its environment. 
+
+Environment Description: 
+Goal Description: 
+
+Your goal is to model the the distribution of observations conditioned on a state. 
+You need to implement the python code to model the world, as seen in the provided experiences. 
+Please follow the template to implement the code. 
+The code needs to be directly runnable (state) and return a sample (observation). 
+
+
+Below are a few samples from the environment distribution. These are only samples from a larger distribution that your should model.
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Output TigerObservation: TigerObservation(obs=1)
+
+
+Input TigerState: TigerState(tiger_location=LEFT)
+Input int: 2
+Output TigerObservation: TigerObservation(obs=0)
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 2
+Output TigerObservation: TigerObservation(obs=1)
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 0
+Output TigerObservation: TigerObservation(obs=2)
+
+
+Input TigerState: TigerState(tiger_location=RIGHT)
+Input int: 0
+Output TigerObservation: TigerObservation(obs=2)
+
+
+
+
+Here is the template for the observation_func function. Please implement
+the reward function following the template. The code needs to be directly
+runnable.
+
+‘‘‘
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def observation_func(state, action, empty_obs):
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    raise NotImplementedError
+‘‘‘
+
+Explain what you believe is the the distribution of observations conditioned on a state in english.
+Additionally, please implement code to model the logic of the world. Please implement the 
+code following the template. Only output the definition for ‘ observation_func ‘. 
+You must implement the ‘ observation_func ‘ function.
+Create any helper function inside the scope of ‘ observation_func ‘. 
+Do not create any helper function outside the scope of ‘ observation_func ‘.
+Do not output examples usage. 
+Do not create any new classes.
+Do not rewrite existing classes. 
+Do not import any new modules from anywhere.
+Do not overfit to the specific samples.
+Put the ‘ observation_func ‘ function in a python code block.
+#define assistant
+Based on the provided samples, it appears that the distribution of observations is influenced by both the state (tiger location) and the action taken by the agent. Specifically:
+
+1. **Action 2 (LISTEN)**:
+   - If the tiger is on the RIGHT, the agent is more likely to hear the tiger on the RIGHT (observation 1).
+   - If the tiger is on the LEFT, the agent is more likely to hear the tiger on the LEFT (observation 0).
+
+2. **Action 0 (OPEN_LEFT) or Action 1 (OPEN_RIGHT)**:
+   - The agent does not hear anything (observation 2) when opening a door (regardless of the tiger's location).
+
+Given this understanding, we can model the observation function accordingly. Here is the implementation of the `observation_func`:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def observation_func(state: TigerState, action: int, empty_obs: TigerObservation) -> TigerObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action == TigerActions.LISTEN:
+        # When listening, the agent is more likely to hear the tiger correctly
+        if state.tiger_location == TigerActions.LEFT:
+            obs = random.choice([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.NONE])
+        elif state.tiger_location == TigerActions.RIGHT:
+            obs = random.choice([TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE])
+    else:
+        # When opening a door, the agent does not hear anything
+        obs = TigerObservationEnum.NONE
+
+    return TigerObservation(obs=obs.value)
+```
+
+This implementation models the observation function based on the provided samples and the described logic of the environment. The `observation_func` returns an appropriate observation based on the current state and the action taken by the agent.
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 194, in requery
+    code_obj = compile(code_str, filename=filename, mode="exec")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_observation_func000.py", line 26
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+    ^^^^^^^^^^^^^
+SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?
+
+#define assistant
+The error you're encountering is due to the incorrect syntax used in the `TigerObservationEnum` definition. In Python, when defining an enumeration with values, you should use the assignment operator `=` for each member without commas between them.
+
+Here is the corrected implementation of the `observation_func`:
+
+```python
+from __future__ import annotations
+
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int  # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def observation_func(state: TigerState, action: int, empty_obs: TigerObservation) -> TigerObservation:
+    """
+    Represents the non-centered field of view of the agent.
+
+    The observation represents the agent's relative view of the world. 
+
+    The agent is NOT in the center of the observation grid.
+
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+
+    The width and height of the observation grid are called view size.
+
+    The agent is ALWAYS at obs.image[view_size // 2, view_size - 1] in the observation `image`
+
+    Your may make use of the state.get_field_of_view helper function.
+
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (TigerObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (TigerObservation): observation of the agent
+    """
+    if action == TigerActions.LISTEN:
+        # When listening, the agent is more likely to hear the tiger correctly
+        if state.tiger_location == TigerActions.LEFT:
+            obs = random.choice([TigerObservationEnum.HEAR_LEFT, TigerObservationEnum.NONE])
+        elif state.tiger_location == TigerActions.RIGHT:
+            obs = random.choice([TigerObservationEnum.HEAR_RIGHT, TigerObservationEnum.NONE])
+    else:
+        # When opening a door, the agent does not hear anything
+        obs = TigerObservationEnum.NONE
+
+    return TigerObservation(obs=obs.value)
+```
+
+In this corrected version, the `TigerObservationEnum` is defined with each member assigned a value without commas between them. This should resolve the syntax error and allow your code to compile and run correctly.
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 201, in requery
+    exec(code_obj, globals(), local_scope)
+  File "generated_code_observation_func001.py", line 22, in <module>
+    class TigerObservationEnum(enum.IntEnum):
+                               ^^^^
+NameError: name 'enum' is not defined
+

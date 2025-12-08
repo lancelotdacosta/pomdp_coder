@@ -1,0 +1,49 @@
+Based on the provided samples from the real world and the generated samples from your model, it seems that the primary discrepancies lie in the placement of the agent and the goal object. Specifically, the real-world samples show more variability in the agent's position and the goal's position, while the generated samples tend to place both the agent and the goal in more predictable patterns.
+
+To improve the distribution, we need to ensure that the agent and the goal object can be placed in a wider range of positions within the grid, while still respecting the constraints that they cannot overlap with each other or with walls.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    
+    # Define the valid range for agent and object placement
+    min_x, max_x = 1, empty_state.width - 2
+    min_y, max_y = 1, empty_state.height - 2
+    
+    # Randomly choose an agent position that is not a wall
+    while True:
+        agent_x = np.random.randint(min_x, max_x + 1)
+        agent_y = np.random.randint(min_y, max_y + 1)
+        if grid[agent_x, agent_y] == ObjectTypes.empty:
+            break
+    
+    # Randomly choose an agent direction
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Randomly place a single object (10) in the grid
+    while True:
+        object_x = np.random.randint(min_x, max_x + 1)
+        object_y = np.random.randint(min_y, max_y + 1)
+        if (object_x, object_y) != (agent_x, agent_y) and grid[object_x, object_y] == ObjectTypes.empty:
+            grid[object_x, object_y] = ObjectTypes.goal
+            break
+    
+    # The agent is not carrying any object initially
+    carrying = None
+    
+    return MinigridState(grid=grid, agent_pos=(agent_x, agent_y), agent_dir=agent_dir, carrying=carrying)
+```
+
+### Explanation of Changes:
+1. **Valid Range for Placement**: Instead of hardcoding the range for `x` and `y` to be between 1 and 9, we use the actual dimensions of the grid minus the walls. This ensures that the function can work with grids of different sizes.
+2. **Agent and Goal Placement**: We ensure that both the agent and the goal are placed within the valid range and do not overlap with each other or with walls. This is done using a while loop that keeps generating random positions until a valid one is found.
+
+These changes should help the generated initial states more closely match the distribution observed in the real-world samples.

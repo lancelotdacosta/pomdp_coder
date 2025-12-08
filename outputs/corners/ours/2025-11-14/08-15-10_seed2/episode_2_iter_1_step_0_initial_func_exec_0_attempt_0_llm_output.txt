@@ -1,0 +1,55 @@
+To better model the true distribution of initial states, we need to ensure that the agent and the goal can be placed in a wider range of positions within the grid. The current implementation restricts both the agent and the goal to the inner cells of the grid, which might not capture the full range of possible initial states.
+
+Here are the key points to improve:
+
+1. ** Agent Position**: The agent can be placed anywhere in the grid except on walls.
+2. ** Goal Position**: The goal can also be placed anywhere in the grid except on walls and on the same cell as the agent.
+3. ** Random Direction**: The agent's direction should be uniformly random.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid
+    width, height = grid.shape
+
+    # Place the goal object at a random position within the grid, avoiding walls
+    goal_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+    while grid[goal_pos] != ObjectTypes.empty:
+        goal_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent at a random position within the grid, avoiding walls and the goal
+    agent_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+    while grid[agent_pos] == ObjectTypes墙 or agent_pos == goal_pos:
+        agent_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+
+    # Set a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Improvements:
+1. **Agent and Goal Placement**:
+   - The agent and goal are placed within the inner cells of the grid, avoiding walls. This ensures that they can be placed in a wider range of positions.
+   - The agent is ensured not to be placed on the same cell as the goal.
+
+2. **Random Direction**:
+   - The agent's direction is chosen uniformly at random from the possible directions.
+
+This improved function should better capture the true distribution of initial states by allowing the agent and goal to be placed more flexibly within the grid.

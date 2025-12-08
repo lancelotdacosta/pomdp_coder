@@ -1,0 +1,58 @@
+The error occurs because the constants `LEFT` and `RIGHT` are not defined in the scope of the `reward_func` function. To fix this, we need to define these constants or use their integer values directly.
+
+Here's the corrected implementation:
+
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    
+    # Define the constants for tiger locations
+    LEFT = 0
+    RIGHT = 1
+    
+    # Initialize reward and done variables
+    reward = 0.0
+    done = False
+    
+    # Determine the reward based on the action and state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == LEFT:
+            reward = -1.0  # Opening the door with the tiger behind it results in a negative reward
+        else:
+            reward = 1.0  # Opening the door without the tiger behind it results in a positive reward
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == RIGHT:
+            reward = -1.0  # Opening the door with the tiger behind it results in a negative reward
+        else:
+            reward = 1.0  # Opening the door without the tiger behind it results in a positive reward
+        done = True  # Episode ends after opening a door
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # Listening does not provide any immediate reward
+        done = False  # Episode continues after listening
+    
+    return reward, done
+```
+
+### Explanation
+
+1. **Constants Definition**:
+   - `LEFT` and `RIGHT` are defined as constants within the function to avoid the `NameError`.
+
+2. **Reward and Done Initialization**:
+   - The `reward` and `done` variables are initialized to `0.0` and `False`, respectively.
+
+3. **Action Handling**:
+   - **Opening the Left Door**: If the tiger is on the left, the reward is `-1.0` and the episode ends (`done = True`). Otherwise, the reward is `1.0` and the episode ends.
+   - **Opening the Right Door**: If the tiger is on the right, the reward is `-1.0` and the episode ends (`done = True`). Otherwise, the reward is `1.0` and the episode ends.
+   - **Listening**: The reward is `0.0` and the episode continues (`done = False`).
+
+This implementation ensures that the function runs correctly and provides the expected rewards and done signals based on the state, action, and next state transitions.

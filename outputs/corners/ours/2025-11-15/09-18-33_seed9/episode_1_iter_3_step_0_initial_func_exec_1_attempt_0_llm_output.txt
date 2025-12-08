@@ -1,0 +1,104 @@
+The error you're encountering is due to the fact that the `sample_agent_pos` function is not defined in the scope where it is being called. This can happen if the function definitions are not properly placed or imported.
+
+To ensure that all helper functions are correctly defined and accessible within the `initial_func`, I will define them within the same function scope. Here's the corrected version:
+
+```python
+from __future__ import annotations
+
+import numpy as np
+from typing import Tuple
+
+# Constants
+AGT_DIR_TO_STR = {0: ">", 1: "V", 2: "<", 3: "^"}
+DIR_TO_VEC = [
+    # Pointing right (positive X)
+    np.array((1, 0)),
+    # Down (positive Y)
+    np.array((0, 1)),
+    # Pointing left (negative X)
+    np.array((-1, 0)),
+    # Up (negative Y)
+    np.array((0, -1)),
+]
+
+class ObjectTypes(IntEnum):
+    unseen = 0
+    empty = 1
+    wall = 2
+    open_door = 4
+    closed_door = 5
+    locked_door = 6
+    key = 7
+    ball = 8
+    box = 9
+    goal = 10
+    lava = 11
+    agent = 12
+
+@dataclass
+class MinigridState:
+    grid: NDArray[np.int8]
+    agent_pos: Tuple[int, int]
+    agent_dir: int
+    carrying: Optional[int]
+
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    def is_valid_pos(pos, grid):
+        x, y = pos
+        return 1 <= x < grid.shape[0] - 1 and 1 <= y < grid.shape[1] - 1 and grid[x, y] == ObjectTypes.empty
+
+    def sample_agent_pos(empty_state: MinigridState) -> Tuple[int, int]:
+        while True:
+            x = np.random.randint(1, empty_state.width - 1)
+            y = np.random.randint(1, empty_state.height - 1)
+            if is_valid_pos((x, y), empty_state.grid):
+                return (x, y)
+
+    def sample_agent_dir() -> int:
+        return np.random.choice(list(Direction))
+
+    def place_goal(empty_state: MinigridState) -> Tuple[int, int]:
+        while True:
+            x = np.random.randint(1, empty_state.width - 1)
+            y = np.random.randint(1, empty_state.height - 1)
+            if is_valid_pos((x, y), empty_state.grid):
+                empty_state.grid[x, y] = ObjectTypes.goal
+                return (x, y)
+
+    # Sample agent position and direction
+    agent_pos = sample_agent_pos(empty_state)
+    agent_dir = sample_agent_dir()
+
+    # Place the goal
+    place_goal(empty_state)
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None,
+    )
+
+    return initial_state
+```
+
+### Explanation of Changes:
+
+1. **Function Definitions Inside `initial_func`**:
+   - All helper functions (`is_valid_pos`, `sample_agent_pos`, `sample_agent_dir`, and `place_goal`) are defined inside the `initial_func` function. This ensures that they are in the correct scope and can be accessed when needed.
+
+2. **Scope and Accessibility**:
+   - By defining these functions inside `initial_func`, they are only accessible within this function, which is appropriate for your use case.
+
+3. **Grid Copy**:
+   - The `initial_state` is created with a copy of the `empty_state.grid` to ensure that modifications to the grid do not affect the original `empty_state`.
+
+This should resolve the `NameError` and ensure that the `initial_func` works as intended.

@@ -1,0 +1,52 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `valid_positions` is a list of tuples. To fix this, we need to ensure that we pass a 1-dimensional array to `np.random.choice`. One way to do this is to use `np.random.choice` to select an index from the list of valid positions and then use that index to get the actual position tuple.
+
+Here is the revised implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Get the shape of the grid
+    width, height = empty_state.width, empty_state.height
+
+    # Find all valid positions for the agent (not walls)
+    valid_positions = [
+        (x, y) for x in range(1, width - 1) for y in range(1, height - 1)
+        if empty_state.grid[x, y] == ObjectTypes.empty
+    ]
+
+    # Place the goal object at a random position (not on the wall or the agent)
+    if valid_positions:
+        goal_idx = np.random.choice(len(valid_positions))
+        goal_pos = valid_positions[goal_idx]
+        empty_state.grid[goal_pos] = ObjectTypes.goal
+        del valid_positions[goal_idx]
+
+        # Place the agent at a random valid position
+        if valid_positions:
+            agent_idx = np.random.choice(len(valid_positions))
+            agent_pos = valid_positions[agent_idx]
+            agent_dir = np.random.choice(list(Direction))
+
+            # Update the state with the new agent position and direction
+            return MinigridState(
+                grid=empty_state.grid,
+                agent_pos=agent_pos,
+                agent_dir=agent_dir,
+                carrying=None
+            )
+        else:
+            raise ValueError("No valid positions left for the agent.")
+    else:
+        raise ValueError("No valid positions available for the goal object.")
+```
+
+### Explanation of Changes:
+1. **Checking if `valid_positions` is not empty**: Before attempting to place the goal or the agent, we check if there are any valid positions available. If not, we raise a `ValueError`.
+2. **Using indices to select positions**: Instead of directly passing the list of tuples to `np.random.choice`, we pass the length of the list and use the resulting index to get the actual position tuple. This ensures that `np.random.choice` works correctly with 1-dimensional input.
+
+This should resolve the `ValueError` you encountered and ensure that the function runs as expected.

@@ -1,0 +1,50 @@
+Based on the provided samples, it appears that the agent can start at any open position within the grid, facing any direction. The goal object is also placed randomly in an open position. The key points to note are:
+
+1. The agent's starting position must be on an empty cell (not a wall or goal).
+2. The goal object must also be placed on an empty cell.
+3. Both the agent and the goal should not overlap with each other or with walls.
+
+To improve the `initial_func` function, we need to ensure that the agent and the goal are placed in valid positions without overlapping. Here is the improved code:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Get the dimensions of the grid
+    width, height = empty_state.width, empty_state.height
+    
+    # Sample a random position for the agent within the open area
+    while True:
+        x, y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+        if empty_state.grid[x, y] == ObjectTypes.empty:
+            break
+    
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Place the goal object in a random position within the open area, ensuring it doesn't overlap with the agent
+    while True:
+        goal_x, goal_y = np.random.randint(1, width - 1), np.random.randint(1, height - 1)
+        if empty_state.grid[goal_x, goal_y] == ObjectTypes.empty and (goal_x, goal_y) != (x, y):
+            empty_state.grid[goal_x, goal_y] = ObjectTypes.goal
+            break
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=(x, y),
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+This improved function ensures that:
+- The agent is placed on an empty cell.
+- The goal is placed on an empty cell and does not overlap with the agent's position.
+- Both the agent and the goal are placed within the open area of the grid, avoiding walls.

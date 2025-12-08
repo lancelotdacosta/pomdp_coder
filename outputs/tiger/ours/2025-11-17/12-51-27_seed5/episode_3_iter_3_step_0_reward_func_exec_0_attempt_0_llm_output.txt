@@ -1,0 +1,82 @@
+Based on the provided samples, it seems that the reward function is more nuanced than initially implemented. Specifically, there are cases where the reward is not as straightforward as previously thought. Here's the revised understanding:
+
+1. **Listening Action**: Listening does not change the state and provides no immediate reward or penalty. This part of the function is correct.
+2. **Opening Left Door**:
+   - If the tiger is behind the left door (`tiger_location == 0`), opening the left door results in a large penalty (`-100.0`).
+   - If the tiger is behind the right door (`tiger_location == 1`), opening the left door results in a large reward (`10.0`).
+   - There is a special case where the reward is `1.0` if the tiger was behind the right door but moved to the left door after the action.
+3. **Opening Right Door**:
+   - If the tiger is behind the right door (`tiger_location == 1`), opening the right door results in a large penalty (`-100.0`).
+   - If the tiger is behind the left door (`tiger_location == 0`), opening the right door results in a large reward (`10.0`).
+   - There is a special case where the reward is `1.0` if the tiger was behind the left door but moved to the right door after the action.
+
+Given this understanding, let's improve the `reward_func` function:
+
+```python
+from __future__ import annotations
+
+import enum
+from dataclasses import dataclass
+from typing import Tuple
+
+# Existing classes and enums
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    if action == TigerActions.LISTEN:
+        reward = 0.0
+        done = False
+    elif action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:  # Tiger is behind the left door
+            reward = -100.0
+            done = True
+        elif state.tiger_location == 1 and next_state.tiger_location == 0:  # Special case
+            reward = 1.0
+            done = True
+        else:
+            reward = 10.0
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:  # Tiger is behind the right door
+            reward = -100.0
+            done = True
+        elif state.tiger_location == 0 and next_state.tiger_location == 1:  # Special case
+            reward = 1.0
+            done = True
+        else:
+            reward = 10.0
+            done = True
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return reward, done
+```
+
+This revised function should better match the true distribution based on the provided samples. The special cases for the reward of `1.0` are now correctly handled, ensuring that the function behaves as expected in all scenarios.

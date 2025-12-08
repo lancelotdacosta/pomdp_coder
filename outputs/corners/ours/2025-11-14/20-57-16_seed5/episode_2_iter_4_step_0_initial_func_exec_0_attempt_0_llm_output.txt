@@ -1,0 +1,54 @@
+Based on the provided samples, the distribution of initial states appears to follow these patterns:
+
+1. The grid is a 10x10 grid with walls around the perimeter (grid value `2`).
+2. The agent's position (`agent_pos`) is somewhere within the interior of the grid, avoiding the walls.
+3. The agent's direction (`agent_dir`) is uniformly distributed among the four possible directions (0, 1, 2, 3).
+4. The agent is not carrying anything (`carrying=None`).
+5. There is typically an object (grid value `10`) in the bottom row of the grid, but its exact position can vary.
+
+Given this understanding, the `initial_func` function can be implemented as follows:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible positions for the agent within the interior of the grid
+    possible_positions = [(x, y) for x in range(1, 9) for y in range(1, 9)]
+
+    # Randomly select an agent position
+    agent_pos = np.random.choice(possible_positions)
+    
+    # Randomly select an agent direction
+    agent_dir = np.random.randint(0, 4)
+    
+    # Place the object (value 10) in a random position in the bottom row
+    bottom_row_positions = [(x, 8) for x in range(1, 9)]
+    object_pos = np.random.choice(bottom_row_positions)
+    empty_state.grid[object_pos] = ObjectTypes.goal
+    
+    # Ensure the selected agent position is not the same as the object position
+    while agent_pos == object_pos:
+        agent_pos = np.random.choice(possible_positions)
+    
+    # Create the initial state with the agent's position, direction, and the grid
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+This function initializes the environment by:
+1. Generating a list of possible positions for the agent within the interior of the grid.
+2. Randomly selecting an agent position from these possible positions.
+3. Randomly selecting an agent direction.
+4. Placing an object (value `10`) in a random position in the bottom row of the grid.
+5. Ensuring the selected agent position is not the same as the object position.
+6. Creating and returning the initial state with the agent's position, direction, and the grid.

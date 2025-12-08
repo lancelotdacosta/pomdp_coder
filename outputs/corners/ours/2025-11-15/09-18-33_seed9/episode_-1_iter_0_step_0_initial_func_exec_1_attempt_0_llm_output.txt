@@ -1,0 +1,60 @@
+The error message indicates that `np.random.choice` is expecting a 1-dimensional array, but it is receiving a list of tuples. To fix this, we need to convert the list of tuples into a 1-dimensional array and then select an index from this array, which can be used to choose the corresponding tuple from the list.
+
+Here is the corrected implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The provided samples indicate that the agent can start at various positions within the grid,
+    # and the direction it faces is also variable. There is also a consistent object (with type 10) 
+    # positioned somewhere in the grid. Based on this, we will model the initial state distribution
+    # by randomly selecting an agent position and direction, and placing the object (type 10) at a 
+    # random position within the grid.
+
+    # Define the possible positions for the agent
+    possible_positions = []
+    for i in range(1, empty_state.width - 1):
+        for j in range(1, empty_state.height - 1):
+            if empty_state.grid[i, j] == ObjectTypes.empty:
+                possible_positions.append((i, j))
+
+    # Convert the list of tuples to a 1-dimensional array of indices
+    possible_positions_indices = np.arange(len(possible_positions))
+
+    # Randomly select an index from the list of possible positions
+    selected_index = np.random.choice(possible_positions_indices)
+    agent_pos = possible_positions[selected_index]
+
+    # Randomly select an agent direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # Define the possible positions for the object (type 10)
+    possible_object_positions = [pos for pos in possible_positions if pos != agent_pos]
+
+    # Convert the list of tuples to a 1-dimensional array of indices
+    possible_object_positions_indices = np.arange(len(possible_object_positions))
+
+    # Randomly select an index from the list of possible object positions
+    selected_object_index = np.random.choice(possible_object_positions_indices)
+    object_pos = possible_object_positions[selected_object_index]
+
+    # Place the object in the grid
+    empty_state.grid[object_pos] = ObjectTypes.goal
+
+    # Create the initial state with the chosen agent position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+In this corrected version, we convert the list of possible positions to a 1-dimensional array of indices and then use `np.random.choice` to select an index. This index is then used to select the corresponding position from the original list of positions. This ensures that `np.random.choice` is used correctly and avoids the `ValueError`.

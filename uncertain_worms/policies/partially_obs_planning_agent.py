@@ -7,6 +7,7 @@ import math
 import os
 import random
 import traceback
+import signal
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
@@ -207,13 +208,17 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             (): [(e.previous_states[0],) for e in replay_buffer.episodes]
         }
         model_initials = defaultdict(list)
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Initial model sampling does not finish in reasonable time, perhaps an infinite loop?")
+        signal.signal(signal.SIGALRM, timeout_handler)
         try:
-            # Compute a model distribution from the current estimated initial state distribution
-            model_initials[()] = [
-                (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
-                for _ in range(self.num_initial_model_samples)
-            ]
+            for _ in range(self.num_initial_model_samples):
+                signal.alarm(60)  # 60 second timeout per sample
+                sample = (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+                signal.alarm(0)  # Cancel the alarm
+                model_initials[()].append(sample)
         except Exception:
+            signal.alarm(0)
             log.info("Bug during initial state evaluation")
             err_str = str(traceback.format_exc())
             log.info(err_str)
@@ -412,6 +417,7 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             and self.num_attempts < self.max_attempts
         ):
             self.num_attempts += 1
+            if self.num_attempts % 1000 == 0: print(f"Attempt {self.num_attempts}/{self.max_attempts}")  # Log progress every 1000 attempts
             try:
                 candidate = self.planner.initial_model(copy.deepcopy(self.empty_state))
             except Exception:
@@ -687,6 +693,7 @@ class LLMPartiallyObsPlanningAgent(
                 in_error_state = True
             else:
                 self.current_belief = belief
+                log.info("Belief established.")
         else:
             # Otherwise update the belief using the last action and the new observation
             belief, error = self.update_belief(
@@ -699,6 +706,7 @@ class LLMPartiallyObsPlanningAgent(
                 in_error_state = True
             else:
                 self.current_belief = belief
+                log.info("Belief updated.")
 
         if in_error_state == 0:
             steps_left = self.max_steps - self.steps_taken
@@ -728,6 +736,7 @@ class LLMPartiallyObsPlanningAgent(
             exec_attempt,
             replay_path=self.replay_path,
             episode=episode,
+            use_openrouter=self.use_openrouter,
         )
 
         if code_str is not None:
@@ -880,6 +889,7 @@ class LLMPartiallyObsPlanningAgent(
         log.info("Online updating models")
 
         if not self.use_online:
+            log.warning("Online learning is disabled, skipping online update.")
             return
 
         if self.use_offline:
@@ -905,11 +915,13 @@ class LLMPartiallyObsPlanningAgent(
             test_replay_buffer = replay_buffer
 
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, total_replay_buffer
             )
-            assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            if error is not None:
+                log.warning(f"Error evaluating model {model_name}: {error}")
+                continue
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             log.info(f"Previous Total Model {model_name} Coverage: {coverage:.4f}")
 
             eps = 0.001
@@ -942,11 +954,13 @@ class LLMPartiallyObsPlanningAgent(
 
         self.reset()
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, total_replay_buffer
             )
-            assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            if error is not None:
+                log.warning(f"Error evaluating model {model_name}: {error}")
+                continue
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             self.previous_coverage[model_name] = coverage
             log.info(f"Total Model {model_name} Coverage: {coverage:.4f}")
             self.writer.add_scalar(
@@ -993,11 +1007,11 @@ class LLMPartiallyObsPlanningAgent(
 
         self.reset()
         for model_name in self.model_names:
-            (emperical_dist, model_dist), error = self.evaluate_model(
+            (empirical_dist, model_dist), error = self.evaluate_model(
                 model_name, self.offline_replay_buffer
             )
             assert error is None  # Should have not been added as a node if errors
-            coverage = self._evaluate_coverage(emperical_dist, model_dist)
+            coverage = self._evaluate_coverage(empirical_dist, model_dist)
             self.previous_coverage[model_name] = coverage
             log.info(f"Total Model {model_name} Coverage: {coverage:.4f}")
             self.writer.add_scalar(

@@ -1,0 +1,60 @@
+Based on the provided samples from the real world, it appears that the distribution of initial states is as follows:
+
+1. The agent can start at any position in the grid that is not a wall.
+2. The agent's direction can be any of the four possible directions (right, down, left, up).
+3. There is always exactly one goal object in the grid, and it is placed in a valid empty cell.
+4. The goal object can be placed anywhere in the grid that is not a wall and not the same position as the agent.
+
+To improve the `initial_func` function to better model this distribution, we need to ensure that the goal object is placed after the agent position is determined, and that the goal object does not overlap with the agent. Additionally, we should ensure that the agent and goal positions are uniformly distributed across all valid positions.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible starting positions for the agent
+    possible_agent_positions = [
+        (x, y)
+        for x in range(1, empty_state.width - 1)
+        for y in range(1, empty_state.height - 1)
+        if empty_state.grid[x, y] == ObjectTypes.empty
+    ]
+    
+    # Randomly select a starting position and direction for the agent
+    agent_pos = random.choice(possible_agent_positions)
+    agent_dir = random.choice([0, 1, 2, 3])
+
+    # Define the possible positions for the goal object
+    possible_goal_positions = [
+        (x, y)
+        for x in range(1, empty_state.width - 1)
+        for y in range(1, empty_state.height - 1)
+        if empty_state.grid[x, y] == ObjectTypes.empty and (x, y) != agent_pos
+    ]
+
+    # Randomly select a position for the goal object
+    goal_position = random.choice(possible_goal_positions)
+
+    # Update the grid with the goal object
+    empty_state.grid[goal_position] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),  # Ensure we do not modify the original grid
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+This function ensures that:
+- The agent is placed in a valid empty cell.
+- The goal object is placed in a valid empty cell and does not overlap with the agent.
+- Both the agent's position and direction are uniformly distributed across all valid options.

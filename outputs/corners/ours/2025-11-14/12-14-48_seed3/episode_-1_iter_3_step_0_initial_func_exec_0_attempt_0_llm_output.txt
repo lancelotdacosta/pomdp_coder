@@ -1,0 +1,56 @@
+Based on the provided samples, it appears that the initial states of the environment have the following characteristics:
+
+1. **Grid Layout**: The grid is surrounded by walls (2) on all sides, and the interior of the grid is mostly empty (1).
+2. **Goal Position**: The goal (10) is often placed in the bottom row, one row above the bottom wall.
+3. **Agent Position**: The agent can be placed in any valid position within the grid, which excludes walls and the goal.
+4. **Agent Direction**: The agent's direction is chosen randomly.
+
+The main issue with the current `initial_func` is that it always places the goal in a random position in the bottom row, which may not match the real-world distribution where the goal is more likely to be placed in specific positions. Additionally, the agent's position is chosen uniformly from all valid positions, which may not reflect the true distribution of initial states.
+
+To improve the model, we can:
+1. Place the goal more frequently in specific positions in the bottom row.
+2. Adjust the agent's position to better reflect the observed distribution.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid size
+    width, height = empty_state.width, empty_state.height
+    
+    # Define the goal position (typically at the bottom row)
+    goal_y = height - 2  # One row above the bottom wall
+    goal_x = np.random.choice([1, width // 2, width - 2])  # More likely positions: 1, center, and width-2
+    empty_state.grid[goal_y, goal_x] = ObjectTypes.goal
+
+    # Find all valid positions for the agent (not on walls or the goal)
+    valid_positions = [(x, y) for x in range(1, width - 1) for y in range(1, height - 1) if empty_state.grid[y, x] == ObjectTypes.empty]
+
+    # Randomly select one of the valid positions for the agent
+    agent_pos = valid_positions[np.random.choice(len(valid_positions))]
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state with the agent at the chosen position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Changes:
+1. **Goal Position**: The goal is more likely to be placed in specific positions: the leftmost, the center, and the rightmost positions of the bottom row. This reflects the observed distribution where the goal often appears in these positions.
+2. **Agent Position**: The agent's position is still chosen uniformly from all valid positions, but the valid positions are now more likely to match the observed distribution.
+
+This should better model the true distribution of initial states in the environment.

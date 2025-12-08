@@ -1,0 +1,58 @@
+To better model the true distribution of initial states, we need to ensure that the agent's position and the goal's position are placed in a way that reflects the real-world distribution. From the provided samples, it seems that the agent and the goal can be placed in any empty cell, but they should not overlap. Additionally, the agent's direction is uniformly random.
+
+Here's an improved version of the `initial_func` function that better models the true distribution:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Ensure the grid has the correct dimensions
+    width, height = empty_state.grid.shape
+
+    # Find all empty cells in the grid
+    empty_cells = np.argwhere(empty_state.grid == ObjectTypes.empty)
+
+    # Randomly select one of the empty cells for the agent's initial position
+    agent_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+
+    # Remove the agent's position from the list of empty cells to avoid overlap
+    remaining_empty_cells = np.delete(empty_cells, np.where((empty_cells == agent_pos).all(axis=1)), axis=0)
+
+    # Randomly select one of the remaining empty cells for the goal's position
+    if remaining_empty_cells.size > 0:
+        goal_pos = tuple(remaining_empty_cells[np.random.choice(len(remaining_empty_cells))])
+        empty_state.grid[goal_pos] = ObjectTypes.goal
+    else:
+        raise ValueError("No empty cells available for the goal after placing the agent.")
+
+    # Randomly select the agent's initial direction
+    agent_dir = np.random.choice([Direction.facing_right, Direction.facing_down, Direction.facing_left, Direction.facing_up])
+
+    # Initialize the state with the agent's position, direction, and the updated grid
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation of Improvements
+
+1. **Finding Empty Cells**: We first find all empty cells in the grid using `np.argwhere(empty_state.grid == ObjectTypes.empty)`. This ensures that we only consider cells that are not walls.
+
+2. **Agent Position**: We randomly select one of the empty cells for the agent's initial position using `np.random.choice(len(empty_cells))`.
+
+3. **Avoid Overlap**: After placing the agent, we remove the agent's position from the list of empty cells to avoid placing the goal in the same cell as the agent.
+
+4. **Goal Position**: We then randomly select one of the remaining empty cells for the goal's position. If there are no empty cells left after placing the agent, we raise an error.
+
+5. **Agent Direction**: The agent's initial direction is chosen uniformly at random from the four possible directions.
+
+This approach ensures that the agent and goal are placed independently and do not overlap, which better reflects the real-world distribution observed in the samples.

@@ -2,9 +2,20 @@
 **/.DS_Store
 
 **.egg-info
-outputs
+outputs/2025*
+*.gif
+outputs/**/*.txt
+outputs/**/*.log
+outputs/**/*.html
+outputs/**/*.pkl
+outputs/**/*.wandb
+outputs/**/*.json
+outputs/**/*.yaml
+
+nohup.out
 
 .env
+*.swp
 main.log
 .vscode
 build/

@@ -1,0 +1,24 @@
+Based on the provided samples, it appears that the environment has the following behavior:
+
+- If the action is `LISTEN` (action=2), the tiger's location does not change.
+- If the action is `OPEN_LEFT` (action=0) or `OPEN_RIGHT` (action=1), the tiger's location also does not change.
+
+Given this understanding, the transition function can be implemented as follows:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    # Create a copy of the current state to avoid modifying the original state
+    new_state = copy.deepcopy(state)
+    
+    # The tiger's location does not change regardless of the action
+    return new_state
+```
+
+This implementation ensures that the tiger's location remains unchanged for all actions, which is consistent with the provided samples.

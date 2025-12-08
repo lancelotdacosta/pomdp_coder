@@ -1,0 +1,49 @@
+The error you're encountering is due to the `np.random.choice` function expecting a 1-dimensional array, but you're providing it with a list of tuples. To fix this, you can directly select a goal position from the list of valid goal positions using Python's built-in `random.choice` instead of `np.random.choice`.
+
+Here is the corrected implementation of the `initial_func` function:
+
+```python
+import random
+
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Define the grid dimensions
+    width = empty_state.width
+    height = empty_state.height
+    
+    # Place the goal in the grid
+    goal_positions = [(8, 8), (8, 9), (9, 8)]
+    goal_pos = random.choice(goal_positions)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Define the valid positions for the agent (excluding walls and goal)
+    valid_positions = []
+    for x in range(1, width - 1):
+        for y in range(1, height - 1):
+            if (x, y) != goal_pos:
+                valid_positions.append((x, y))
+    
+    # Randomly select the agent's initial position
+    agent_pos = random.choice(valid_positions)
+    
+    # Randomly select the agent's initial direction
+    agent_dir = random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+In this corrected version, `random.choice` is used to select both the goal position and the agent's initial position. This should resolve the `ValueError: a must be 1-dimensional` issue and ensure that the function works as expected.

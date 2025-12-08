@@ -1,0 +1,62 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array as input, but you are providing it with a list of tuples. To resolve this, you can use a different approach to randomly select a tuple from the list.
+
+Here's the corrected `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Define the possible positions for the goal object
+    goal_positions = [(8, 1), (8, 3), (8, 5), (8, 7), (8, 9)]
+
+    # Randomly select a position for the goal object
+    goal_pos = goal_positions[np.random.choice(len(goal_positions))]
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Define the possible positions for the agent
+    agent_positions = [
+        (6, 2),
+        (3, 3),
+        (6, 8),
+        (5, 3),
+        (4, 3),
+        (2, 2),
+        (2, 3),
+        (2, 8),
+        (7, 2),
+        (7, 3),
+        (7, 8)
+    ]
+
+    # Randomly select a position and direction for the agent
+    agent_pos = agent_positions[np.random.choice(len(agent_positions))]
+    agent_dir = np.random.randint(0, 4)
+
+    # Create the initial state with the agent and goal positions
+    initial_state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of the Changes
+
+1. **Selecting Goal Position**:
+   - Instead of using `np.random.choice` directly on the list of tuples, we use `np.random.choice` to select an index from the range of the list length.
+   - We then use this index to select the corresponding tuple from the list.
+
+2. **Selecting Agent Position**:
+   - Similarly, for the agent's position, we use `np.random.choice` to select an index from the range of the list length and then use this index to select the corresponding tuple from the list.
+
+This ensures that the input to `np.random.choice` is a 1-dimensional array (in this case, an array of indices), which resolves the error.

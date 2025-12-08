@@ -1,0 +1,58 @@
+Based on the given samples from the real world, the distribution of initial states appears to have the following characteristics:
+
+1. **Agent Position**: The agent can start at various positions within the grid, but typically in the central or slightly off-center regions.
+2. **Agent Direction**: The agent can face in any direction (right, down, left, up) with equal probability.
+3. **Goal Position**: The goal object is placed in a random empty cell, and it can be anywhere in the grid except the walls.
+
+To improve the `initial_func` function, we need to ensure that the agent position is more varied and not limited to a few fixed positions. Additionally, the goal object should be placed randomly in the grid, ensuring it is not on a wall or the same cell as the agent.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid size
+    grid_size = empty_state.grid.shape[0]
+
+    # Possible agent positions and directions
+    possible_agent_positions = []
+    for x in range(1, grid_size - 1):
+        for y in range(1, grid_size - 1):
+            possible_agent_positions.append((x, y))
+
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Select a random position and direction for the agent
+    idx = np.random.choice(len(possible_agent_positions))
+    agent_pos = possible_agent_positions[idx]
+    agent_dir = np.random.choice(possible_agent_directions)
+
+    # Ensure the agent is placed in an empty cell
+    while empty_state.grid[agent_pos] != ObjectTypes.empty:
+        idx = np.random.choice(len(possible_agent_positions))
+        agent_pos = possible_agent_positions[idx]
+
+    # Create the new state with the agent position and direction
+    new_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    # Place the goal object in a random position (if not already present)
+    if np.sum(new_state.grid == ObjectTypes.goal) == 0:
+        goal_pos = (np.random.randint(1, grid_size - 1), np.random.randint(1, grid_size - 1))
+        while new_state.grid[goal_pos] != ObjectTypes.empty or goal_pos == agent_pos:
+            goal_pos = (np.random.randint(1, grid_size - 1), np.random.randint(1, grid_size - 1))
+        new_state.grid[goal_pos] = ObjectTypes.goal
+
+    return new_state
+```
+
+This function ensures that the agent can start at any valid position in the grid (excluding walls) and faces a random direction. The goal object is also placed randomly in an empty cell, ensuring it is not on a wall or the same cell as the agent. This should better match the observed distribution of initial states.

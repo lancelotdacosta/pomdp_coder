@@ -1,0 +1,62 @@
+Certainly! Based on the provided samples, it appears that the reward is given only when the agent performs a specific action (opening a door) and the tiger is not behind the chosen door. The episode ends only when the agent opens a door.
+
+Here's the implementation of the `reward_func`:
+
+```python
+from __future__ import annotations
+
+import enum
+from dataclasses import dataclass
+from typing import Tuple
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    if action == TigerActions.OPEN_LEFT and state.tiger_location == 1:
+        return 1.0, True
+    elif action == TigerActions.OPEN_RIGHT and state.tiger_location == 0:
+        return 1.0, True
+    else:
+        return 0.0, (action in [TigerActions.OPEN_LEFT, TigerActions.OPEN_RIGHT])
+```
+
+### Explanation:
+- **Reward Calculation**:
+  - The agent receives a reward of `1.0` if it opens the door opposite to where the tiger is located.
+  - If the agent opens the door where the tiger is located, or if the agent listens, the reward is `0.0`.
+
+- **Episode Termination**:
+  - The episode is marked as done (`done = True`) only when the agent opens a door, regardless of whether the tiger is behind it or not.
+  - If the agent chooses to listen (`action == TigerActions.LISTEN`), the episode continues (`done = False`).
+
+This function should accurately model the reward and termination conditions based on the provided samples.

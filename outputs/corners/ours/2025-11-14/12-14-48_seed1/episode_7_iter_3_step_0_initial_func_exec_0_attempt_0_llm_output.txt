@@ -1,0 +1,64 @@
+Based on the provided samples from the real world, it appears that the distribution of initial states has the following characteristics:
+
+1. **Agent Position**:
+   - The agent can start at any position where the grid cell is `ObjectTypes.empty` (value 1).
+   - The agent's position should be uniformly distributed across all such positions.
+
+2. **Goal Position**:
+   - The goal can also start at any position where the grid cell is `ObjectTypes.empty` (value 1).
+   - The goal's position should be uniformly distributed across all such positions, excluding the position where the agent is placed.
+
+3. **Agent Direction**:
+   - The agent's direction (facing right, down, left, or up) should be uniformly distributed, with each direction having an equal probability of being selected.
+
+Given these observations, we need to ensure that our `initial_func` function correctly models these characteristics. Specifically, we need to ensure that the agent and goal positions are chosen from the same set of valid positions and that the agent's direction is uniformly random.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Get the valid positions for the agent and goal
+    valid_positions = np.where(empty_state.grid == ObjectTypes.empty)
+    valid_positions = list(zip(valid_positions[0], valid_positions[1]))
+
+    # Randomly select a position for the agent
+    agent_pos = valid_positions[np.random.choice(len(valid_positions))]
+    
+    # Remove the selected agent position from the valid positions for the goal
+    valid_positions.remove(agent_pos)
+
+    # Randomly select a position for the goal
+    goal_pos = valid_positions[np.random.choice(len(valid_positions))]
+
+    # Set the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Randomly select the agent's direction
+    agent_dir = np.random.randint(4)
+
+    # Create and return the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),  # Ensure we don't modify the original grid
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Improvements:
+1. **Grid Copy**:
+   - We use `grid=empty_state.grid.copy()` to ensure that the original `empty_state.grid` is not modified. This prevents any unintended side effects.
+
+2. **Uniform Distribution**:
+   - The agent position and goal position are both chosen uniformly from the valid positions. The goal position is chosen after removing the agent's position to ensure they do not overlap.
+   - The agent's direction is chosen uniformly from the four possible directions.
+
+This should better model the true distribution of initial states as observed in the real world samples.

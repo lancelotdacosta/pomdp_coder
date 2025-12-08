@@ -1,0 +1,43 @@
+Based on the provided samples, it seems that the reward function should account for cases where the state does not change after an action is taken. Specifically, there are scenarios where the environment remains in the same state and the episode terminates with a reward of 0.0.
+
+Here's the improved `reward_func` function:
+
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:  # Tiger is behind the left door
+            reward = -1.0  # Opening the door with the tiger results in a negative reward
+            done = True
+        else:
+            reward = 1.0  # Opening the door without the tiger results in a positive reward
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:  # Tiger is behind the right door
+            reward = -1.0  # Opening the door with the tiger results in a negative reward
+            done = True
+        else:
+            reward = 1.0  # Opening the door without the tiger results in a positive reward
+            done = True
+    elif action == TigerActions.LISTEN:
+        if next_state == state:  # No change in state after listening
+            reward = 0.0  # Listening does not provide a reward, but the episode continues
+            done = False
+        else:
+            raise ValueError("Unexpected next state after listening action")
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return reward, done
+```
+
+This function now includes a check for the `LISTEN` action where the state remains unchanged. If the state does not change after listening, the reward is 0.0 and the episode continues. This should better model the observed distribution from the real world.

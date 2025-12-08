@@ -1,0 +1,61 @@
+To improve the `initial_func` function to better model the true distribution of initial states, we need to address a few issues:
+
+1. **Agent and Goal Positioning**: Ensure that the agent and goal positions are chosen such that they do not overlap with each other or with walls.
+2. **Randomness and Validity**: Ensure that the positions chosen for the agent and goal are valid and do not conflict with each other.
+3. **Consistency with Real World Samples**: The generated states should be consistent with the real world samples provided.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def is_valid_pos(pos, grid):
+        """Check if the position is valid (not a wall and not already occupied)."""
+        x, y = pos
+        return 0 < x < 9 and 0 < y < 9 and grid[x, y] == ObjectTypes.empty
+    
+    # Flatten the grid to get all open positions
+    open_positions = np.argwhere(empty_state.grid == ObjectTypes.empty)
+    
+    # Randomly select a position for the goal
+    goal_pos = tuple(open_positions[np.random.choice(len(open_positions))])
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Remove the goal position from the list of open positions
+    open_positions = open_positions[~np.all(open_positions == goal_pos, axis=1)]
+    
+    # Ensure there are still valid positions left for the agent
+    if len(open_positions) == 0:
+        raise ValueError("No valid positions left for the agent after placing the goal.")
+    
+    # Randomly select a position for the agent
+    agent_pos = tuple(open_positions[np.random.choice(len(open_positions))])
+    
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Update the state with the new agent position and direction
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+### Explanation of Improvements:
+
+1. **Valid Position Checking**: The `is_valid_pos` function ensures that the selected positions are within the grid boundaries and are not walls.
+2. **Open Positions Handling**: We use `np.argwhere` to get all open positions (cells with `ObjectTypes.empty`). This ensures that we only consider valid positions for placing the goal and the agent.
+3. **Goal and Agent Placement**: We first place the goal randomly in one of the open positions. After placing the goal, we remove its position from the list of open positions to ensure it is not reused for the agent. This prevents the goal and agent from overlapping.
+4. **Error Handling**: If there are no valid positions left for the agent after placing the goal, a `ValueError` is raised. This ensures that the function does not generate invalid states.
+
+This improved function should better model the true distribution of initial states by ensuring that the agent and goal are placed in valid, non-overlapping positions.

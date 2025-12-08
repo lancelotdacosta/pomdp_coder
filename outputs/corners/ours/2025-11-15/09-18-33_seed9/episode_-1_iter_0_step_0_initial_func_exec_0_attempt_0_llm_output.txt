@@ -1,0 +1,46 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The provided samples indicate that the agent can start at various positions within the grid,
+    # and the direction it faces is also variable. There is also a consistent object (with type 10) 
+    # positioned somewhere in the grid. Based on this, we will model the initial state distribution
+    # by randomly selecting an agent position and direction, and placing the object (type 10) at a 
+    # random position within the grid.
+
+    # Define the possible positions for the agent
+    possible_positions = []
+    for i in range(1, empty_state.width - 1):
+        for j in range(1, empty_state.height - 1):
+            if empty_state.grid[i, j] == ObjectTypes.empty:
+                possible_positions.append((i, j))
+
+    # Randomly select an agent position
+    agent_pos = np.random.choice(possible_positions)
+
+    # Randomly select an agent direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # Define the possible positions for the object (type 10)
+    possible_object_positions = [pos for pos in possible_positions if pos != agent_pos]
+
+    # Randomly select a position for the object
+    object_pos = np.random.choice(possible_object_positions)
+
+    # Place the object in the grid
+    empty_state.grid[object_pos] = ObjectTypes.goal
+
+    # Create the initial state with the chosen agent position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```

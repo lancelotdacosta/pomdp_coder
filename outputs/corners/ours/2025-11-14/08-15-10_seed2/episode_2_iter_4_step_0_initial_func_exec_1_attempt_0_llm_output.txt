@@ -1,0 +1,61 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `possible_positions` is a list of tuples. To resolve this, you can select a random index from the list of possible positions and then use that index to get the corresponding position tuple.
+
+Here's the corrected implementation of `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Ensure the grid is a 10x10 grid with walls around the perimeter
+    assert empty_state.grid.shape == (10, 10)
+    
+    # Possible agent directions with higher probability for facing left
+    directions = [2] * 70 + [1] * 30  # 70% chance of facing left, 30% chance of facing down
+    
+    # Randomly choose an agent direction
+    agent_dir = np.random.choice(directions)
+    
+    # List of possible positions for the agent, avoiding walls and the goal
+    possible_positions = []
+    for x in range(1, 9):
+        for y in range(1, 9):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                possible_positions.append((x, y))
+    
+    # Check if there are any possible positions
+    if not possible_positions:
+        raise ValueError("No valid positions found for the agent.")
+    
+    # Randomly choose an index from the list of possible positions
+    idx = np.random.randint(len(possible_positions))
+    
+    # Get the agent position using the chosen index
+    agent_pos = possible_positions[idx]
+    
+    # Place the agent in the chosen position
+    new_grid = empty_state.grid.copy()
+    
+    # Ensure the agent does not overlap with any objects
+    assert new_grid[agent_pos[0], agent_pos[1]] == ObjectTypes.empty
+    new_grid[agent_pos[0], agent_pos[1]] = ObjectTypes.agent
+    
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=new_grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return initial_state
+```
+
+### Explanation of Changes:
+1. **Random Index Selection**: Instead of using `np.random.choice` directly on the list of tuples, we select a random index from the list of possible positions using `np.random.randint(len(possible_positions))`.
+2. **Error Handling**: Added a check to ensure there are valid positions available for the agent. If no valid positions are found, a `ValueError` is raised.
+
+This should resolve the `ValueError: a must be 1-dimensional` issue and correctly place the agent in a valid position within the grid.

@@ -1,0 +1,54 @@
+Based on the provided samples, it appears that the distribution of initial states has the following characteristics:
+
+1. **Agent Position**: The agent can start at various positions within the grid, but not on walls or goal cells. The provided samples show the agent starting at different locations such as (4, 3), (2, 6), (3, 3), (4, 4), and (2, 1).
+
+2. **Agent Direction**: The agent's initial direction is randomly chosen from the four possible directions: right (0), down (1), left (2), up (3).
+
+3. **Carrying State**: The agent does not carry any object in all provided samples.
+
+4. **Grid Layout**: The grid has walls around the perimeter, and there is a single goal cell (10) somewhere in the grid. The rest of the cells are either empty (1) or contain the agent (12).
+
+Given these observations, the `initial_func` function will randomly place the agent at a valid position (not on a wall or goal cell) and set a random direction for the agent. The grid will be pre-filled with walls, and a goal cell will be placed at a random position.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    def is_valid_position(grid, pos):
+        """Check if the position is not a wall or a goal."""
+        x, y = pos
+        return grid[x][y] == ObjectTypes.empty
+    
+    def random_position(grid):
+        """Return a random valid position in the grid."""
+        valid_positions = [(x, y) for x in range(1, empty_state.width - 1) for y in range(1, empty_state.height - 1) if is_valid_position(grid, (x, y))]
+        return np.random.choice(valid_positions)
+    
+    def random_direction():
+        """Return a random direction for the agent."""
+        return np.random.randint(4)
+    
+    # Place a goal cell at a random position
+    goal_pos = random_position(empty_state.grid)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Place the agent at a random valid position
+    agent_pos = random_position(empty_state.grid)
+    agent_dir = random_direction()
+    
+    # Ensure the grid is updated to reflect the agent's position
+    empty_state.agent_pos = agent_pos
+    empty_state.agent_dir = agent_dir
+    empty_state.grid[agent_pos] = ObjectTypes.agent
+    
+    return empty_state
+```
+
+This function ensures that the agent is placed at a valid position and with a random direction, and a goal cell is placed at a random position in the grid. The grid is pre-filled with walls, and the rest of the cells are initially empty.

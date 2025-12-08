@@ -1,0 +1,53 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Initialize the grid with the empty_state grid
+    grid = empty_state.grid.copy()
+    
+    # Define the possible agent positions and directions
+    possible_positions = [
+        (5, 1), (2, 1), (6, 8), (6, 4), (5, 3)
+    ]
+    possible_directions = [0, 2]
+    
+    # Randomly select an agent position and direction
+    agent_pos = possible_positions[np.random.choice(len(possible_positions))]
+    agent_dir = possible_directions[np.random.choice(len(possible_directions))]
+    
+    # Ensure the agent is not placed on a wall
+    while grid[agent_pos] == ObjectTypes.wall:
+        agent_pos = possible_positions[np.random.choice(len(possible_positions))]
+    
+    # Place the agent in the grid
+    grid[agent_pos] = ObjectTypes.agent
+    
+    # Return the initial state
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation of the Distribution of Initial States
+
+The distribution of initial states appears to have the following characteristics:
+
+1. **Agent Positions**: The agent can start at various positions within the grid, such as (5, 1), (2, 1), (6, 8), (6, 4), and (5, 3). These positions are within the open area of the grid and not on walls.
+
+2. **Agent Directions**: The agent can start facing either right (0) or left (2).
+
+3. **Grid Contents**: The grid is primarily composed of empty cells (1) and walls (2). There are no other objects present in the initial states provided.
+
+The `initial_func` function models this distribution by:
+- Randomly selecting an agent position from a predefined list of possible positions.
+- Randomly selecting an agent direction from a predefined list of possible directions.
+- Ensuring the selected position is not a wall before placing the agent in the grid.
+- Returning the initialized state with the agent placed in the grid.

@@ -1,0 +1,5 @@
+- agent.use_openrouter=true
+- agent.num_model_attempts=15
+- agent.num_online_model_attempts=15
+- seed=7
+- save_log=true

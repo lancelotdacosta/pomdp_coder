@@ -1,0 +1,65 @@
+max_steps: 40
+num_episodes: 10
+seed: 9
+gamma: 0.98
+save_log: false
+replay_path: None
+actions:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
+env_name: CornerGoalRandom-Empty-10x10-v0
+env:
+  _target_: uncertain_worms.environments.minigrid.minigrid_env.MinigridEnvironment
+  fully_obs: false
+  env_name: ${env_name}
+agent:
+  _target_: uncertain_worms.policies.partially_obs_planning_agent.LLMPartiallyObsPlanningAgent
+  max_attempts: 250000
+  num_particles: 100
+  num_model_attempts: 5
+  num_online_model_attempts: 5
+  fully_obs: false
+  env_code_path: environments/minigrid
+  actions:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  learn_transition: true
+  learn_initial: true
+  learn_reward: true
+  learn_observation: true
+  use_online: true
+  use_offline: true
+  dataset_path: environments/minigrid/trajectory_data/${env_name}.pkl
+  env_description: ''
+  empty_state:
+    _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_state_gen
+    env_name: ${env_name}
+  empty_observation:
+    _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen
+  planner:
+    _target_: uncertain_worms.planners.PO_DAStar.PO_DAStar
+    actions:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    empty_observation:
+      _target_: uncertain_worms.environments.minigrid.minigrid_env.minigrid_empty_observation_gen
+    initial_model:
+      _target_: uncertain_worms.structs.empty_initial_model_gen
+    transition_model:
+      _target_: uncertain_worms.structs.empty_transition_model_gen
+    reward_model:
+      _target_: uncertain_worms.structs.empty_reward_model_gen
+    observation_model:
+      _target_: uncertain_worms.structs.empty_observation_model_gen

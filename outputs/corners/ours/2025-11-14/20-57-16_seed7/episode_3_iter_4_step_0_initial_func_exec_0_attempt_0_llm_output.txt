@@ -1,0 +1,49 @@
+To better model the distribution of initial states, we need to ensure that the agent and goal can be placed in a wider variety of positions while still respecting the constraints of the environment (i.e., within the interior of the grid and not overlapping with each other or walls).
+
+From the provided samples, it appears that the goal is often placed near the bottom-right corner of the grid, and the agent can be placed at various positions within the interior. To match this distribution, we can adjust the placement of the goal to favor the bottom-right region and ensure that the agent is placed randomly throughout the interior.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    grid = empty_state.grid.copy()
+    width, height = grid.shape
+
+    # Get a list of all empty positions in the interior of the grid
+    empty_positions = [
+        (x, y)
+        for x in range(1, width - 1)
+        for y in range(1, height - 1)
+        if grid[x, y] == ObjectTypes.empty
+    ]
+
+    # Randomly place the goal object in one of the empty positions, favoring the bottom-right region
+    goal_pos_weights = np.array([(height - y) * (width - x) for x, y in empty_positions])
+    goal_pos_index = np.random.choice(len(empty_positions), p=goal_pos_weights / goal_pos_weights.sum())
+    goal_pos = empty_positions.pop(goal_pos_index)
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Randomly place the agent in one of the remaining empty positions
+    agent_pos_index = np.random.randint(len(empty_positions))
+    agent_pos = empty_positions.pop(agent_pos_index)
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    state = MinigridState(grid=grid, agent_pos=agent_pos, agent_dir=agent_dir, carrying=None)
+
+    return state
+```
+
+### Explanation:
+1. **Empty Positions**: We first identify all empty positions within the interior of the grid.
+2. **Goal Placement**: To match the observed distribution where the goal is often placed near the bottom-right corner, we assign weights to each empty position based on its distance from the bottom-right corner. This ensures that positions closer to the bottom-right are more likely to be chosen.
+3. **Agent Placement**: The agent is randomly placed in one of the remaining empty positions.
+4. **Direction**: The agent's direction is chosen uniformly at random.
+
+This approach should better capture the true distribution of initial states as observed in the provided samples.

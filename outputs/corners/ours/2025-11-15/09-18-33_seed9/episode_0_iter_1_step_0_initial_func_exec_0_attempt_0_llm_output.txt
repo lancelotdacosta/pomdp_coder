@@ -1,0 +1,53 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    def random_pos(grid, exclude=[]):
+        """Generate a random position that is not a wall and not in the exclude list."""
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty and (x, y) not in exclude:
+                return (x, y)
+
+    def random_dir():
+        """Generate a random direction for the agent."""
+        return np.random.choice(list(Direction))
+
+    # Place the goal object
+    goal_pos = random_pos(empty_state.grid)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent in a random position and direction
+    agent_pos = random_pos(empty_state.grid, [goal_pos])
+    agent_dir = random_dir()
+
+    # Update the state with the new positions
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation of the Initial State Distribution
+
+Based on the provided samples, the initial state distribution appears to be as follows:
+
+1. **Grid Layout**: The grid is a 10x10 grid with walls around the perimeter.
+2. **Agent Position**: The agent can start at any empty (non-wall) position within the grid.
+3. **Agent Direction**: The agent's initial direction is uniformly random (right, down, left, up).
+4. **Goal Object**: There is one goal object placed in a random empty (non-wall) position within the grid.
+
+The function `initial_func` implements this logic by:
+- Ensuring that the goal object is placed in a random empty position.
+- Ensuring that the agent is placed in a random empty position that is different from the goal object's position.
+- Randomizing the agent's initial direction.

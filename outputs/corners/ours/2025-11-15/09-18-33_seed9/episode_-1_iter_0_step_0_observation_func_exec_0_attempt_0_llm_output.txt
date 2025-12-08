@@ -1,0 +1,70 @@
+Certainly! The distribution of observations conditioned on a state in this environment is determined by the agent's position, direction, and the objects within its field of view. The field of view (FOV) is a 3x3 grid centered in front of the agent, which can include walls, open spaces, and other objects. The FOV is rotated based on the agent's direction to match the agent's perspective.
+
+Given this understanding, here is the implementation of the `observation_func` function:
+
+```python
+def observation_func(state: MinigridState, action: int, empty_obs: MinigridObservation) -> MinigridObservation:
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    
+    def get_field_of_view(grid, agent_pos, agent_dir, view_size=3):
+        """Returns the field of view in front of the agent."""
+        
+        # Get the extents of the square set of tiles visible to the agent
+        if agent_dir == 0:  # Facing right
+            topX = agent_pos[0]
+            topY = agent_pos[1] - view_size // 2
+        elif agent_dir == 1:  # Facing down
+            topX = agent_pos[0] - view_size // 2
+            topY = agent_pos[1]
+        elif agent_dir == 2:  # Facing left
+            topX = agent_pos[0] - view_size + 1
+            topY = agent_pos[1] - view_size // 2
+        elif agent_dir == 3:  # Facing up
+            topX = agent_pos[0] - view_size // 2
+            topY = agent_pos[1] - view_size + 1
+        else:
+            assert False, "invalid agent direction"
+
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=grid.dtype)
+
+        # Compute the overlapping region in the grid.
+        gx0 = max(topX, 0)
+        gy0 = max(topY, 0)
+        gx1 = min(topX + view_size, grid.shape[0])
+        gy1 = min(topY + view_size, grid.shape[1])
+
+        # Determine where the overlapping region goes in the padded array.
+        px0 = max(0, -topX)
+        py0 = max(0, -topY)
+
+        # Copy the overlapping slice.
+        fov[px0 : px0 + (gx1 - gx0), py0 : py0 + (gy1 - gy0)] = grid[gx0:gx1, gy0:gy1]
+
+        for _ in range(agent_dir):
+            # Rotate left
+            fov = np.rot90(fov, k=1)
+
+        return fov
+
+    # Get the field of view based on the agent's position and direction
+    fov = get_field_of_view(state.grid, state.agent_pos, state.agent_dir)
+
+    # Create the observation
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=state.agent_pos,
+        agent_dir=state.agent_dir,
+        carrying=state.carrying
+    )
+
+    return obs
+```
+
+This function calculates the agent's field of view based on its position and direction, and then constructs the observation object with the appropriate grid, agent position, direction, and any carried item. The `get_field_of_view` helper function is defined within the scope of `observation_func` to handle the FOV calculation.

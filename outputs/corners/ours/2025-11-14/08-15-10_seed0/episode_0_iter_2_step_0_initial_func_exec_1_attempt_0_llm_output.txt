@@ -1,0 +1,64 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `open_cells` is a list of tuples. To resolve this, you can use `np.random.choice` to select an index from the list of open cells and then use that index to get the corresponding tuple.
+
+Here's the corrected `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    # Define the grid size
+    grid_size = empty_state.grid.shape[0]
+
+    # Define the possible positions for the agent and the goal
+    open_cells = []
+    for i in range(1, grid_size - 1):
+        for j in range(1, grid_size - 1):
+            if empty_state.grid[i, j] == ObjectTypes.empty:
+                open_cells.append((i, j))
+
+    # Randomly select a position for the agent
+    if open_cells:
+        agent_pos_index = np.random.choice(len(open_cells))
+        agent_pos = open_cells[agent_pos_index]
+        open_cells.remove(agent_pos)
+    else:
+        raise ValueError("No open cells available for the agent")
+
+    # Randomly select a direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Randomly select a position for the goal
+    if open_cells:
+        goal_pos_index = np.random.choice(len(open_cells))
+        goal_pos = open_cells[goal_pos_index]
+        empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation of the Changes:
+
+1. **Agent Position Selection**:
+   - Instead of directly using `np.random.choice(open_cells)`, we first generate a random index using `np.random.choice(len(open_cells))`.
+   - We then use this index to select the corresponding tuple from `open_cells`.
+
+2. **Goal Position Selection**:
+   - Similarly, for the goal position, we generate a random index and use it to select the corresponding tuple from `open_cells`.
+
+3. **Error Handling**:
+   - Added a check to ensure there are open cells available for the agent. If no open cells are available, a `ValueError` is raised.
+
+This approach ensures that `np.random.choice` is used correctly and avoids the error you encountered.

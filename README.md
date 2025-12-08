@@ -10,6 +10,12 @@ conda create -n "uncertain_worms" python=3.11
 python -m pip install -e .
 ```
 
+## How to run the experiments
+
+We simplified running the experiments: Just run `.\run_experiments\run_TROI_planning_agent` after you have set the correct configurations in that file. For simple experiments just change the `ENVIRONMENT` and the `APPROACH` variable. For more advanced changes, check out other options in this file or go into the corresponding `*.yaml` file.
+
+The results of the experiment are automatically uploaded to [W&B](https://wandb.ai/frederik-panse-atom/pomdp_coder).
+
 ## Minigrid
 
 ### Hardcoded

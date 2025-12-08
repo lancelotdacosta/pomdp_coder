@@ -1,0 +1,71 @@
+The error you're encountering is due to the `assert` statement failing because the walls are not being correctly identified as all being `ObjectTypes.wall`. This can happen if the grid is not properly initialized with walls.
+
+To ensure the grid is correctly pre-filled with walls, we should check and fill the walls explicitly if they are not already present. Here's the updated `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    
+    # Define the grid size
+    width = empty_state.width
+    height = empty_state.height
+    
+    # Ensure the grid has walls pre-filled
+    if not (empty_state.grid[0, :].all() == ObjectTypes.wall and 
+            empty_state.grid[-1, :].all() == ObjectTypes.wall and 
+            empty_state.grid[:, 0].all() == ObjectTypes.wall and 
+            empty_state.grid[:, -1].all() == ObjectTypes.wall):
+        
+        # Fill the grid with walls if they are not already present
+        empty_state.grid[0, :] = ObjectTypes.wall
+        empty_state.grid[-1, :] = ObjectTypes.wall
+        empty_state.grid[:, 0] = ObjectTypes.wall
+        empty_state.grid[:, -1] = ObjectTypes.wall
+    
+    # Place the goal object randomly within the grid, but not on the walls
+    while True:
+        goal_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+        if empty_state.grid[goal_pos] == ObjectTypes.empty:
+            empty_state.grid[goal_pos] = ObjectTypes.goal
+            break
+    
+    # Place the agent randomly within the grid, but not on the walls or on the goal
+    while True:
+        agent_pos = (np.random.randint(1, width-1), np.random.randint(1, height-1))
+        if empty_state.grid[agent_pos] == ObjectTypes.empty:
+            empty_state.agent_pos = agent_pos
+            empty_state.grid[agent_pos] = ObjectTypes.agent
+            break
+    
+    # Set the agent's direction randomly
+    empty_state.agent_dir = np.random.choice(list(Direction))
+    
+    # Ensure the agent is not carrying anything initially
+    empty_state.carrying = None
+    
+    return empty_state
+```
+
+### Explanation:
+1. **Check and Fill Walls**:
+   - The function first checks if the walls are already filled with `ObjectTypes.wall`.
+   - If the walls are not correctly filled, it fills them explicitly.
+
+2. **Place Goal Object**:
+   - The goal object is placed randomly within the grid, but not on the walls or where the agent will be placed.
+
+3. **Place Agent**:
+   - The agent is placed randomly within the grid, but not on the walls or the goal object.
+
+4. **Set Agent Direction**:
+   - The agent's direction is set randomly.
+
+5. **Carrying**:
+   - The agent is initialized to not carry any object.
+
+This should ensure that the walls are correctly pre-filled and the initial state is generated as expected.

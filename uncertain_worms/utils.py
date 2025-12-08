@@ -12,6 +12,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import dotenv
 import hydra
 import requests  # type: ignore
+import httpx
+
+from openai import OpenAI
+import wandb
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +61,7 @@ def write_prompt(path: str, entries: List[Dict[str, Any]]) -> None:
 
 
 def save_log(path: str, text: str) -> None:
-    with open(os.path.join(get_log_dir(), path), "w") as f:
+    with open(os.path.join(get_log_dir(), path), "w", encoding="utf-8") as f:
         f.write(text)
 
 
@@ -81,8 +85,22 @@ OBSERVATION_FUNCTION_NAME = "observation_func"
 
 # ENGINE = "gpt-3.5-turbo-0125"
 # ENGINE = "openai/gpt-4-turbo"
-ENGINE = "openai/gpt-4o"
+# ENGINE_openrouter = "openai/gpt-4o"
 # ENGINE = "openai/o1"
+# ENGINE = "codellama:34b-instruct-q5_K_M"
+# ENGINE = "deepseek-r1-large"
+# ENGINE = "qwen-32k"
+# ENGINE = "llama33-largecontext"
+ENGINE_ollama = "qwen25-largecontext"
+# ENGINE_openrouter = "qwen/qwen-2.5-72b-instruct"
+ENGINE = "qwen/qwen3-235b-a22b-2507"
+
+# Add Ollama client:
+# ollama_client = OpenAI(
+#     base_url="http://localhost:11434/v1",
+#     api_key="ollama",
+#     http_client=httpx.Client(),
+# )
 
 
 def parse_code(input_text: str) -> str | None:
@@ -111,33 +129,88 @@ def discounted_reward(rewards: List[float], gamma: float) -> float:
     return rewards[0]  # Total discounted return for the episode
 
 
-def query_llm(message: List[Dict[str, str]], max_retries: int = 5) -> Tuple[str, float]:
+def query_llm(message: List[Dict[str, str]], max_retries: int = 5, use_openrouter: bool = True) -> Tuple[str, float]:
+    """Query local Ollama or OpenRouter based on configuration"""
     retry_count = 0
-    backoff_factor = 60
+    backoff_factor = 60 if use_openrouter else 2
+    
+    # # Token tracking setup
+    # token_log_path = os.path.join(get_log_dir(), "token_usage.json")
+    
+    # if os.path.exists(token_log_path):
+    #     with open(token_log_path, "r") as f:
+    #         token_data = json.load(f)
+    # else:
+    #     token_data = {}
+    
+    # # Find next key number
+    # next_key = str(max([int(k) for k in token_data.keys()], default=-1) + 1)
+    
     while True:
         try:
             st = time.time()
+            
+            if use_openrouter:
+                response = requests.post(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openrouter_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    data=json.dumps({
+                        "model": ENGINE, 
+                        "messages": message
+                        }),
+                )
+                log.info(f"Response status code: {response.status_code}")
+                response_json = response.json()
+                content = str(response_json["choices"][0]["message"]["content"])
+                # Extract token usage if available
+                # if "usage" in response_json:
+                #     input_tokens = response_json["usage"].get("prompt_tokens", 0)
+                #     output_tokens = response_json["usage"].get("completion_tokens", 0)
+                # else:
+                #     input_tokens = output_tokens = 0
 
-            response = requests.post(
-                url="https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": "Bearer {}".format(openrouter_api_key),
-                },
-                data=json.dumps({"model": ENGINE, "messages": message}),
-            )
-            response_json = response.json()
-            return (
-                str(response_json["choices"][0]["message"]["content"]),
-                time.time() - st,
-            )
+                # if wandb.run:
+                #     wandb.log({
+                #         "input_tokens": input_tokens,
+                #         "output_tokens": output_tokens,
+                #         "total_tokens": input_tokens + output_tokens
+                #         })
+
+            else:
+                print("NO OLLAMA!")
+                # Use OpenAI client with Ollama
+                # response = ollama_client.chat.completions.create(
+                #     model=ENGINE_ollama,
+                #     messages=message
+                # )
+                # content = response.choices[0].message.content
+                # input_tokens = response.usage.prompt_tokens
+                # output_tokens = response.usage.completion_tokens
+            
+            # # Store token data
+            # token_data[next_key] = {
+            #     "input_tokens": input_tokens,
+            #     "output_tokens": output_tokens
+            # }
+            
+            # # Save to JSON file
+            # with open(token_log_path, "w") as f:
+            #     json.dump(token_data, f, indent=2)
+            
+            # log.info(f"Tokens Info - Input: {input_tokens}, Output: {output_tokens}")
+
+            return (content, time.time() - st)
+            
         except Exception as e:
             retry_count += 1
             if retry_count > max_retries:
                 raise e
             sleep_time = backoff_factor * (2**retry_count)
-            log.info(f"Rate limit exceeded. Retrying in {sleep_time} seconds...")
+            log.info(f"Connection failed. Retrying in {sleep_time} seconds...")
             time.sleep(sleep_time)
-
 
 if __name__ == "__main__":
     pass

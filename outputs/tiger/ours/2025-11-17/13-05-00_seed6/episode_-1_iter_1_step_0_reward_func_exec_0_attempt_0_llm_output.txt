@@ -1,0 +1,51 @@
+Based on the provided samples and the observed discrepancies, it seems that there is an inconsistency in the reward values returned by the `reward_func` function. Specifically, the observed real-world samples show a reward of `1.0` for certain actions, while the current model returns a reward of `10.0`. This suggests that the reward for correctly opening the door without the tiger might be slightly different from what was initially assumed.
+
+Let's refine the `reward_func` to better match the true distribution based on the observed data.
+
+Here is the improved `reward_func`:
+
+```python
+def reward_func(state: TigerState, action: int, next_state: TigerState) -> Tuple[float, bool]:
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the rewards for different actions and states
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:
+            return -100.0, True  # Opening left door with tiger on the left
+        else:
+            return 1.0, True  # Opening left door with tiger on the right
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:
+            return -100.0, True  # Opening right door with tiger on the right
+        else:
+            return 1.0, True  # Opening right door with tiger on the left
+    elif action == TigerActions.LISTEN:
+        return 0.0, False  # Listening does not change the state and gives no reward
+
+    # If the action is not recognized, return a default reward
+    return 0.0, False
+```
+
+### Explanation:
+1. **Reward for Correctly Opening the Door Without the Tiger:**
+   - In the observed real-world samples, the reward for correctly opening the door without the tiger is `1.0`. This was different from the initially assumed `10.0`.
+   - The updated function now returns `1.0` for correctly opening the door without the tiger.
+
+2. **Reward for Opening the Door with the Tiger:**
+   - The reward for opening the door with the tiger remains `-100.0`, as this action results in a significant penalty.
+
+3. **Reward for Listening:**
+   - The reward for listening remains `0.0`, as this action does not change the state and provides no immediate reward.
+
+4. **Episode Termination:**
+   - The episode terminates (`done = True`) when the agent opens either door, regardless of whether the tiger is behind it or not.
+   - The episode does not terminate when the agent listens (`done = False`).
+
+This refined `reward_func` should better align with the observed data and improve the model's accuracy.

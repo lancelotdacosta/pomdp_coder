@@ -1,0 +1,53 @@
+The error you're encountering is due to the fact that `np.random.choice` expects a 1-dimensional array, but `possible_positions` is a list of tuples. To resolve this, we can use `np.random.choice` to select an index and then use that index to get the position tuple from `possible_positions`.
+
+Here's the corrected `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible positions for the agent within the interior of the grid
+    possible_positions = [(x, y) for x in range(1, 9) for y in range(1, 9)]
+
+    # Randomly select an agent position by index
+    agent_pos_index = np.random.choice(len(possible_positions))
+    agent_pos = possible_positions[agent_pos_index]
+    
+    # Randomly select an agent direction
+    agent_dir = np.random.randint(0, 4)
+    
+    # Place the object (value 10) in a random position in the bottom row
+    bottom_row_positions = [(x, 8) for x in range(1, 9)]
+    object_pos_index = np.random.choice(len(bottom_row_positions))
+    object_pos = bottom_row_positions[object_pos_index]
+    empty_state.grid[object_pos] = ObjectTypes.goal
+    
+    # Ensure the selected agent position is not the same as the object position
+    while agent_pos == object_pos:
+        agent_pos_index = np.random.choice(len(possible_positions))
+        agent_pos = possible_positions[agent_pos_index]
+    
+    # Create the initial state with the agent's position, direction, and the grid
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+In this implementation:
+1. We generate a list of possible positions for the agent within the interior of the grid.
+2. We use `np.random.choice` to select an index from the list of possible positions and then use that index to get the actual position tuple.
+3. We randomly select an agent direction.
+4. We place an object (value `10`) in a random position in the bottom row using the same method.
+5. We ensure the selected agent position is not the same as the object position by reselecting the agent position if necessary.
+6. We create and return the initial state with the agent's position, direction, and the grid.
+
+This should resolve the `ValueError: a must be 1-dimensional` issue.

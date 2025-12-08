@@ -1,0 +1,136 @@
+#define system
+You are a robot exploring its environment. 
+
+
+
+Your goal is to model the reward conditioned on state, action, next state transition of the world in python. 
+
+You have tried it before and came up with one partially correct solution, but it is not perfect. 
+
+The observed distribution disagrees with the generated model in several cases.
+You need to improve your code to come closer to the true distribution.
+
+Environment Description: 
+Goal Description: 
+
+Here is a solution you came up with before. 
+
+```
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+
+
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the action and the state
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == 0:  # Tiger is behind the left door
+            reward = -1.0  # Opening the door with the tiger results in a negative reward
+            done = True
+        elif state.tiger_location == 1 and next_state.tiger_location == 1:  # Tiger is behind the right door and remains there
+            reward = 1.0  # Opening the door without the tiger results in a positive reward
+            done = True
+        else:
+            reward = 0.0  # Edge case: opening the left door when the tiger is not behind it, but the next state is different
+            done = True
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == 1:  # Tiger is behind the right door
+            reward = -1.0  # Opening the door with the tiger results in a negative reward
+            done = True
+        elif state.tiger_location == 0 and next_state.tiger_location == 0:  # Tiger is behind the left door and remains there
+            reward = 1.0  # Opening the door without the tiger results in a positive reward
+            done = True
+        else:
+            reward = 0.0  # Edge case: opening the right door when the tiger is not behind it, but the next state is different
+            done = True
+    elif action == TigerActions.LISTEN:
+        reward = 0.0  # Listening does not provide a reward, but the episode continues
+        done = False
+    else:
+        raise ValueError(f"Unknown action: {action}")
+
+    return reward, done
+
+```
+
+
+Here are some samples from the real world that were impossible under your model
+Input TigerState: TigerState(tiger_location=LEFT)
+Input int: 0
+Input TigerState: TigerState(tiger_location=LEFT)
+Output float: 0.0
+Output bool: True
+
+
+
+And here are some samples from your code under the same conditions
+Input TigerState: TigerState(tiger_location=LEFT)
+Input int: 0
+Input TigerState: TigerState(tiger_location=LEFT)
+Output float: -1.0
+Output bool: True
+
+
+
+
+
+Explain what you believe is the reward conditioned on state, action, next state transition in english, then improve your code to better model the true distribution.
+
+Please implement the code for the following the template. 
+You must implement the ‘ reward_func ‘ function. 
+
+The code needs to be directly runnable with (state, action, next_state) and return (reward, done). 
+
+Do not output examples. 
+Do not create any new classes. 
+Do not rewrite existing classes.
+Do not import any new modules from anywhere.
+Do not list out specific indices that overfit to the examples, but include ranges.
+Put the ‘ reward_func ‘ function in a python code block.

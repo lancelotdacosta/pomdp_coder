@@ -1,0 +1,68 @@
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def transition_func(state, action):
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    # The tiger's location does not change with the agent's actions.
+    # Only the observation changes based on the action.
+    
+    if action == TigerActions.OPEN_LEFT or action == TigerActions.OPEN_RIGHT:
+        # Opening a door resets the tiger's location to a random position
+        new_tiger_location = random.choice([0, 1])
+    elif action == TigerActions.LISTEN:
+        # Listening does not change the tiger's location
+        new_tiger_location = state.tiger_location
+    else:
+        raise ValueError(f"Invalid action: {action}")
+
+    return TigerState(tiger_location=new_tiger_location)
+```
+
+### Explanation
+
+The transition function models the distribution of next states conditioned on actions and previous states. Here's how it works:
+
+1. **Tiger Location Change**:
+   - **Opening a Door**: When the agent chooses to open a door (either `OPEN_LEFT` or `OPEN_RIGHT`), the tiger's location is reset to a random position (either `LEFT` or `RIGHT`).
+   - **Listening**: When the agent listens (`LISTEN`), the tiger's location remains unchanged.
+
+2. **Observation**:
+   - The observation logic is not part of the transition function, so we focus solely on the state transition.
+   - The tiger's location does not change with the `LISTEN` action, but it changes to a random location when either door is opened.
+
+This function ensures that the environment's dynamics are accurately modeled based on the provided samples and the typical behavior of the Tiger problem.

@@ -1,0 +1,25 @@
+Based on the provided samples, it seems that the tiger's location does not change when the action is `LISTEN` (action 2). This implies that the environment transitions deterministically to the same state in response to the `LISTEN` action. However, for actions `OPEN_LEFT` and `OPEN_RIGHT`, the transition behavior might be different, but we do not have enough samples to determine this.
+
+Given the context of the Tiger problem, the `OPEN_LEFT` and `OPEN_RIGHT` actions should result in a terminal state (e.g., game over or reward calculation), but since we are only modeling state transitions, we will assume that these actions also do not change the tiger's location for simplicity.
+
+Here is the implementation of the `transition_func` function:
+
+```python
+def transition_func(state, action):
+    """
+    Args:
+        state (TigerState): the state of the environment 
+        action (int): action to be taken in state `state`
+    Returns:
+        new_state (TigerState): the new state of the environment
+    """
+    if action == TigerActions.LISTEN:
+        # Listening does not change the tiger's location
+        return state
+
+    # For OPEN_LEFT and OPEN_RIGHT, we assume the tiger's location remains unchanged
+    # This may not be accurate in a full tiger problem but is a simplification based on the provided samples
+    return state
+```
+
+This function ensures that the transition behavior matches the provided samples, where the tiger's location remains unchanged regardless of the action taken. If more complex behavior is expected for actions `OPEN_LEFT` and `OPEN_RIGHT`, additional logic would need to be added based on the full problem specification.

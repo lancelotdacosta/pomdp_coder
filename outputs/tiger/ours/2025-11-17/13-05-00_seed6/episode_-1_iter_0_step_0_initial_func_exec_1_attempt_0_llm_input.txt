@@ -1,0 +1,345 @@
+#define system
+You are a robot exploring its environment. 
+
+Environment Description: 
+Goal Description: 
+
+Your goal is to model the the distribution of initial states . 
+You need to implement the python code to model the world, as seen in the provided experiences. 
+Please follow the template to implement the code. 
+The code needs to be directly runnable an empty state with the walls of the grid pre-filled and return a sample initial state. 
+
+
+Below are a few samples from the environment distribution. These are only samples from a larger distribution that your should model.
+
+Output TigerState: TigerState(tiger_location=RIGHT)
+
+
+Output TigerState: TigerState(tiger_location=RIGHT)
+
+
+Output TigerState: TigerState(tiger_location=RIGHT)
+
+
+Output TigerState: TigerState(tiger_location=LEFT)
+
+
+Output TigerState: TigerState(tiger_location=LEFT)
+
+
+
+
+Here is the template for the initial_func function. Please implement
+the reward function following the template. The code needs to be directly
+runnable.
+
+‘‘‘
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def initial_func(empty_state:TigerState):
+    """
+    Input:
+        empty_state (TigerState): An empty state with only the walls filled into the grid
+    Returns:
+        state (TigerState): the initial state of the environment
+    """
+    raise NotImplementedError
+‘‘‘
+
+Explain what you believe is the the distribution of initial states  in english.
+Additionally, please implement code to model the logic of the world. Please implement the 
+code following the template. Only output the definition for ‘ initial_func ‘. 
+You must implement the ‘ initial_func ‘ function.
+Create any helper function inside the scope of ‘ initial_func ‘. 
+Do not create any helper function outside the scope of ‘ initial_func ‘.
+Do not output examples usage. 
+Do not create any new classes.
+Do not rewrite existing classes. 
+Do not import any new modules from anywhere.
+Do not overfit to the specific samples.
+Put the ‘ initial_func ‘ function in a python code block.
+#define assistant
+Based on the provided samples, it appears that the initial state distribution is biased towards the tiger being located on the right side of the grid. Specifically, out of the five samples, three indicate that the tiger is on the right (tiger_location=1) and two indicate that the tiger is on the left (tiger_location=0).
+
+To model this distribution, we can use a probabilistic approach where the probability of the tiger being on the right side is 3/5 (0.6) and the probability of the tiger being on the left side is 2/5 (0.4).
+
+Here is the implementation of the `initial_func` function:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def initial_func(empty_state: TigerState):
+    """
+    Input:
+        empty_state (TigerState): An empty state with only the walls filled into the grid
+    Returns:
+        state (TigerState): the initial state of the environment
+    """
+    # Define the probabilities based on the provided samples
+    probabilities = [0.4, 0.6]  # Probability of tiger being on the left and right respectively
+
+    # Sample the initial tiger location based on the defined probabilities
+    tiger_location = random.choices([0, 1], weights=probabilities, k=1)[0]
+
+    # Create the initial state with the sampled tiger location
+    initial_state = copy.deepcopy(empty_state)
+    initial_state.tiger_location = tiger_location
+
+    return initial_state
+```
+
+This function uses the `random.choices` method to sample the tiger's initial location based on the provided probabilities. It then creates a new `TigerState` object with the sampled location and returns it as the initial state.
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 194, in requery
+    code_obj = compile(code_str, filename=filename, mode="exec")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func000.py", line 26
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+    ^^^^^^^^^^^^^
+SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?
+
+#define assistant
+The error you're encountering is due to the incorrect syntax in the `TigerObservationEnum` class definition. In Python, enum members should be defined with a single equals sign (`=`) without commas between them. Here is the corrected version of the `initial_func` function with the proper enum definition:
+
+```python
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int  # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def initial_func(empty_state: TigerState):
+    """
+    Input:
+        empty_state (TigerState): An empty state with only the walls filled into the grid
+    Returns:
+        state (TigerState): the initial state of the environment
+    """
+    # Define the probabilities based on the provided samples
+    probabilities = [0.4, 0.6]  # Probability of tiger being on the left and right respectively
+
+    # Sample the initial tiger location based on the defined probabilities
+    tiger_location = random.choices([0, 1], weights=probabilities, k=1)[0]
+
+    # Create the initial state with the sampled tiger location
+    initial_state = copy.deepcopy(empty_state)
+    initial_state.tiger_location = tiger_location
+
+    return initial_state
+```
+
+This should resolve the `SyntaxError` and allow the code to compile and run correctly. The `TigerObservationEnum` class is now correctly defined with each member having its own line and a single equals sign (`=`).
+#define assistant
+
+
+from __future__ import annotations
+
+import copy
+import enum
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0
+    HEAR_RIGHT = 1
+    NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int  # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def initial_func(empty_state: TigerState):
+    """
+    Input:
+        empty_state (TigerState): An empty state with only the walls filled into the grid
+    Returns:
+        state (TigerState): the initial state of the environment
+    """
+    # Define the probabilities based on the provided samples
+    probabilities = [0.4, 0.6]  # Probability of tiger being on the left and right respectively
+
+    # Sample the initial tiger location based on the defined probabilities
+    tiger_location = random.choices([0, 1], weights=probabilities, k=1)[0]
+
+    # Create the initial state with the sampled tiger location
+    initial_state = copy.deepcopy(empty_state)
+    initial_state.tiger_location = tiger_location
+
+    return initial_state
+
+#define user
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func001.py", line 61, in initial_func
+    initial_state.tiger_location = tiger_location
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 4, in __setattr__
+dataclasses.FrozenInstanceError: cannot assign to field 'tiger_location'
+
+Traceback (most recent call last):
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 212, in evaluate_initial_model
+    model_initials[()] = [
+                         ^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/partially_obs_planning_agent.py", line 213, in <listcomp>
+    (self.planner.initial_model(copy.deepcopy(self.empty_state)),)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/tu/tu_tu/tu_zxoau23/pomdp_coder/uncertain_worms/policies/base_policy.py", line 83, in initial_model
+    initial_state = locals()[func_name](empty_state)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "generated_code_initial_func001.py", line 61, in initial_func
+    initial_state.tiger_location = tiger_location
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 4, in __setattr__
+dataclasses.FrozenInstanceError: cannot assign to field 'tiger_location'
+

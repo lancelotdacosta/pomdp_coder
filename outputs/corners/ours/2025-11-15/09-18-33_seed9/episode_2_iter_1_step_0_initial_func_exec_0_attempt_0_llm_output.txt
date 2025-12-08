@@ -1,0 +1,58 @@
+Based on the provided samples, it appears that the initial states have the following characteristics:
+
+1. **Agent Position**: The agent can start at various positions within the grid, but typically not near the walls or in the top-left corner. The positions seem to be randomly distributed within the open areas of the grid.
+
+2. **Agent Direction**: The agent's direction can be any of the four possible directions (0: right, 1: down, 2: left, 3: up).
+
+3. **Carrying**: The agent does not carry any object initially.
+
+4. **Grid Layout**: The grid is a 10x10 grid with walls around the perimeter. There are a few specific cells that contain a goal (10) and open spaces (1). The goal position seems to be fixed or at least limited to certain positions.
+
+To model this distribution, we will randomly select an initial position for the agent within the open areas of the grid, set a random direction, and ensure the agent is not carrying anything. We will also place the goal at one of the positions observed in the samples.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define possible goal positions based on the samples
+    possible_goal_positions = [
+        (1, 8), (9, 1), (1, 2), (2, 1), (6, 4)
+    ]
+    
+    # Randomly select a goal position
+    goal_pos = np.random.choice(possible_goal_positions)
+    
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+    
+    # Define possible agent positions within the open areas of the grid
+    possible_agent_positions = []
+    for x in range(1, 9):
+        for y in range(1, 9):
+            if empty_state.grid[x, y] == ObjectTypes.empty:
+                possible_agent_positions.append((x, y))
+    
+    # Randomly select an agent position
+    agent_pos = np.random.choice(possible_agent_positions)
+    
+    # Set a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+    
+    # Create the initial state
+    state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+    
+    return state
+```
+
+This function initializes the environment by randomly placing the goal in one of the observed positions and the agent in any of the open cells within the grid. The agent's direction is also randomized, and it starts without carrying any objects.

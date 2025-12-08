@@ -1,0 +1,64 @@
+The error you're encountering is due to the way `numpy` arrays are being handled when selecting a random index. Specifically, when using `np.random.choice`, it returns an integer index, which is then used to index into a `numpy` array. However, the result of this indexing operation is a single integer, not an iterable.
+
+To fix this, you need to ensure that the selected index is used correctly to extract the position from the `remaining_empty_cells` array. Here's the corrected version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Copy the grid to avoid modifying the original
+    grid = np.copy(empty_state.grid)
+
+    # Find all empty cells (non-wall cells)
+    empty_cells = np.column_stack(np.where(grid == ObjectTypes.empty))
+
+    # Randomly choose an empty cell for the agent's initial position
+    agent_pos_idx = np.random.choice(len(empty_cells))
+    agent_pos = tuple(empty_cells[agent_pos_idx])
+
+    # Randomly choose an initial direction for the agent
+    agent_dir = np.random.randint(4)
+
+    # Set the agent's position in the grid
+    grid[agent_pos] = ObjectTypes.agent
+
+    # Remove the agent's position from the list of empty cells
+    remaining_empty_cells = np.delete(empty_cells, agent_pos_idx, axis=0)
+
+    # Randomly place a goal object in one of the remaining empty cells
+    goal_pos_idx = np.random.choice(len(remaining_empty_cells))
+    goal_pos = tuple(remaining_empty_cells[goal_pos_idx])
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    state = MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return state
+```
+
+### Explanation:
+1. **Agent Position Selection**:
+   - `empty_cells` is a 2D array where each row represents an empty cell's coordinates.
+   - `agent_pos_idx` is a random index selected from the range of `len(empty_cells)`.
+   - `agent_pos` is then obtained by indexing into `empty_cells` using `agent_pos_idx` and converting it to a tuple.
+
+2. **Removing Agent Position from Empty Cells**:
+   - `np.delete` is used to remove the agent's position from the list of empty cells to avoid placing the goal at the same position as the agent.
+
+3. **Goal Position Selection**:
+   - `goal_pos_idx` is a random index selected from the remaining empty cells.
+   - `goal_pos` is obtained by indexing into `remaining_empty_cells` using `goal_pos_idx` and converting it to a tuple.
+
+4. **Setting the Grid**:
+   - The agent's position and the goal's position are set in the grid.
+
+This should resolve the `TypeError` you encountered and correctly initialize the environment state.

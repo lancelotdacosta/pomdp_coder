@@ -1,0 +1,63 @@
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    
+    def rotate_grid(grid, direction):
+        """Rotate the grid based on the agent's direction."""
+        for _ in range(direction):
+            grid = np.rot90(grid)
+        return grid
+
+    def get_3x3_fov(grid, pos, dir):
+        """Get a 3x3 field of view from the agent's perspective."""
+        x, y = pos
+        view_size = 3
+        fov = np.full((view_size, view_size), ObjectTypes.wall, dtype=grid.dtype)
+
+        if dir == Direction.facing_right:
+            topX, topY = x, y - 1
+        elif dir == Direction.facing_down:
+            topX, topY = x - 1, y
+        elif dir == Direction.facing_left:
+            topX, topY = x - 2, y - 1
+        elif dir == Direction.facing_up:
+            topX, topY = x - 1, y - 2
+
+        for i in range(view_size):
+            for j in range(view_size):
+                gridX = topX + i
+                gridY = topY + j
+                if 0 <= gridX < grid.shape[0] and 0 <= gridY < grid.shape[1]:
+                    fov[i, j] = grid[gridX, gridY]
+
+        return rotate_grid(fov, dir)
+
+    # Update agent's position and direction based on action
+    new_pos = state.agent_pos
+    new_dir = state.agent_dir
+
+    if action == Actions.forward:
+        new_pos = (new_pos[0] + DIR_TO_VEC[new_dir][0], new_pos[1] + DIR_TO_VEC[new_dir][1])
+    elif action == Actions.left:
+        new_dir = (new_dir - 1) % 4
+    elif action == Actions.right:
+        new_dir = (new_dir + 1) % 4
+
+    # Get the 3x3 field of view from the agent's perspective
+    fov = get_3x3_fov(state.grid, new_pos, new_dir)
+
+    # Create the observation
+    empty_obs.image = fov
+    empty_obs.agent_pos = new_pos
+    empty_obs.agent_dir = new_dir
+    empty_obs.carrying = state.carrying
+
+    return empty_obs
+```

@@ -1,0 +1,74 @@
+To better model the true distribution of initial states, I need to ensure that the agent and the goal are placed in a way that matches the observed samples. Specifically, I notice that the goal is often placed near the edge of the grid, and the agent can be placed in various positions, including near the goal.
+
+Here's an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    def random_position(grid):
+        while True:
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = np.random.randint(1, grid.shape[1] - 1)
+            if grid[x, y] == ObjectTypes.empty:
+                return (x, y)
+
+    def random_direction():
+        return np.random.choice(list(Direction))
+
+    # Place the goal in a random empty cell inside the grid, biased towards the edges
+    goal_bias = 0.7  # Higher probability of placing the goal near the edges
+    if np.random.rand() < goal_bias:
+        # Place the goal near the edges
+        edge = np.random.choice(['top', 'bottom', 'left', 'right'])
+        if edge == 'top':
+            x = 1
+            y = np.random.randint(1, grid.shape[1] - 1)
+        elif edge == 'bottom':
+            x = grid.shape[0] - 2
+            y = np.random.randint(1, grid.shape[1] - 1)
+        elif edge == 'left':
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = 1
+        elif edge == 'right':
+            x = np.random.randint(1, grid.shape[0] - 1)
+            y = grid.shape[1] - 2
+    else:
+        # Place the goal anywhere in the grid
+        x, y = random_position(empty_state.grid)
+
+    goal_pos = (x, y)
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Place the agent in a random empty cell inside the grid
+    agent_pos = random_position(empty_state.grid)
+    agent_dir = random_direction()
+
+    # Ensure the agent position is not on the goal
+    while agent_pos == goal_pos:
+        agent_pos = random_position(empty_state.grid)
+
+    return MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation
+
+1. **Goal Placement**:
+   - The goal is placed with a higher probability near the edges of the grid. This is achieved by introducing a bias factor (`goal_bias`), which is set to 0.7 in this case.
+   - If the random number generated is less than `goal_bias`, the goal is placed near one of the edges (top, bottom, left, or right).
+   - Otherwise, the goal is placed at a random position within the grid.
+
+2. **Agent Placement**:
+   - The agent is placed in a random empty cell within the grid.
+   - A check is performed to ensure that the agent is not placed on the same cell as the goal.
+
+This approach should better match the observed distribution of initial states, as it accounts for the higher frequency of goals being placed near the edges.

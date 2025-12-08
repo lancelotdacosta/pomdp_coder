@@ -1,0 +1,64 @@
+To better model the true distribution of initial states, we need to ensure that the agent and the goal can be placed in various positions within the grid. The provided samples suggest that the agent and the goal can be placed in different parts of the grid, including near the edges and corners. Additionally, the direction of the agent can vary.
+
+Here's an improved version of the `initial_func` function that should more closely match the true distribution:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid layout
+    grid = empty_state.grid.copy()
+
+    # Get all empty cells
+    empty_cells = np.argwhere(grid == ObjectTypes.empty)
+
+    # Place the goal object in one of the empty cells
+    goal_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+    grid[goal_pos] = ObjectTypes.goal
+
+    # Remove the goal cell from the list of empty cells
+    empty_cells = np.delete(empty_cells, np.where((empty_cells == goal_pos).all(axis=1)), axis=0)
+
+    # Choose a random position for the agent
+    agent_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+
+    # Choose a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Ensure the agent is not placed too close to the walls or in a corner
+    while (agent_pos[0] < 2 or agent_pos[0] >= grid.shape[0] - 2 or
+           agent_pos[1] < 2 or agent_pos[1] >= grid.shape[1] - 2 or
+           (agent_pos[0] == 2 and (agent_pos[1] == 2 or agent_pos[1] == grid.shape[1] - 3)) or
+           (agent_pos[0] == grid.shape[0] - 3 and (agent_pos[1] == 2 or agent_pos[1] == grid.shape[1] - 3))):
+        empty_cells = np.delete(empty_cells, np.where((empty_cells == agent_pos).all(axis=1)), axis=0)
+        if len(empty_cells) == 0:
+            raise ValueError("No valid positions left for the agent.")
+        agent_pos = tuple(empty_cells[np.random.choice(len(empty_cells))])
+
+    # Create the initial state
+    return MinigridState(
+        grid=grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+```
+
+### Explanation of the Improvements:
+
+1. **Agent Position Constraints**:
+   - The agent is not placed too close to the walls (within 2 cells of any wall) or in a corner. This ensures that the agent has enough space to move and interact with the environment.
+   - The specific conditions for avoiding corners are added to ensure the agent is not placed in positions that might be less likely or impossible in the real world.
+
+2. **Random Selection**:
+   - The goal and agent positions are randomly selected from the list of empty cells, ensuring a diverse distribution.
+   - The direction of the agent is also randomly chosen, which matches the observed samples.
+
+3. **Error Handling**:
+   - If no valid positions are left for the agent after applying the constraints, an error is raised to prevent infinite loops.
+
+This approach should better reflect the true distribution of initial states by ensuring the agent can be placed in a variety of valid positions within the grid, while still maintaining the randomness and diversity needed to match the real-world samples.

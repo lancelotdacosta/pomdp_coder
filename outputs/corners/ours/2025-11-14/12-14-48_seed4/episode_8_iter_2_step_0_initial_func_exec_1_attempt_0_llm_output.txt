@@ -1,0 +1,59 @@
+The error you're encountering is due to the goal position not being in the list of empty positions. This can happen if the grid has been modified in a way that the position originally marked as empty is no longer empty.
+
+To avoid this issue, we can ensure that the goal and agent positions are selected correctly by checking and re-trying if the selected position is not valid. Here's an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the grid dimensions
+    width, height = empty_state.width, empty_state.height
+
+    # List of all empty positions in the grid
+    empty_positions = np.argwhere(empty_state.grid == ObjectTypes.empty).tolist()
+
+    # Ensure we have at least two empty positions
+    if len(empty_positions) < 2:
+        raise ValueError("Not enough empty positions to place both the goal and the agent.")
+
+    # Place the goal object in a random empty location within the grid
+    goal_pos = None
+    while goal_pos is None or empty_state.grid[goal_pos] != ObjectTypes.empty:
+        goal_pos = tuple(empty_positions[np.random.randint(len(empty_positions))])
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Remove the goal position from the list of empty positions
+    empty_positions.remove(goal_pos)
+
+    # Place the agent in a random empty location within the grid
+    agent_pos = None
+    while agent_pos is None or empty_state.grid[agent_pos] != ObjectTypes.empty:
+        agent_pos = tuple(empty_positions[np.random.randint(len(empty_positions))])
+
+    # Randomly select the agent's direction
+    agent_dir = np.random.choice(list(Direction))
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation:
+1. **Ensure Enough Empty Positions**: We first check if there are at least two empty positions in the grid. If not, we raise a `ValueError` indicating that there are not enough empty positions to place both the goal and the agent.
+2. **Place Goal**: We use a while loop to ensure that the selected goal position is indeed an empty cell. This loop continues until a valid empty position is found.
+3. **Remove Goal Position**: Once the goal position is placed, we remove it from the list of empty positions.
+4. **Place Agent**: Similarly, we use a while loop to ensure that the selected agent position is an empty cell. This loop continues until a valid empty position is found.
+5. **Agent Direction**: The agent's direction is chosen randomly from the possible directions.
+6. **Create Initial State**: Finally, we create and return the initial state with the updated grid, agent position, and agent direction.
+
+This approach ensures that both the goal and the agent are placed in valid empty cells, and it handles cases where the grid might have been modified in ways that affect the validity of the positions.

@@ -1,0 +1,54 @@
+Based on the provided samples, it appears that the initial states are distributed as follows:
+
+1. **Agent Position**: The agent can be placed at various positions within the grid, but primarily in the middle rows (rows 2-7) and middle columns (columns 1-8). This suggests that the agent is more likely to start in the central region of the grid rather than near the edges.
+2. **Agent Direction**: The agent can face in any of the four directions (right, down, left, up), but the distribution of directions is not uniform. It seems that facing down and left are more common.
+3. **Goal Position**: The goal can be placed at various positions within the grid, but primarily in the corners (e.g., (1, 1), (1, 8), (8, 1), (8, 8)). This suggests that the goal is more likely to be placed in the corners of the grid.
+
+Given this understanding, we can improve the `initial_func` function to better match the observed distribution of initial states.
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # Define the possible agent positions and directions
+    possible_agent_positions = [
+        (i, j) for i in range(2, 8) for j in range(1, 9)
+    ]
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Randomly select an agent position and direction
+    agent_pos = possible_agent_positions[np.random.choice(len(possible_agent_positions))]
+    agent_dir = np.random.choice(possible_agent_directions, p=[0.25, 0.35, 0.35, 0.05])
+
+    # Define the possible goal positions
+    possible_goal_positions = [
+        (1, 1), (1, 8), (8, 1), (8, 8)
+    ]
+
+    # Randomly select a goal position
+    goal_pos = possible_goal_positions[np.random.choice(len(possible_goal_positions))]
+
+    # Place the goal object in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create and return the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation:
+1. **Agent Position**: The possible agent positions are now defined as all positions in the middle rows (2-7) and middle columns (1-8). This ensures that the agent is more likely to start in the central region of the grid.
+2. **Agent Direction**: The possible agent directions are still all four directions, but the probabilities are adjusted to match the observed distribution. The agent is more likely to face down or left, with a lower probability of facing right or up.
+3. **Goal Position**: The possible goal positions are limited to the corners of the grid, ensuring that the goal is more likely to be placed in one of the four corners.
+
+This improved function should generate initial states that better match the observed distribution from the real world.

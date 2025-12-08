@@ -1,0 +1,54 @@
+It looks like the error is caused by trying to access the `value` attribute of a `numpy.int64` object. The `Direction` enum values should be used directly as integers, not as enum objects with a `value` attribute.
+
+Let's correct the code by ensuring that we use the integer values directly for the `agent_dir`.
+
+Here is the corrected `initial_func`:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+    # The grid is already initialized with walls, so we just need to place the agent and goal
+    # The agent can be placed anywhere inside the grid, except on the walls.
+    # The goal can be placed in any cell except the walls and the agent's initial position.
+
+    # Generate a random position for the agent
+    while True:
+        agent_x = np.random.randint(1, empty_state.width - 1)
+        agent_y = np.random.randint(1, empty_state.height - 1)
+        if empty_state.grid[agent_x, agent_y] == ObjectTypes.empty:
+            break
+
+    # Generate a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Place the goal in a random position, ensuring it is not the same as the agent's position
+    while True:
+        goal_x = np.random.randint(1, empty_state.width - 1)
+        goal_y = np.random.randint(1, empty_state.height - 1)
+        if (goal_x, goal_y) != (agent_x, agent_y) and empty_state.grid[goal_x, goal_y] == ObjectTypes.empty:
+            break
+
+    # Update the grid with the agent and goal positions
+    empty_state.grid[agent_x, agent_y] = ObjectTypes.agent
+    empty_state.grid[goal_x, goal_y] = ObjectTypes.goal
+
+    # Update the state with the new agent position and direction
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=(agent_x, agent_y),
+        agent_dir=int(agent_dir),  # Convert Direction enum to integer
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of Changes:
+1. **Agent Direction**: The `agent_dir` is now directly converted to an integer using `int(agent_dir)`. This ensures that the value passed to `MinigridState` is an integer, not a `numpy.int64` object with a `value` attribute.
+
+This should resolve the `AttributeError` and ensure that the function works as expected.

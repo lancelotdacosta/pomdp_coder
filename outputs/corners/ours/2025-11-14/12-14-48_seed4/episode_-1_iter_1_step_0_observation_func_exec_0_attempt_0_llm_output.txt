@@ -1,0 +1,41 @@
+Certainly! The distribution of observations conditioned on a state in the MiniGrid environment typically captures the immediate field of view (FOV) in front of the agent, which is determined by the agent's position and direction. The FOV is a square grid of a certain size (e.g., 3x3) that shows what the agent can see directly in front of it. The agent's direction determines the orientation of this FOV relative to the global grid.
+
+Given the agent's position and direction, the FOV is extracted from the global grid and rotated to match the agent's perspective. The resulting observation includes the FOV, the agent's position, direction, and any object the agent might be carrying.
+
+Here is the implementation of the `observation_func` function:
+
+```python
+def observation_func(state, action, empty_obs):
+    """
+    Args:
+        state (MinigridState): the state of the environment
+        action (int): the previous action that was taken
+        empty_obs (MinigridObservation): an empty observation that needs to be filled and returned
+    Returns:
+        obs (MinigridObservation): observation of the agent
+    """
+    view_size = 3  # Typical field of view size for MiniGrid
+
+    # Get the agent's position and direction
+    agent_pos = state.agent_pos
+    agent_dir = state.agent_dir
+
+    # Get the field of view in front of the agent
+    fov = state.get_field_of_view(view_size)
+
+    # Create the observation with the field of view, agent position, direction, and carried object
+    obs = MinigridObservation(
+        image=fov,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=state.carrying
+    )
+
+    return obs
+```
+
+This function does the following:
+1. **Extracts the Field of View (FOV):** It uses the `get_field_of_view` method of the `MinigridState` class to get a 3x3 grid representing the agent's immediate surroundings.
+2. **Creates the Observation:** It constructs a `MinigridObservation` object with the FOV, the agent's position, the agent's direction, and any object the agent is carrying.
+
+The `get_field_of_view` method handles the logic of extracting the FOV from the global grid and rotating it to match the agent's perspective. This ensures that the observation reflects what the agent would see given its current position and direction.

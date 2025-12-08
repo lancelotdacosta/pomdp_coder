@@ -1,0 +1,57 @@
+Based on the provided sample data, the distribution of initial states suggests that the tiger can be equally likely behind either the left or right door. The samples show that both locations are possible and occur with similar frequency.
+
+Here is the implementation of the `initial_func` function:
+
+```python
+from __future__ import annotations
+
+import random
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def initial_func(empty_state: TigerState):
+    """
+    Input:
+        empty_state (TigerState): An empty state with only the walls filled into the grid
+    Returns:
+        state (TigerState): the initial state of the environment
+    """
+    # Randomly choose between LEFT (0) and RIGHT (1) with equal probability
+    tiger_location = random.choice([0, 1])
+    return TigerState(tiger_location=tiger_location)
+```
+
+This function models the distribution of initial states where the tiger is equally likely to be behind either the left or right door.

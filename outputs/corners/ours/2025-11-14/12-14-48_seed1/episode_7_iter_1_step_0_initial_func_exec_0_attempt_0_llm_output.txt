@@ -1,0 +1,54 @@
+```python
+def initial_func(empty_state: MinigridState):
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    # Define the possible agent positions and directions
+    possible_agent_positions = [
+        (3, 3), (5, 3), (6, 2)
+    ]
+    possible_agent_directions = [0, 1, 2, 3]
+
+    # Randomly select an agent position and direction
+    agent_pos = np.random.choice(possible_agent_positions)
+    agent_dir = np.random.choice(possible_agent_directions)
+
+    # Define the possible goal positions
+    possible_goal_positions = [
+        (8, 1), (9, 8), (8, 8)
+    ]
+
+    # Randomly select a goal position
+    goal_pos = np.random.choice(possible_goal_positions)
+
+    # Place the goal in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid,
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None
+    )
+
+    return initial_state
+```
+
+### Explanation of the Distribution of Initial States
+
+Based on the provided samples, the distribution of initial states appears to have the following characteristics:
+
+1. **Agent Position**: The agent can start at one of a few specific positions within the grid. Based on the samples, these positions are (3, 3), (5, 3), and (6, 2).
+
+2. **Agent Direction**: The agent can start facing any of the four cardinal directions (right, down, left, up).
+
+3. **Goal Position**: The goal object (represented by `10` in the grid) can appear at different positions within the grid. From the samples, the possible goal positions are (8, 1), (9, 8), and (8, 8).
+
+4. **Grid Layout**: The grid is a 10x10 grid with walls around the perimeter. The interior of the grid is initially empty except for the walls.
+
+The `initial_func` function models this distribution by randomly selecting an agent position, agent direction, and goal position from the predefined sets of possible values. This ensures that the generated initial states are representative of the provided samples while allowing for variability.

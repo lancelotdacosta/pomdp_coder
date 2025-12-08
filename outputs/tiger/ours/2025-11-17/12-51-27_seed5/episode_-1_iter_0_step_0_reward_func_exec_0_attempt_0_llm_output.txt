@@ -1,0 +1,85 @@
+```python
+from __future__ import annotations
+
+import copy
+import enum
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from uncertain_worms.structs import (
+    Environment,
+    Heuristic,
+    InitialModel,
+    Observation,
+    ObservationModel,
+    RewardModel,
+    State,
+    TransitionModel,
+)
+
+
+# --------------------------- Enums & Dataclasses -----------------------------#
+class TigerObservationEnum(enum.IntEnum):
+    """Possible observations the agent can receive."""
+    HEAR_LEFT = 0, HEAR_RIGHT = 1, NONE = 2
+
+class TigerActions(enum.IntEnum):
+    """Agent actions in the classic Tiger problem."""
+    OPEN_LEFT = 0
+    OPEN_RIGHT = 1
+    LISTEN = 2
+
+@dataclass(frozen=True)
+class TigerObservation(Observation):
+    """Observation dataclass."""
+    obs: int # 0 = hear left, 1 = hear right, 2 = none
+
+@dataclass(frozen=True)
+class TigerState(State):
+    """Underlying hidden state: tiger behind LEFT (0) or RIGHT (1) door."""
+    tiger_location: int  # 0 = left, 1 = right
+
+def reward_func(state, action, next_state):
+    """
+    Args:
+        state (TigerState): the state of the environment
+        action (int): the action to be executed
+        next_state (TigerState): the next state of the environment
+    Returns:
+        reward (float): the reward of that state
+        done (bool): whether the episode is done
+    """
+    # Define the reward based on the state-action-next_state transition
+    if action == TigerActions.OPEN_LEFT:
+        if state.tiger_location == TigerState(LEFT).tiger_location:
+            return -100.0, True  # Opening the door with the tiger results in a large negative reward
+        else:
+            return 10.0, True  # Opening the correct door results in a positive reward
+    elif action == TigerActions.OPEN_RIGHT:
+        if state.tiger_location == TigerState(RIGHT).tiger_location:
+            return -100.0, True  # Opening the door with the tiger results in a large negative reward
+        else:
+            return 10.0, True  # Opening the correct door results in a positive reward
+    elif action == TigerActions.LISTEN:
+        return 0.0, False  # Listening does not change the state and provides no immediate reward
+
+    # Default case (should not happen in a well-defined environment)
+    return 0.0, False
+```
+
+### Explanation of the Reward Function
+
+The reward function is designed to encourage the agent to make optimal decisions in the Tiger problem. Here's what the reward function does:
+
+1. **Opening the Left Door (`OPEN_LEFT`)**:
+   - If the tiger is behind the left door, the agent receives a large negative reward (-100.0) and the episode ends.
+   - If the tiger is behind the right door, the agent receives a positive reward (10.0) and the episode ends.
+
+2. **Opening the Right Door (`OPEN_RIGHT`)**:
+   - If the tiger is behind the right door, the agent receives a large negative reward (-100.0) and the episode ends.
+   - If the tiger is behind the left door, the agent receives a positive reward (10.0) and the episode ends.
+
+3. **Listening (`LISTEN`)**:
+   - Listening does not change the state of the environment and provides no immediate reward. The episode continues.
+
+The function ensures that the agent learns to avoid opening the door with the tiger behind it and to open the correct door for a positive reward. The listening action allows the agent to gather more information without incurring a penalty.

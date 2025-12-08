@@ -1,0 +1,55 @@
+The observed distribution of the initial states suggests that the agent and the goal can both be placed in any open cell within the grid. The agent's direction is also uniformly random. However, there is a possibility that the agent and the goal can sometimes occupy the same cell, which your current model does not handle correctly.
+
+To improve the code, we need to ensure that:
+1. The agent and the goal can be placed in any open cell, including the same cell.
+2. The agent's direction is uniformly random.
+3. The placement of the agent and the goal should be independent of each other.
+
+Here is the improved `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    # Define the grid dimensions
+    grid_width = empty_state.width
+    grid_height = empty_state.height
+
+    # Find all open cells (non-wall cells)
+    open_cells = np.where(empty_state.grid == ObjectTypes.empty)
+    open_cells = list(zip(open_cells[0], open_cells[1]))
+
+    # Sample a random open cell for the agent's position
+    agent_pos = open_cells[np.random.choice(len(open_cells))]
+
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Sample a random open cell for the goal's position
+    goal_pos = open_cells[np.random.choice(len(open_cells))]
+
+    # Place the goal object in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None,
+    )
+
+    return initial_state
+```
+
+This function ensures that:
+- The agent and the goal can be placed in any open cell, including the same cell.
+- The agent's direction is uniformly random.
+- The placement of the agent and the goal is independent of each other.
+
+By making these changes, the generated initial states should better match the observed distribution.

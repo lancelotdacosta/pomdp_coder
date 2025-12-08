@@ -1,0 +1,60 @@
+Based on the provided samples from the real world, it seems that the agent and goal positions are placed randomly in the open cells (non-wall cells) of the grid. However, there is a pattern indicating that the agent and goal positions are often not overlapping, and they tend to be placed in different regions of the grid.
+
+To improve the model, we need to ensure that the agent and goal are placed in distinct positions and that these positions are chosen more representatively of the real-world distribution. Here is an improved version of the `initial_func` function:
+
+```python
+def initial_func(empty_state: MinigridState) -> MinigridState:
+    """
+    Input:
+        empty_state (MinigridState): An empty state with only the walls filled into the grid
+    Returns:
+        state (MinigridState): the initial state of the environment
+    """
+
+    # Define the grid dimensions
+    grid_width = empty_state.width
+    grid_height = empty_state.height
+
+    # Find all open cells (non-wall cells)
+    open_cells = np.where(empty_state.grid == ObjectTypes.empty)
+    open_cells = list(zip(open_cells[0], open_cells[1]))
+
+    # Ensure we have enough open cells to place both the agent and the goal
+    if len(open_cells) < 2:
+        raise ValueError("Not enough open cells to place both the agent and the goal")
+
+    # Sample a random open cell for the agent's position
+    agent_pos_idx = np.random.choice(len(open_cells))
+    agent_pos = open_cells.pop(agent_pos_idx)
+
+    # Sample a random open cell for the goal's position, ensuring it is different from the agent's position
+    goal_pos_idx = np.random.choice(len(open_cells))
+    goal_pos = open_cells.pop(goal_pos_idx)
+
+    # Sample a random direction for the agent
+    agent_dir = np.random.choice(list(Direction))
+
+    # Place the goal object in the grid
+    empty_state.grid[goal_pos] = ObjectTypes.goal
+
+    # Create the initial state
+    initial_state = MinigridState(
+        grid=empty_state.grid.copy(),
+        agent_pos=agent_pos,
+        agent_dir=agent_dir,
+        carrying=None,
+    )
+
+    return initial_state
+```
+
+### Explanation:
+1. **Finding Open Cells**: We identify all the open cells (cells with `ObjectTypes.empty`) in the grid.
+2. **Ensuring Enough Open Cells**: We check if there are at least two open cells to place the agent and the goal. If not, we raise a `ValueError`.
+3. **Sampling Agent Position**: We randomly select an open cell for the agent's position and remove it from the list of open cells.
+4. **Sampling Goal Position**: We randomly select another open cell for the goal's position, ensuring it is different from the agent's position by removing it from the list of open cells.
+5. **Sample Agent Direction**: We randomly select a direction for the agent from the `Direction` enum.
+6. **Place Goal in Grid**: We place the goal object in the grid at the sampled position.
+7. **Create Initial State**: We create and return the initial state with the sampled positions and direction.
+
+This approach ensures that the agent and goal are placed in distinct positions and that the distribution of positions is more representative of the real-world samples.
