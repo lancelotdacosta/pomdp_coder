@@ -10,11 +10,11 @@ echo "────────────────────────�
 # Delay in seconds between launches
 DELAY=10
 ATTEMPTS=5
-ENVIRONMENT="tiger"
-APPROACH="ours"
+ENVIRONMENT="empty"
+APPROACH="hardcoded"
 
 # Same as range; will take 0, 1, 2, 3
-for SEED in {0..3}
+for SEED in {0..1}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
