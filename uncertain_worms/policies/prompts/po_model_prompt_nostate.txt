@@ -8,8 +8,7 @@ You need to implement the python code to model the world, as seen in the provide
 Please follow the template to implement the code. 
 The code needs to be directly runnable {model_input} and return {model_output}. 
 
-
-Below are a few samples from the environment distribution. These are only samples from a larger distribution that you should model.
+{samples_info}
 
 {exp}
 
