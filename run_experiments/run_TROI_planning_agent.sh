@@ -10,15 +10,15 @@ echo "────────────────────────�
 # Delay in seconds between launches
 DELAY=10
 ATTEMPTS=5
-ENVIRONMENT="empty"
-APPROACH="hardcoded"
+ENVIRONMENT="tiger"
+APPROACH="ours_O"
 
 # Same as range; will take 0, 1, 2, 3
-for SEED in {0..1}
+for SEED in {0..0}
 do
     echo -e "▶ Starting run for seed $SEED}"
 
-    LOG_DIR="outputs/wandb_test/${ENVIRONMENT}/${APPROACH}/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_seed${SEED}"
+    LOG_DIR="outputs/exp_pho/${ENVIRONMENT}/${APPROACH}/\${now:%Y-%m-%d}/\${now:%H-%M-%S}_seed${SEED}"
 
     # Print the directory it's going to use
     echo -e "➤ Output directory: ${LOG_DIR}"
@@ -35,13 +35,16 @@ do
     )
 
     # Conditionally append arguments if APPROACH is "ours"
-    if [ "$APPROACH" == "ours" ]; then
-        cmd_args+=(
-            "agent.use_openrouter=true"
-            "agent.num_model_attempts=$ATTEMPTS"
-            "agent.num_online_model_attempts=$ATTEMPTS"
-        )
-    fi
+    case "$APPROACH" in
+        "ours" | "ours_O")
+            cmd_args+=(
+                "agent.use_openrouter=true"
+                "agent.num_model_attempts=$ATTEMPTS"
+                "agent.num_online_model_attempts=$ATTEMPTS"
+            )
+            ;;
+    esac
+
 
     # Execute the command using the array -> "${cmd_args[@]}" expands to the list of arguments exactly as defined
     "${cmd_args[@]}" &
