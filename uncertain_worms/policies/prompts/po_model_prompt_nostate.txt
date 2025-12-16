@@ -13,7 +13,7 @@ The code needs to be directly runnable {model_input} and return {model_output}.
 {exp}
 
 Here is the template for the {model_name} function. Please implement
-the reward function following the template. The code needs to be directly
+the {model_name} following the template. The code needs to be directly
 runnable.
 
 ‘‘‘

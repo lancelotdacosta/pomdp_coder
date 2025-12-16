@@ -30,7 +30,7 @@ agent:
   learn_initial: false
   learn_reward: false
   learn_observation: true
-  use_online: false # just for now, change later
+  use_online: true
   use_offline: true 
   use_openrouter: false
 
