@@ -26,12 +26,12 @@ agent:
   fully_obs: false
   env_code_path: environments/tiger
   actions: *actions
-  learn_transition: true
-  learn_initial: true
-  learn_reward: true
+  learn_transition: false
+  learn_initial: false
+  learn_reward: false
   learn_observation: true
   use_online: true
-  use_offline: true
+  use_offline: false # just for now, change later
   use_openrouter: false
 
   dataset_path: "environments/tiger/trajectory_data/tiger_data.pkl"
