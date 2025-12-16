@@ -7,7 +7,8 @@
     },
     "observation_model": {
         "what_to_model": "the distribution of observations conditioned on a state",
-        "model_input": "(state)",
+        "model_input": "(action)",
+        "input_comment": "Input changed from (state) to (action) to reflect no state info available -> no post-hoc full observabil1ity",
         "model_output": "a sample (observation)",
         "model_name": "observation_func"
     },

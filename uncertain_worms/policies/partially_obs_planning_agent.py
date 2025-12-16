@@ -361,9 +361,10 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
     ) -> Tuple[Optional[ParticleBelief], Dict[str, str]]:
         """Soft-particle belief update using object-defined distances.
 
-        • dist == ∞  ➜ reject particle  (old exact-match behaviour) •
-        distance_threshold given ➜ keep particles with dist ≤ threshold
-        (equal weight) • else ➜ weight = exp(-dist / kernel_bandwidth)
+        • dist == ∞  ➜ reject particle  (old exact-match behaviour) 
+        • distance_threshold given ➜ keep particles with dist ≤ threshold
+        (equal weight) 
+        • else ➜ weight = exp(-dist / kernel_bandwidth)
         """
         assert len(observation_history) == len(action_history)
 
@@ -756,23 +757,49 @@ class LLMPartiallyObsPlanningAgent(
             return code_str
         return None
 
+    # def print_io(self, input_outputs: List[Tuple[Condition, Outcome]]) -> str:
+    #     io_str = ""
+    #     for condition, outcome in input_outputs:
+    #         if len(condition) > 0:
+    #             for condition_item in list(condition):
+    #                 io_str += f"Input {type(condition_item).__name__}: "
+    #                 io_str += f"{str(condition_item)}\n"
+    #         for outcome_item in list(outcome):
+    #             io_str += f"Output {type(outcome_item).__name__}: "
+    #             io_str += f"{str(outcome_item)}\n"
+    #         io_str += "\n\n"
+    #     return io_str
+
+    # Improved print_io that skips objects whose class name contains "State"
+    # -> first step to remove post-hoc full observability assumption
     def print_io(self, input_outputs: List[Tuple[Condition, Outcome]]) -> str:
         io_str = ""
         for condition, outcome in input_outputs:
             if len(condition) > 0:
                 for condition_item in list(condition):
+                    # Skip any object whose class name contains "State"
+                    if "State" in type(condition_item).__name__:
+                        continue
+
                     io_str += f"Input {type(condition_item).__name__}: "
                     io_str += f"{str(condition_item)}\n"
+            
             for outcome_item in list(outcome):
+                # Optionally skip output states too
+                if "State" in type(outcome_item).__name__:
+                     continue
+
                 io_str += f"Output {type(outcome_item).__name__}: "
                 io_str += f"{str(outcome_item)}\n"
             io_str += "\n\n"
         return io_str
 
+
     def get_starting_prompt(
         self, model_name: str, empirical_dist: Dict[Condition, List[Outcome]]
     ) -> str:
-        starting_prompt_fn = os.path.join(PROMPT_DIR, "po_model_prompt.txt")
+        # starting_prompt_fn = os.path.join(PROMPT_DIR, "po_model_prompt.txt")
+        starting_prompt_fn = os.path.join(PROMPT_DIR, "po_model_prompt_nostate.txt") # be explicit that we skip states in IO examples
         empirical_io: List[Tuple[Condition, Outcome]] = []
         for condition, outcomes in empirical_dist.items():
             for outcome in outcomes:
