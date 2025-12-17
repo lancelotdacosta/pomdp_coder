@@ -820,7 +820,6 @@ class LLMPartiallyObsPlanningAgent(
             starting_prompt = file.read()
 
         starting_templates = {
-            "samples_info": samples_info,
             "exp": initial_exp_str,
             "code_template": self.templates[model_name],
             "code_api": self.code_api,
