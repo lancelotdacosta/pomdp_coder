@@ -36,7 +36,7 @@ do
 
     # Conditionally append arguments if APPROACH is "ours"
     case "$APPROACH" in
-        "ours" | "ours_O" | "ours_i" | "ours_OI" )
+        "ours" | "ours_O" | "ours_I" | "ours_OI" )
             cmd_args+=(
                 "agent.use_openrouter=true"
                 "agent.num_model_attempts=$ATTEMPTS"
