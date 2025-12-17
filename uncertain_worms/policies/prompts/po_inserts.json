@@ -4,7 +4,7 @@
         "model_input": "an empty state with the walls of the grid pre-filled",
         "model_output": "a sample initial state",
         "model_name": "initial_func",
-        "samples_info": "Below are a few samples from the environment distribution. These are only samples from a larger distribution that you should model."
+        "samples_info": "You have no access to samples from the initial state distribution because the true state is hidden. Instead, use the environment specifications below to make an informed guess about the model."
     },
     "observation_model": {
         "what_to_model": "the distribution of observations conditioned on a state",
