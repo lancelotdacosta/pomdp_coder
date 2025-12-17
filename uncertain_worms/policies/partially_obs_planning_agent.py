@@ -418,12 +418,13 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             and self.num_attempts < self.max_attempts
         ):
             self.num_attempts += 1
+            if self.num_attempts % 1000 == 0: print(f"Attempt {self.num_attempts}/{self.max_attempts}")  # Log progress every 1000 attempts
             try:
                 candidate = self.planner.initial_model(copy.deepcopy(self.empty_state))
             except Exception:
                 return None, {"initial_model": traceback.format_exc()}
 
-            if self.num_attempts % 1000 == 0: print(f"Attempt {self.num_attempts}/{self.max_attempts}\n{candidate}")  # Log progress every 1000 attempts
+            print(f"Generated candidate initial state: {candidate}")  # Debug print
 
             ok = True
             next_state = candidate

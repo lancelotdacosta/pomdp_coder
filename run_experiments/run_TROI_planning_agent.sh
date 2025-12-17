@@ -11,7 +11,7 @@ echo "────────────────────────�
 DELAY=10
 ATTEMPTS=5
 ENVIRONMENT="empty"
-APPROACH="ours_OI"
+APPROACH="ours_I"
 
 # Same as range; will take 0, 1, 2, 3
 for SEED in {0..0}
@@ -36,7 +36,7 @@ do
 
     # Conditionally append arguments if APPROACH is "ours"
     case "$APPROACH" in
-        "ours" | "ours_O" | "ours_OI" )
+        "ours" | "ours_O" | "ours_i" | "ours_OI" )
             cmd_args+=(
                 "agent.use_openrouter=true"
                 "agent.num_model_attempts=$ATTEMPTS"
