@@ -58,7 +58,7 @@ agent:
       _target_: uncertain_worms.environments.tiger.tiger_env.tiger_empty_observation_gen
       
     initial_model: 
-      _target_: uncertain_worms.environments.tiger.tiger_env.tiger_initial_model_gen
+      _target_: uncertain_worms.structs.empty_initial_model_gen
     transition_model: 
       _target_: uncertain_worms.environments.tiger.tiger_env.tiger_transition_model_gen
     reward_model:
