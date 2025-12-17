@@ -10,7 +10,7 @@ echo "────────────────────────�
 # Delay in seconds between launches
 DELAY=10
 ATTEMPTS=5
-ENVIRONMENT="tiger"
+ENVIRONMENT="empty"
 APPROACH="ours_OI"
 
 # Same as range; will take 0, 1, 2, 3
