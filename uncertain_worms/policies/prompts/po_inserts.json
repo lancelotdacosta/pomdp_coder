@@ -3,25 +3,28 @@
         "what_to_model": "the distribution of initial states ",
         "model_input": "an empty state with the walls of the grid pre-filled",
         "model_output": "a sample initial state",
-        "model_name": "initial_func"
+        "model_name": "initial_func",
+        "samples_info": "Below are a few samples from the environment distribution. These are only samples from a larger distribution that you should model."
     },
     "observation_model": {
         "what_to_model": "the distribution of observations conditioned on a state",
-        "model_input": "(action)",
-        "input_comment": "Input changed from (state) to (action) to reflect no state info available -> no post-hoc full observabil1ity",
+        "model_input": "(state, action)",
         "model_output": "a sample (observation)",
-        "model_name": "observation_func"
+        "model_name": "observation_func",
+        "samples_info": "Below are samples of Actions and resulting Observations from the environment distribution. These are only samples from a larger distribution that you should model. \nNote: The samples do NOT show the underlying State because it is hidden.\nUse the samples and the environment specifications below to make an informed guess about the model.\nImportant: The input state is the state after the action has already been performed. Your goal is only to implement the sensor logic: Construct the observation (field of view) from the perspective of the state."
     },
     "transition_model": {
         "what_to_model": "the distribution of next states conditioned on actions and previous states",
         "model_input": "(state, action)",
         "model_output": "a sample (next_state)",
-        "model_name": "transition_func"
+        "model_name": "transition_func",
+        "samples_info": "Below are a few samples from the environment distribution. These are only samples from a larger distribution that you should model."
     },
     "reward_model": {
         "what_to_model": "the reward conditioned on state, action, next state transition",
         "model_input": "(state, action, next_state)",
         "model_output": "(reward, done)",
-        "model_name": "reward_func"
+        "model_name": "reward_func",
+        "samples_info": "Below are a few samples from the environment distribution. These are only samples from a larger distribution that you should model."
     }
 }

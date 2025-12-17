@@ -809,10 +809,10 @@ class LLMPartiallyObsPlanningAgent(
             empirical_io, min(self.num_input_examples, len(empirical_io))
         )
 
-        if model_name == "observation_model":
-            samples_info = "Below are samples of Actions and resulting Observations from the environment distribution. These are only samples from a larger distribution that you should model. \nNote: The samples do NOT show the underlying State because it is hidden.\nUse the samples and the environment specifications below to make an informed guess about the model.\nImportant: The input state is the state after the action has already been performed. Your goal is only to implement the sensor logic: Construct the observation (field of view) from the perspective of the state."
-        else:
-            samples_info = "Below are a few samples from the environment distribution. These are only samples from a larger distribution that you should model."
+        # if model_name == "observation_model":
+            # samples_info = "Below are samples of Actions and resulting Observations from the environment distribution. These are only samples from a larger distribution that you should model. \nNote: The samples do NOT show the underlying State because it is hidden.\nUse the samples and the environment specifications below to make an informed guess about the model.\nImportant: The input state is the state after the action has already been performed. Your goal is only to implement the sensor logic: Construct the observation (field of view) from the perspective of the state."
+        # else:
+            # samples_info = "Below are a few samples from the environment distribution. These are only samples from a larger distribution that you should model."
 
         initial_exp_str = self.print_io(empirical_io)
 

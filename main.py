@@ -107,7 +107,7 @@ def run_app(cfg: Config) -> None:
         project="pomdp_coder",
         config=config_dict,
         name=f"{cfg.extras.environment}_{cfg.extras.approach}_seed{cfg.seed}",
-        notes="Observation model only, no state info in IO examples",
+        notes="Changed prompting structure in the backend.",
         # group=f"seed_{cfg.seed}",
         dir=get_log_dir()
     )

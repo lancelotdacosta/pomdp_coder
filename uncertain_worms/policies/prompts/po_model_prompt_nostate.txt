@@ -6,15 +6,14 @@ Goal Description: {goal_description}
 Your goal is to model the {what_to_model}. 
 You need to implement the python code to model the world, as seen in the provided experiences. 
 Please follow the template to implement the code. 
-The code needs to be directly runnable {model_input} and return {model_output}. 
+The code needs to be directly runnable. It takes {model_input} and returns {model_output}. 
 
 {samples_info}
 
 {exp}
 
 Here is the template for the {model_name} function. Please implement
-the {model_name} following the template. The code needs to be directly
-runnable.
+the {model_name} following the template. 
 
 ‘‘‘
 {code_api}
