@@ -424,8 +424,6 @@ class PartiallyObsPlanningAgent(Policy[StateType, ActType, ObsType]):
             except Exception:
                 return None, {"initial_model": traceback.format_exc()}
 
-            print(f"Generated candidate initial state: {candidate}")  # Debug print
-
             ok = True
             next_state = candidate
             for a, obs in zip(action_history, observation_history):

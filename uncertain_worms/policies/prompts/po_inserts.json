@@ -4,7 +4,7 @@
         "model_input": "an empty state with the walls of the grid pre-filled",
         "model_output": "a sample initial state",
         "model_name": "initial_func",
-        "samples_info": "You have no access to samples from the initial state distribution because the true state is hidden. Instead, use the environment specifications below to make an informed guess about the model."
+        "samples_info": "You have no access to samples from the initial state distribution because the true state is hidden. Instead, use the environment specifications below to make an informed guess about the model. It must include at least the agent and the goal."
     },
     "observation_model": {
         "what_to_model": "the distribution of observations conditioned on a state",
