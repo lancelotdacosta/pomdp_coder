@@ -31,7 +31,7 @@ agent:
   learn_initial: false
   learn_reward: false
   learn_observation: true
-  use_online: false
+  use_online: true
   use_offline: true
   use_openrouter: false
   dataset_path: "environments/minigrid/trajectory_data/${env_name}.pkl"
