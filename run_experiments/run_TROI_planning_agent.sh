@@ -10,8 +10,8 @@ echo "────────────────────────�
 # Delay in seconds between launches
 DELAY=10
 ATTEMPTS=5
-ENVIRONMENT="empty"
-APPROACH="ours_I"
+ENVIRONMENT="corners"
+APPROACH="ours_O"
 
 # Same as range; will take 0, 1, 2, 3
 for SEED in {0..0}
