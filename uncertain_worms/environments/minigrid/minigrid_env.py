@@ -321,7 +321,7 @@ class MinigridObservationPure(Observation):
         return hash((self.image.shape, self.image.tobytes()))
 
     def __repr__(self) -> str:
-        return f"MinigridObservationPure(image_shape={self.image.shape})"
+        return f"MinigridObservationPure(image={self.image})"
 
 
 @dataclass
