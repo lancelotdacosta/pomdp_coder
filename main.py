@@ -100,14 +100,13 @@ def run_app(cfg: Config) -> None:
         cfg.agent, writer=writer, max_steps=cfg.max_steps, replay_path=cfg.replay_path
     )
         
-    # TODO W&B logging
     config_dict = OmegaConf.to_container(cfg, resolve=True)
     config_dict["llm_engine"] = ENGINE if cfg.extras.approach == "ours" else None
     wandb.init(
         project="pomdp_coder",
         config=config_dict,
         name=f"{cfg.extras.environment}_{cfg.extras.approach}_seed{cfg.seed}",
-        notes="Learning the observation and initial model without state information.",
+        notes="Changed the observations so they don't contain the agent pos/dir and carrying info anymore.",
         # group=f"seed_{cfg.seed}",
         dir=get_log_dir()
     )

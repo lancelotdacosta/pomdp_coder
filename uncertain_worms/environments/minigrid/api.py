@@ -73,6 +73,22 @@ class MinigridObservation(Observation):
     agent_dir: int
     carrying: Optional[int] = None
 
+@dataclass
+class MinigridObservationPure(Observation):
+    """
+    Args:
+        `image`: field of view in front of the agent.
+
+        These components below are arguably not part of the observation, but
+        rather part of the underlying state. So they are excluded here.
+        `agent_pos`: agent's position in the real world. It differs from the position
+                     in the observation grid.
+        `agent_dir`: agent's direction in the real world. It differs from the direction
+                     of the agent in the observation grid.
+        `carrying`: what the agent is carrying at the moment.
+    """
+
+    image: NDArray[np.int8]
 
 @dataclass
 class MinigridState(State):

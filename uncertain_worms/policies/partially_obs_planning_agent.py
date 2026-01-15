@@ -635,7 +635,8 @@ class LLMPartiallyObsPlanningAgent(
         self.should_learn = {
             "transition_model": learn_transition,
             "reward_model": learn_reward,
-            "observation_model": learn_observation,
+            # "observation_model": learn_observation,
+            "observation_model_pure": learn_observation,
             "initial_model": learn_initial,
         }
 

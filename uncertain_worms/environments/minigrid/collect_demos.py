@@ -34,17 +34,17 @@ def main():
     num_demos = 10
     max_steps = 50  # Maximum steps per episode; adjust as needed.
 
-    # env_name = "MiniGrid-Empty-5x5-v0"
+    env_name = "MiniGrid-Empty-5x5-v0"
     # env_name = "CornerGoalRandom-Empty-10x10-v0"
     # env_name = "MyMiniGrid-LavaWall-v0"
     # env_name = "MyMiniGrid-FourRooms-v0"
-    env_name = "MyUnlockEnv-v0"
+    # env_name = "MyUnlockEnv-v0"
 
     # Initialize an empty replay buffer.
     replay_buffer = ReplayBuffer[State, int, Observation]()
 
     # Create the environment (here using default env_name "MiniGrid-Empty-5x5-v0" and full observability).
-    env = MinigridEnvironment(env_name=env_name, max_steps=max_steps, fully_obs=False)
+    env = MinigridEnvironment(env_name=env_name, max_steps=max_steps, fully_obs=False, pure_obs=True)
 
     # Define key-to-action mapping.
     key_action_mapping = {
@@ -118,10 +118,11 @@ def main():
         # Finish the current episode in the replay buffer.
         replay_buffer.wrap_up_episode()
         print(f"Demo episode {demo + 1} finished.\n")
-
+    
     # Ask for a filename and save the replay buffer.
+    environment_name = f"{env_name}_pure" if env.pure_obs else f"{env_name}"
     filename = os.path.join(
-        PROJECT_ROOT, "environments/minigrid/trajectory_data", env_name + ".pkl"
+        PROJECT_ROOT, "environments/minigrid/trajectory_data", environment_name + ".pkl"
     )
     replay_buffer.save_to_file(filename)
     print(f"Demos saved to {filename}")

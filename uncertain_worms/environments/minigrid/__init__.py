@@ -6,6 +6,7 @@ from .minigrid_env import (
     Direction,
     MinigridEnvironment,
     MinigridObservation,
+    MinigridObservationPure,
     MinigridState,
     ObjectTypes,
 )

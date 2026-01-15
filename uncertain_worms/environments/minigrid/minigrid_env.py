@@ -277,6 +277,52 @@ class MinigridObservation(Observation):
             )
         )
 
+@dataclass
+class MinigridObservationPure(Observation):
+    """
+    Represents the field of view of the agent *without* pose information.
+    The agent is NOT in the center of the observation grid.
+    Observation grids are always square-sizes (i.e. 3x3, 5x5, 7x7).
+    The width and height of the observation grid are called view size.
+    The agent is ALWAYS in the observation and ALWAYS at the same spot
+    in the observation `image`, independent of the observation.
+    The experiences are printed through the `__repr__` function.
+    Args:
+        `image`: field of view in front of the agent.
+
+        These components below are arguably not part of the observation, but
+        rather part of the underlying state. So they are excluded here.
+        `agent_pos`: agent's position in the real world. It differs from the position
+                     in the observation grid.
+        `agent_dir`: agent's direction in the real world. It differs from the direction
+                     of the agent in the observation grid.
+        `carrying`: what the agent is carrying at the moment.
+    """
+
+    image: NDArray[np.int8]
+
+    def encode(self) -> Any:
+        return self
+
+    @staticmethod
+    def decode(obj: MinigridObservationPure) -> MinigridObservationPure:
+        return MinigridObservationPure(image=np.array(obj.image, dtype=np.int8))
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, MinigridObservationPure)
+            and isinstance(self.image, np.ndarray)
+            and isinstance(other.image, np.ndarray)
+            and self.image.shape == other.image.shape
+            and np.allclose(self.image, other.image)
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.image.shape, self.image.tobytes()))
+
+    def __repr__(self) -> str:
+        return f"MinigridObservationPure(image_shape={self.image.shape})"
+
 
 @dataclass
 class MinigridState(State):
@@ -414,6 +460,10 @@ def minigrid_empty_observation_gen(**kwargs: Any) -> MinigridObservation:
         image=np.full((3, 3), ObjectTypes.empty), agent_pos=(1, 1), agent_dir=0
     )
 
+def minigrid_empty_observation_pure_gen(**kwargs: Any) -> MinigridObservationPure:
+    return MinigridObservationPure(
+        image=np.full((3, 3), ObjectTypes.empty)
+    )
 
 def minigrid_empty_state_gen(env_name: str = "MiniGrid-Empty-5x5-v0") -> MinigridState:
     env: MiniGridEnv = gym.make(env_name, agent_view_size=3, max_steps=1)
@@ -576,6 +626,28 @@ def minigrid_hardcoded_observation_model_gen() -> ObservationModel:
 
     return minigrid_hardcoded_observation_model
 
+def minigrid_hardcoded_observation_model_pure_gen() -> ObservationModel:
+    def minigrid_hardcoded_observation_model_pure(
+        state: MinigridState,
+        action: int,
+        empty_obs: MinigridObservationPure,
+        agent_view_size: int = 3,
+    ) -> MinigridObservationPure:
+        grid = state.get_field_of_view(view_size=agent_view_size)
+
+        if not SEE_THROUGH_WALLS:
+            vis_mask = process_vis(
+                grid.T, agent_pos=(agent_view_size // 2, agent_view_size - 1)
+            ).T
+            grid[~vis_mask] = ObjectTypes.empty
+
+
+        return MinigridObservationPure(
+            image=np.array(grid, dtype=np.int8),
+        )
+
+    return minigrid_hardcoded_observation_model_pure
+
 
 def minigrid_hardcoded_transition_model_gen() -> TransitionModel:
     def minigrid_hardcoded_transition_model(
@@ -714,32 +786,77 @@ def build_obs(obs_dict: Dict, fully: bool = True) -> MinigridObservation:
     )
 
 
+def build_obs_pure(obs_dict: Dict, fully: bool = True) -> MinigridObservationPure:
+    W, H, _ = obs_dict["image"].shape
+
+    obs_array = np.zeros((W, H), dtype=np.int8)
+    carrying = None
+    for i in range(W):
+        for j in range(H):
+            if i == W // 2 and j == H - 1 and not fully:
+                # Agent location
+                obs_array[i, j] = ObjectTypes.agent
+                if IDX_TO_OBJECT[obs_dict["image"][i, j, 0]] != "empty":
+                    carrying = minigrid_to_local(
+                        world_object.WorldObj.decode(
+                            *(obs_dict["image"][i, j, :].tolist())
+                        )
+                    )
+            elif fully and list(obs_dict["agent_pos"]) == [i, j]:
+                if IDX_TO_OBJECT[obs_dict["image"][i, j, 0]] != "agent":
+                    carrying = minigrid_to_local(
+                        world_object.WorldObj.decode(
+                            *(obs_dict["image"][i, j, :].tolist())
+                        )
+                    )
+                obs_array[i, j] = ObjectTypes.empty
+            elif IDX_TO_OBJECT[obs_dict["image"][i, j, 0]] == "empty":
+                obs_array[i, j] = ObjectTypes.empty
+            else:
+                wobj = world_object.WorldObj.decode(
+                    *(obs_dict["image"][i, j, :].tolist())
+                )
+                obs_array[i, j] = int(minigrid_to_local(wobj))
+
+    return MinigridObservationPure(
+        image=obs_array
+    )
+
 def create_gif(
     width: int,
     height: int,
-    observations: List[MinigridObservation],
+    observations: List[MinigridObservation | MinigridObservationPure],
     gif_filename: str = "output.gif",
     duration: float = 100.0,
     fully_obs: bool = True,
+    states: List[MinigridState] | None = None,
 ) -> None:
-    """Create a GIF showing the change in color gradients over time.
-
-    Parameters:
-    probabilities_over_time (numpy array): A N x H x W x C  array of probabilities over N steps.
-    class_to_color (dict): A dictionary mapping class indices to RGB colors.
-    gif_filename (str): The name of the output GIF file.
-    duration (float): Duration of each frame in the GIF.
-
-    Returns:
-    None
-    """
     current_grid = PartialGrid(np.zeros((width, height)))
-    partial_grid_trajectory = []
-    for observation in observations:
-        if fully_obs:
-            current_grid = update_fo_grid(current_grid, observation)
+    partial_grid_trajectory: List[PartialGrid] = []
+
+    for t, observation in enumerate(observations):
+        if isinstance(observation, MinigridObservation):
+            image = observation.image
+            agent_pos = observation.agent_pos
+            agent_dir = observation.agent_dir
         else:
-            current_grid = update_po_grid(current_grid, observation)
+            if states is None:
+                raise ValueError(
+                    "create_gif requires `states` when observations are MinigridObservationPure"
+                )
+            image = observation.image
+            agent_pos = states[t].agent_pos
+            agent_dir = states[t].agent_dir
+
+        if fully_obs:
+            current_grid = update_fo_grid_with_pose(
+                current_grid, image=image, agent_pos=agent_pos, agent_dir=agent_dir
+            )
+        else:
+            current_grid = update_po_grid_with_pose(
+                current_grid, image=image, agent_pos=agent_pos, agent_dir=agent_dir
+            )
+
         partial_grid_trajectory.append(current_grid)
 
     frames = []
@@ -748,7 +865,6 @@ def create_gif(
             partial_grid_trajectory[step], fully_obs=fully_obs
         )
 
-        # Convert color grid to image and store in memory
         buffer = BytesIO()
         plt.imshow(color_grid)
         plt.title(f"Step {step + 1}")
@@ -756,14 +872,11 @@ def create_gif(
         plt.savefig(buffer, format="png")
         buffer.seek(0)
 
-        # Append the image to the frame list
         frames.append(imageio.v2.imread(buffer))
         buffer.close()
 
-    # Save frames as a GIF
     imageio.v2.mimwrite(gif_filename, frames, format="GIF", duration=duration)  # type: ignore
     print(f"GIF saved as {gif_filename}")
-
 
 # -------- Belief related functions
 @dataclass
@@ -815,32 +928,37 @@ def get_right_vector(agent_dir_vec: Tuple[int, int]) -> Tuple[int, int]:
     return np.array((-dy, dx)).tolist()
 
 
-def update_fo_grid(partial_grid: PartialGrid, obs: MinigridObservation) -> PartialGrid:
+def update_fo_grid_with_pose(
+    partial_grid: PartialGrid,
+    image: NDArray[np.int8],
+    agent_pos: Tuple[int, int] | NDArray[Any],
+    agent_dir: int,
+) -> PartialGrid:
     new_partial_grid = copy.deepcopy(partial_grid)
-    new_partial_grid.agent_pos = obs.agent_pos
-    new_partial_grid.agent_dir = obs.agent_dir
-    new_partial_grid.grid[obs.image != ObjectTypes.unseen] = obs.image[
-        obs.image != ObjectTypes.unseen
-    ]
+    new_partial_grid.agent_pos = agent_pos
+    new_partial_grid.agent_dir = agent_dir
+    new_partial_grid.grid[image != ObjectTypes.unseen] = image[image != ObjectTypes.unseen]
     return new_partial_grid
 
 
-def update_po_grid(partial_grid: PartialGrid, obs: MinigridObservation) -> PartialGrid:
+def update_po_grid_with_pose(
+    partial_grid: PartialGrid,
+    image: NDArray[np.int8],
+    agent_pos: Tuple[int, int] | NDArray[Any],
+    agent_dir: int,
+) -> PartialGrid:
     new_partial_grid = copy.deepcopy(partial_grid)
-    new_partial_grid.agent_pos = obs.agent_pos
-    new_partial_grid.agent_dir = obs.agent_dir
+    new_partial_grid.agent_pos = agent_pos
+    new_partial_grid.agent_dir = agent_dir
 
-    agent_dir = DIR_TO_VEC[obs.agent_dir]
-    partially_observable_view = obs.image
-    view_size_x, view_size_y = partially_observable_view.shape[0:2]
-    f_vec = agent_dir
+    agent_pos_arr = np.array(agent_pos)
+    f_vec = DIR_TO_VEC[agent_dir]
     r_vec = np.array(get_right_vector(tuple(f_vec.tolist())))
 
-    top_left = (
-        new_partial_grid.agent_pos
-        + f_vec * (view_size_x - 1)
-        - r_vec * (view_size_y // 2)
-    )
+    partially_observable_view = image
+    view_size_x, view_size_y = partially_observable_view.shape[0:2]
+
+    top_left = agent_pos_arr + f_vec * (view_size_x - 1) - r_vec * (view_size_y // 2)
 
     new_partial_grid.in_view = []
     for i in range(0, view_size_x):
@@ -856,16 +974,18 @@ def update_po_grid(partial_grid: PartialGrid, obs: MinigridObservation) -> Parti
 
             new_partial_grid.in_view.append((abs_i, abs_j))
 
-            if obj_idx == ObjectTypes.unseen:
-                continue
-
-            if obj_idx == ObjectTypes.agent:
+            if obj_idx == ObjectTypes.unseen or obj_idx == ObjectTypes.agent:
                 continue
 
             new_partial_grid.grid[abs_i, abs_j] = obj_idx
 
     return new_partial_grid
 
+def update_fo_grid(partial_grid: PartialGrid, obs: MinigridObservation) -> PartialGrid:
+    return update_fo_grid_with_pose(partial_grid, obs.image, obs.agent_pos, obs.agent_dir)
+
+def update_po_grid(partial_grid: PartialGrid, obs: MinigridObservation) -> PartialGrid:
+    return update_po_grid_with_pose(partial_grid, obs.image, obs.agent_pos, obs.agent_dir)
 
 def render_tile(
     obj: int,
@@ -982,6 +1102,7 @@ class MinigridEnvironment(Environment):
         *args: Any,
         env_name: str = "MiniGrid-Empty-5x5-v0",
         fully_obs: bool = True,
+        pure_obs: bool = False,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -991,6 +1112,7 @@ class MinigridEnvironment(Environment):
         )
         self.env.unwrapped.see_through_walls = SEE_THROUGH_WALLS
         self.fully_obs = fully_obs
+        self.pure_obs = pure_obs
         self.width, self.height = self.env.width, self.env.height
         self.env = AgentPositionWrapper(self.env)
         if fully_obs:
@@ -1001,25 +1123,29 @@ class MinigridEnvironment(Environment):
         self, action: ActType
     ) -> Tuple[Observation, State, float, bool, bool, Dict[str, Any]]:
         obs_dict, reward, terminated, truncated, info = self.env.step(action)
-        next_obs = build_obs(obs_dict, fully=self.fully_obs)
+        next_obs = build_obs_pure(obs_dict, fully=self.fully_obs) if self.pure_obs else build_obs(obs_dict, fully=self.fully_obs)
         next_state = build_state(obs_dict, carrying=self.env.unwrapped.carrying)
         return next_obs, next_state, int(reward > 0.0), terminated, truncated, info
 
     def reset(self, seed: int = 0) -> State:
         obs_dict, _ = self.env.reset(seed=seed)
-        initial_obs = build_obs(obs_dict, fully=self.fully_obs)
+        initial_obs = build_obs_pure(obs_dict, fully=self.fully_obs) if self.pure_obs else build_obs(obs_dict, fully=self.fully_obs)
         intial_state = build_state(obs_dict, carrying=self.env.unwrapped.carrying)
         return intial_state
-
+    
     def visualize_episode(
         self,
-        _: List[MinigridState],
-        observations: List[MinigridObservation],
+        states: List[MinigridState],
+        observations: List[MinigridObservation | MinigridObservationPure],
         actions: List[int],
         episode_num: int,
     ) -> None:
-        """An environment speciic belief trajectory visualization function."""
         filename = os.path.join(get_log_dir(), f"episode{episode_num}_output.gif")
         create_gif(
-            self.width, self.height, observations, filename, fully_obs=self.fully_obs
+            self.width,
+            self.height,
+            observations,
+            filename,
+            fully_obs=self.fully_obs,
+            states=states,
         )
